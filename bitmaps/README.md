@@ -15,6 +15,12 @@ Not using a build system such as CMake because there are no dependencies
 * Convert PPM to PNG
   * `magick colors.ppm -compress none color.png`
 
+## Mandelbrot
+
+```
+mandelbrot.exe -0.75 0 2 > mandelbrot.ppm & magick mandelbrot.ppm -compress none mandelbrot.png
+```
+
 ## Reference
 
 Idea from
