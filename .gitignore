@@ -1,4 +1,8 @@
 .vscode
+# ?
+*.ilk
+# debug symbols
+*.pdb
 
 # Prerequisites
 *.d

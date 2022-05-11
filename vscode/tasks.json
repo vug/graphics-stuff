@@ -1,0 +1,73 @@
+{
+  "version": "2.0.0",
+  "options": {
+    // uncomment shell executable when not running VS Code from Command Prompt for VS
+    // it'll run VsDevCmd.bat just after starting a cmd terminal for every task
+    // to make cl.exe accesible from any path.
+
+    // "shell": {
+    //   "executable": "cmd.exe",
+    //   "args": [
+    //     "/C",
+    //     // The path to VsDevCmd.bat depends on the version of Visual Studio you have installed.
+    //     "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/Tools/VsDevCmd.bat\"",
+    //     "&&"
+    //   ]
+    // }
+  },
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "cl.exe build active file",
+      "command": "cl.exe",
+      "args": [
+        // warnings
+        "/W4",
+        // debug symbols into pdb file
+        "/Zi",
+        "/EHsc",
+        "/Fe:",
+        "${fileDirname}\\${fileBasenameNoExtension}.exe",
+        "${file}"
+      ],
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "type": "shell",
+      "label": "cl build lines.exe",
+      "command": "cl.exe",
+      "args": [
+        "/W4",
+        "/Zi",
+        "/EHsc",
+        "/Fe:",
+        "${workspaceFolder}/bitmaps/lines.exe",
+        "${workspaceFolder}/bitmaps/lines.cpp"
+      ],
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },    
+    {
+      "type": "shell",
+      "label": "ImageMagick convert PPM to PNG (lines)",
+      "command": "magick",
+      "args": [
+        "${workspaceFolder}/bitmaps/lines.ppm",
+        "-compress",
+        "none",
+        "${workspaceFolder}/bitmaps/lines.png",
+      ],
+    }
+  ]
+}
