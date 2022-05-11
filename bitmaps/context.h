@@ -53,10 +53,7 @@ public:
     const int deltaX = x1 - x0;
     const int deltaY = y1 - y0;
     if (deltaY == 0)
-    {
-      lineHorizontal(x0, x1, y0, c);
-      return;
-    }
+      return lineHorizontal(x0, x1, y0, c);
     if (deltaX == 0)
     {
       lineVertical(y0, y1, x0, c);
@@ -90,7 +87,61 @@ public:
     }
   }
 
+  /**
+   * This is a variation on naive algorithm where we don't calculate the line formula
+   * for every pixel, instead increment the non-looping coordinate when needed
+   */
   void lineBresenham(int x0, int y0, int x1, int y1, Color c)
+  {
+    const int deltaX = x1 - x0;
+    const int deltaY = y1 - y0;
+    if (deltaY == 0)
+      return lineHorizontal(x0, x1, y0, c);
+    if (deltaX == 0)
+    {
+      lineVertical(y0, y1, x0, c);
+      return;
+    }
+
+    const bool isSteep = std::abs(deltaY) > std::abs(deltaX);
+    int dy = y1 >= y0 ? +1 : -1;
+    int dx = x1 >= x0 ? +1 : -1;
+    float accumulate = 0.0f;
+    float threshold = 0.5f;
+
+    if (!isSteep)
+    {
+      const float m = static_cast<float>(deltaY) / deltaX;
+      const float mAbs = std::abs(m);
+      int y = y0;
+      for (int x = x0; x != x1; x += dx)
+      {
+        if (accumulate > threshold) {
+          y += dy;
+          threshold += 1;
+        }
+        pixels[y][x] = c;
+        accumulate += mAbs;
+      }      
+    }
+    else
+    {
+      const float mInv = static_cast<float>(deltaX) / deltaY;
+      const float mInvAbs = std::abs(mInv);
+      int x = x0;
+      for (int y = y0; y != y1; y += dy)
+      {
+        if (accumulate > threshold) {
+          x += dx;
+          threshold += 1;
+        }
+        pixels[y][x] = c;
+        accumulate += mInvAbs;
+      }        
+    }
+  }
+
+  void lineBresenhamAdvanced(int x0, int y0, int x1, int y1, Color c)
   {
     int dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -std::abs(y1 - y0), sy = y0 < y1 ? 1 : -1;

@@ -30,7 +30,20 @@ int main()
   ctx.lineNaive(50, 50, 50, 10, col);
   ctx.lineNaive(50, 50, 50, 90, col);
 
-  // ctx.lineBresenham(30, 50, 300, 300, {0, 20, 40});
+  ctx.lineBresenham(150, 50, 180, 25, col);
+  ctx.lineBresenham(150, 50, 180, 75, col);
+  ctx.lineBresenham(150, 50, 120, 25, col);
+  ctx.lineBresenham(150, 50, 120, 75, col);
+
+  ctx.lineBresenham(150, 50, 175, 20, col);
+  ctx.lineBresenham(150, 50, 175, 80, col);
+  ctx.lineBresenham(150, 50, 125, 20, col);
+  ctx.lineBresenham(150, 50, 125, 80, col);
+
+  ctx.lineBresenham(150, 50, 190, 50, col);
+  ctx.lineBresenham(150, 50, 110, 50, col);
+  ctx.lineBresenham(150, 50, 150, 10, col);
+  ctx.lineBresenham(150, 50, 150, 90, col);
 
   ctx.printPPM();
 
