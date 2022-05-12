@@ -12,19 +12,22 @@
             "args": [],
             "stopAtEntry": false,
             "environment": [],
-            "externalConsole": false,
+            "console": "internalConsole",
             "preLaunchTask": "cl.exe build active file",
-        },        
+        },
         {
             "name": "Lines",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bitmaps/lines.exe",
-            "args": [">", "lines.ppm"],
+            "args": [
+                ">",
+                "lines.ppm"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bitmaps",
             "environment": [],
-            "externalConsole": false,
+            "console": "internalConsole",
             "preLaunchTask": "cl build lines.exe",
             "postDebugTask": "ImageMagick convert PPM to PNG (lines)",
         }
