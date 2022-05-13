@@ -4,3 +4,6 @@
 [submodule "dependencies/blend2d"]
 	path = dependencies/blend2d
 	url = https://github.com/blend2d/blend2d
+[submodule "dependencies/minifb"]
+	path = dependencies/minifb
+	url = https://github.com/emoon/minifb
