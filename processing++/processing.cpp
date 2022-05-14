@@ -56,13 +56,19 @@ void point(int x, int y, Color c)
 
 void rect(int x, int y, int w, int h)
 {
-  BLRectI rect{x, y, w, h};
-
   if (processing::shouldFill)
+  {
+    // For pixel-alignment in fills, use integer coordinates
+    BLRectI rect{x, y, w, h};
     processing::ctx.fillGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTI, &rect);
+  }
 
   if (processing::shouldStroke)
-    processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTI, &rect);
+  {
+    // For pixel-alignment in strokes, use floating-point coordinates and start & end at pixel centers (i.e at x + .5, y + .5)
+    BLRect rect{x + 0.5, y + 0.5, static_cast<double>(w), static_cast<double>(h)};
+    processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTD, &rect);
+  }
 }
 
 void background(uint8_t r, uint8_t g, uint8_t b)
