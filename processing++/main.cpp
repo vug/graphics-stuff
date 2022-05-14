@@ -2,37 +2,31 @@
 
 #include <cmath>
 
-int width = 800;
-int height = 600;
-uint32_t *buffer;
-
 void setup();
 void draw();
-
-// void resize(struct mfb_window *window, int w, int h)
-// {
-//   (void)window;
-//   width = w;
-//   height = h;
-//   buffer = static_cast<uint32_t *>(realloc(buffer, width * height * sizeof(uint32_t)));
-// }
 
 int main()
 {
   setup();
-  // mfb_set_resize_callback(window, resize);
+
+  processing::window = mfb_open_ex("MiniFB Test", processing::width, processing::height, WF_BORDERLESS || WF_RESIZABLE);
+  processing::buffer = new uint32_t[processing::width * processing::height * sizeof(uint32_t)];
+  mfb_set_viewport(processing::window, 0, 0, processing::width, processing::height);
+
+  mfb_set_resize_callback(processing::window, [](struct mfb_window *window, int w, int h)
+                          { processing::resize(window, w, h); });
   // struct mfb_timer *timer = mfb_timer_create();
 
   do
   {
     draw();
 
-    if (processing.updateWindow() != STATE_OK)
+    if (processing::updateWindow() != STATE_OK)
     {
-      processing.window = 0x0;
+      processing::window = 0x0;
       break;
     }
-  } while (processing.waitSync());
+  } while (processing::waitSync());
 
   return 0;
 }

@@ -1,28 +1,26 @@
+#pragma once
 #include <MiniFB.h>
 
 struct Color
 {
-    uint8_t r = 255;
-    uint8_t g = 255;
-    uint8_t b = 255;
+  uint8_t r = 255;
+  uint8_t g = 255;
+  uint8_t b = 255;
 };
 
-class Processing
+namespace processing
 {
-public:
-    struct mfb_window *window;
-    int width = 200;
-    int height = 200;
-    uint32_t *buffer;
+  extern struct mfb_window *window;
+  extern int width;
+  extern int height;
+  extern uint32_t *buffer;
 
-public:
-    void size(int w, int h);
-    bool waitSync();
-    mfb_update_state updateWindow();
-    void point(int x, int y, Color c);
+  bool waitSync();
+  mfb_update_state updateWindow();
+  void resize(struct mfb_window *window, int w, int h);
 };
 
-extern Processing processing;
-
+int width();
+int height();
 void size(int w, int h);
 void point(int x, int y, Color c);

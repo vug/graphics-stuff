@@ -1,39 +1,42 @@
 #include "processing.h"
 
-Processing processing{};
-
-bool Processing::waitSync()
+namespace processing
 {
-  return mfb_wait_sync(window);
+  struct mfb_window *window;
+  int width = 200;
+  int height = 200;
+  uint32_t *buffer;
+
+  bool waitSync()
+  {
+    return mfb_wait_sync(window);
+  }
+
+  mfb_update_state updateWindow()
+  {
+    return mfb_update_ex(window, buffer, width, height);
+  }
+
+  void resize(struct mfb_window *win, int w, int h)
+  {
+    (void)win;
+    width = w;
+    height = h;
+    buffer = static_cast<uint32_t *>(realloc(buffer, width * height * sizeof(uint32_t)));
+  }
 }
 
-mfb_update_state Processing::updateWindow()
-{
-  return mfb_update_ex(window, buffer, width, height);
-}
-
-void Processing::size(int w, int h)
-{
-  width = w;
-  height = h;
-  window = mfb_open_ex("MiniFB Test", width, height, WF_BORDERLESS || WF_RESIZABLE);
-  buffer = new uint32_t[width * height * sizeof(uint32_t)];
-
-  mfb_set_viewport(window, 0, 0, width, height);
-}
+int width() { return processing::width; }
+int height() { return processing::height; }
 
 void size(int w, int h)
 {
-  processing.size(w, h);
-}
-
-void Processing::point(int x, int y, Color c)
-{
-  uint32_t ix = y * width + x;
-  buffer[ix] = MFB_RGB(c.r, c.g, c.b);
+  processing::width = w;
+  processing::height = h;
 }
 
 void point(int x, int y, Color c)
 {
-  processing.point(x, y, c);
+  uint32_t ix = y * processing::width + x;
+  processing::buffer[ix] = MFB_RGB(c.r, c.g, c.b);
 }
