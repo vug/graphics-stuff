@@ -10,6 +10,9 @@ namespace processing
   BLImage img;
   uint32_t *imageBuffer;
 
+  bool shouldStroke = true;
+  bool shouldFill = true;
+
   void initImageBuffer()
   {
     BLImageData imgData;
@@ -34,7 +37,7 @@ namespace processing
     height = h;
     buffer = static_cast<uint32_t *>(realloc(buffer, width * height * sizeof(uint32_t)));
   }
-}
+} // namespace processing
 
 int width() { return processing::width; }
 int height() { return processing::height; }
@@ -51,8 +54,41 @@ void point(int x, int y, Color c)
   processing::imageBuffer[ix] = MFB_RGB(c.r, c.g, c.b);
 }
 
-void background(int8_t r, int8_t g, int8_t b)
+void rect(int x, int y, int w, int h)
+{
+  BLRectI rect{x, y, w, h};
+
+  if (processing::shouldFill)
+    processing::ctx.fillGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTI, &rect);
+
+  if (processing::shouldStroke)
+    processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTI, &rect);
+}
+
+void background(uint8_t r, uint8_t g, uint8_t b)
 {
   for (auto ix = 0; ix < processing::width * processing::height; ++ix)
     processing::imageBuffer[ix] = MFB_RGB(r, g, b);
+}
+
+void fill(uint8_t r, uint8_t g, uint8_t b)
+{
+  processing::shouldFill = true;
+  processing::ctx.setFillStyle(BLRgba32{r, g, b, 255});
+}
+
+void noFill()
+{
+  processing::shouldFill = false;
+}
+
+void noStroke()
+{
+  processing::shouldStroke = false;
+}
+
+void stroke(uint8_t r, uint8_t g, uint8_t b)
+{
+  processing::shouldStroke = true;
+  processing::ctx.setStrokeStyle(BLRgba32{r, g, b, 255});
 }

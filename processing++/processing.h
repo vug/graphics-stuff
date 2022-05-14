@@ -20,6 +20,9 @@ namespace processing
   extern BLImage img;
   extern uint32_t *imageBuffer;
 
+  extern bool shouldStroke;
+  extern bool shouldFill;
+
   void initImageBuffer();
   bool waitSync();
   mfb_update_state updateWindow();
@@ -32,7 +35,20 @@ int height();
 void size(int w, int h);
 void point(int x, int y, Color c);
 
+// Shape
+//  2D Primitives
+// https://processing.org/reference/rect_.html
+void rect(int x, int y, int w, int h);
+
 // Color
 //   Setting
 // https://processing.org/reference/background_.html
-void background(int8_t r, int8_t g, int8_t b);
+void background(uint8_t r, uint8_t g, uint8_t b);
+// https://processing.org/reference/fill_.html
+void fill(uint8_t r, uint8_t g, uint8_t b);
+// https://processing.org/reference/noFill_.html
+void noFill();
+// https://processing.org/reference/noStroke_.html
+void noStroke();
+// https://processing.org/reference/stroke_.html
+void stroke(uint8_t r, uint8_t g, uint8_t b);
