@@ -17,9 +17,18 @@ int main()
                           { processing::resize(window, w, h); });
   // struct mfb_timer *timer = mfb_timer_create();
 
+  processing::img = BLImage{
+      processing::width, processing::height, BL_FORMAT_PRGB32};
+  processing::initImageBuffer();
+
+  processing::ctx = BLContext{processing::img};
+  processing::ctx.setCompOp(BL_COMP_OP_SRC_COPY);
+  processing::ctx.fillAll();
+
   do
   {
     draw();
+    memcpy(processing::buffer, processing::imageBuffer, processing::width * processing::height * sizeof(uint32_t));
 
     if (processing::updateWindow() != STATE_OK)
     {

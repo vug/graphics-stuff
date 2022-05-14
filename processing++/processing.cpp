@@ -6,6 +6,16 @@ namespace processing
   int width = 200;
   int height = 200;
   uint32_t *buffer;
+  BLContext ctx;
+  BLImage img;
+  uint32_t *imageBuffer;
+
+  void initImageBuffer()
+  {
+    BLImageData imgData;
+    processing::img.getData(&imgData);
+    imageBuffer = static_cast<uint32_t *>(imgData.pixelData);
+  }
 
   bool waitSync()
   {
@@ -38,5 +48,11 @@ void size(int w, int h)
 void point(int x, int y, Color c)
 {
   uint32_t ix = y * processing::width + x;
-  processing::buffer[ix] = MFB_RGB(c.r, c.g, c.b);
+  processing::imageBuffer[ix] = MFB_RGB(c.r, c.g, c.b);
+}
+
+void background(int8_t r, int8_t g, int8_t b)
+{
+  for (auto ix = 0; ix < processing::width * processing::height; ++ix)
+    processing::imageBuffer[ix] = MFB_RGB(r, g, b);
 }
