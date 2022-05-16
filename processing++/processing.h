@@ -10,6 +10,13 @@ struct Color
   uint8_t b = 255;
 };
 
+enum ShapeAttributesMode {
+  CORNER = 0,
+  CORNERS = 1,
+  CENTER = 2,
+  RADIUS = 3,
+};
+
 namespace processing
 {
   extern struct mfb_window *window;
@@ -23,6 +30,9 @@ namespace processing
   extern bool shouldStroke;
   extern bool shouldFill;
 
+  extern ShapeAttributesMode shapeModeEllipse;
+  extern ShapeAttributesMode shapeModeRect;
+
   void initImageBuffer();
   bool waitSync();
   mfb_update_state updateWindow();
@@ -33,18 +43,25 @@ int width();
 int height();
 
 void size(int w, int h);
-void point(int x, int y, Color c);
 
 // Shape
+//  Attributes
+// https://processing.org/reference/ellipseMode_.html
+void ellipseMode(ShapeAttributesMode mode);
+// https://processing.org/reference/rectMode_.html
+void rectMode(ShapeAttributesMode mode);
 //  2D Primitives
+// https://processing.org/reference/point_.html
+void point(int x, int y, Color c);
 // https://processing.org/reference/rect_.html
-void rect(int x, int y, int w, int h);
+void rect(int a, int b, int c, int d);
 
 // Color
 //   Setting
 // https://processing.org/reference/background_.html
 void background(uint8_t r, uint8_t g, uint8_t b);
 // https://processing.org/reference/fill_.html
+void fill(uint8_t gray);
 void fill(uint8_t r, uint8_t g, uint8_t b);
 // https://processing.org/reference/noFill_.html
 void noFill();
