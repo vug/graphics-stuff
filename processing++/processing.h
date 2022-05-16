@@ -33,7 +33,8 @@ namespace processing
   extern ShapeAttributesMode shapeModeEllipse;
   extern ShapeAttributesMode shapeModeRect;
 
-  void initImageBuffer();
+  // Create Blend2d Image, ImageBuffer, Context. Set default drawing settings.
+  void initContext();
   bool waitSync();
   mfb_update_state updateWindow();
   void resize(struct mfb_window *window, int w, int h);

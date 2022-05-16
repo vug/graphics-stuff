@@ -14,13 +14,23 @@ namespace processing
   bool shouldFill = true;
 
   ShapeAttributesMode shapeModeEllipse = CORNER;
-  ShapeAttributesMode shapeModeRect = CORNER;  
+  ShapeAttributesMode shapeModeRect = CORNER;
 
-  void initImageBuffer()
+  void initContext()
   {
+    img = BLImage{width, height, BL_FORMAT_PRGB32};
     BLImageData imgData;
-    processing::img.getData(&imgData);
+    img.getData(&imgData);
     imageBuffer = static_cast<uint32_t *>(imgData.pixelData);
+
+    ctx = BLContext{img};
+    ctx.clearAll();
+    ctx.setRenderingQuality(BL_RENDERING_QUALITY_ANTIALIAS);
+
+    ctx.setCompOp(BL_COMP_OP_SRC_OVER);
+    ctx.setFillStyle(BLRgba32{255, 255, 255, 255});
+    ctx.setStrokeStyle(BLRgba32{0, 0, 0, 255});
+    ctx.setStrokeWidth(1);
   }
 
   bool waitSync()
@@ -39,6 +49,9 @@ namespace processing
     width = w;
     height = h;
     buffer = static_cast<uint32_t *>(realloc(buffer, width * height * sizeof(uint32_t)));
+
+    mfb_set_viewport(processing::window, 0, 0, processing::width, processing::height);
+    initContext();
   }
 } // namespace processing
 
@@ -49,13 +62,29 @@ void size(int w, int h)
 {
   processing::width = w;
   processing::height = h;
+
+  // TODO(vug): better API for resizability. See: https://processing.org/reference/setResizable_.html
+  // By default it should be not resizable.
+  // TODO(vug): second call to size should update existing window, not create a new one.
+  processing::window = mfb_open_ex("MiniFB Test", processing::width, processing::height, WF_RESIZABLE);
+  mfb_set_resize_callback(processing::window, [](struct mfb_window *window, int w, int h)
+                          { processing::resize(window, w, h); });
+
+  processing::buffer = new uint32_t[processing::width * processing::height * sizeof(uint32_t)];
+
+  mfb_set_viewport(processing::window, 0, 0, processing::width, processing::height);
+  processing::initContext();
+
+  background(211, 211, 211);
 }
 
-void ellipseMode(ShapeAttributesMode mode) {
+void ellipseMode(ShapeAttributesMode mode)
+{
   processing::shapeModeEllipse = mode;
 }
 
-void rectMode(ShapeAttributesMode mode) {
+void rectMode(ShapeAttributesMode mode)
+{
   processing::shapeModeRect = mode;
 }
 
@@ -68,19 +97,20 @@ void point(int x, int y, Color c)
 void rect(int a, int b, int c, int d)
 {
   int x = a, y = b, w = c, h = d;
-  switch (processing::shapeModeRect) {
-    case CORNER:
-      x = a;
-      y = b;
-      w = c;
-      h = d;
-      break;
-    case CORNERS:
-      x = a;
-      y = b;
-      w = c - a;
-      h = d - b;
-      break;
+  switch (processing::shapeModeRect)
+  {
+  case CORNER:
+    x = a;
+    y = b;
+    w = c;
+    h = d;
+    break;
+  case CORNERS:
+    x = a;
+    y = b;
+    w = c - a;
+    h = d - b;
+    break;
   }
   if (processing::shouldFill)
   {
