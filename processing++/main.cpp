@@ -22,13 +22,13 @@ int main()
   processing::initImageBuffer();
 
   processing::ctx = BLContext{processing::img};
-  processing::ctx.setCompOp(BL_COMP_OP_SRC_COPY);
-  processing::ctx.fillAll();
+  processing::ctx.clearAll();
+  processing::ctx.setRenderingQuality(BL_RENDERING_QUALITY_ANTIALIAS);
 
   processing::ctx.setCompOp(BL_COMP_OP_SRC_OVER);
   processing::ctx.setFillStyle(BLRgba32{255, 255, 255, 255});
   processing::ctx.setStrokeStyle(BLRgba32{0, 0, 0, 255});
-
+  processing::ctx.setStrokeWidth(1);
   do
   {
     draw();
