@@ -94,7 +94,7 @@ void point(int x, int y, Color c)
   processing::imageBuffer[ix] = MFB_RGB(c.r, c.g, c.b);
 }
 
-void rect(int a, int b, int c, int d)
+void rect(int a, int b, int c, int d, int r)
 {
   int x = a, y = b, w = c, h = d;
   switch (processing::shapeModeRect)
@@ -124,18 +124,30 @@ void rect(int a, int b, int c, int d)
     h = 2 * d;
     break;
   }
-  if (processing::shouldFill)
+  if (r > 0)
   {
-    // For pixel-alignment in fills, use integer coordinates
-    BLRectI rect{x, y, w, h};
-    processing::ctx.fillGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTI, &rect);
-  }
+    BLRoundRect roundRect{static_cast<double>(x), static_cast<double>(y), static_cast<double>(w), static_cast<double>(h), static_cast<double>(r), static_cast<double>(r)};
+    if (processing::shouldFill)
+      processing::ctx.fillGeometry(BLGeometryType::BL_GEOMETRY_TYPE_ROUND_RECT, &roundRect);
 
-  if (processing::shouldStroke)
+    if (processing::shouldStroke)
+      processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_ROUND_RECT, &roundRect);
+  }
+  else
   {
-    // For pixel-alignment in strokes, use floating-point coordinates and start & end at pixel centers (i.e at x + .5, y + .5)
-    BLRect rect{x + 0.5, y + 0.5, static_cast<double>(w), static_cast<double>(h)};
-    processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTD, &rect);
+    if (processing::shouldFill)
+    {
+      // For pixel-alignment in fills, use integer coordinates
+      BLRectI rect{x, y, w, h};
+      processing::ctx.fillGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTI, &rect);
+    }
+
+    if (processing::shouldStroke)
+    {
+      // For pixel-alignment in strokes, use floating-point coordinates and start & end at pixel centers (i.e at x + .5, y + .5)
+      BLRect rect{x + 0.5, y + 0.5, static_cast<double>(w), static_cast<double>(h)};
+      processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_RECTD, &rect);
+    }
   }
 }
 

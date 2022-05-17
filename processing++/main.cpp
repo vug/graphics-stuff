@@ -7,7 +7,6 @@ void draw();
 
 int main()
 {
-  size(100, 100);
   setup();
 
   // struct mfb_timer *timer = mfb_timer_create();

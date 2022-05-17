@@ -55,7 +55,7 @@ void rectMode(ShapeAttributesMode mode);
 // https://processing.org/reference/point_.html
 void point(int x, int y, Color c);
 // https://processing.org/reference/rect_.html
-void rect(int a, int b, int c, int d);
+void rect(int a, int b, int c, int d, int r = 0);
 
 // Color
 //   Setting
