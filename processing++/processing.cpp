@@ -111,6 +111,18 @@ void rect(int a, int b, int c, int d)
     w = c - a;
     h = d - b;
     break;
+  case CENTER:
+    x = a - c / 2;
+    y = b - d / 2;
+    w = c;
+    h = d;
+    break;
+  case RADIUS:
+    x = a - c;
+    y = b - d;
+    w = 2 * c;
+    h = 2 * d;
+    break;
   }
   if (processing::shouldFill)
   {
