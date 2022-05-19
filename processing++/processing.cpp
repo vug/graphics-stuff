@@ -13,7 +13,7 @@ namespace processing
   bool shouldStroke = true;
   bool shouldFill = true;
 
-  ShapeAttributesMode shapeModeEllipse = CORNER;
+  ShapeAttributesMode shapeModeEllipse = CENTER;
   ShapeAttributesMode shapeModeRect = CORNER;
 
   void initContext()
@@ -92,6 +92,45 @@ void point(int x, int y, Color c)
 {
   uint32_t ix = y * processing::width + x;
   processing::imageBuffer[ix] = MFB_RGB(c.r, c.g, c.b);
+}
+
+void ellipse(int a, int b, int c, int d)
+{
+  int cx = a, cy = b, rx = c, ry = d;
+  switch (processing::shapeModeEllipse)
+  {
+  case CORNER:
+    cx = a + c / 2;
+    cy = b + d / 2;
+    rx = c / 2;
+    ry = d / 2;
+    break;
+  case CORNERS:
+    cx = (a + c) / 2;
+    cy = (b + d) / 2;
+    rx = (c - a) / 2;
+    ry = (d - b) / 2;
+    break;
+  case CENTER:
+    cx = a;
+    cy = b;
+    rx = c / 2;
+    ry = d / 2;
+    break;
+  case RADIUS:
+    cx = a;
+    cy = b;
+    rx = c;
+    ry = d;
+    break;
+  }
+
+  BLEllipse ellipse{static_cast<double>(cx), static_cast<double>(cy), static_cast<double>(rx), static_cast<double>(ry)};
+  if (processing::shouldFill)
+    processing::ctx.fillGeometry(BLGeometryType::BL_GEOMETRY_TYPE_ELLIPSE, &ellipse);
+
+  if (processing::shouldStroke)
+    processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_ELLIPSE, &ellipse);
 }
 
 void rect(int a, int b, int c, int d, int r)

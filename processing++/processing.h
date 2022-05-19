@@ -10,7 +10,8 @@ struct Color
   uint8_t b = 255;
 };
 
-enum ShapeAttributesMode {
+enum ShapeAttributesMode
+{
   CORNER = 0,
   CORNERS = 1,
   CENTER = 2,
@@ -52,10 +53,12 @@ void ellipseMode(ShapeAttributesMode mode);
 // https://processing.org/reference/rectMode_.html
 void rectMode(ShapeAttributesMode mode);
 //  2D Primitives
-// https://processing.org/reference/point_.html
-void point(int x, int y, Color c);
+// https://processing.org/reference/ellipse_.html
+void ellipse(int a, int b, int c, int d);
 // https://processing.org/reference/rect_.html
 void rect(int a, int b, int c, int d, int r = 0);
+// https://processing.org/reference/point_.html
+void point(int x, int y, Color c);
 
 // Color
 //   Setting
