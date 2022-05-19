@@ -15,6 +15,7 @@ namespace processing
 
   ShapeAttributesMode shapeModeEllipse = CENTER;
   ShapeAttributesMode shapeModeRect = CORNER;
+  ShapeAttributesCap shapeCap = ROUND;
 
   void initContext()
   {
@@ -31,6 +32,7 @@ namespace processing
     ctx.setFillStyle(BLRgba32{255, 255, 255, 255});
     ctx.setStrokeStyle(BLRgba32{0, 0, 0, 255});
     ctx.setStrokeWidth(1);
+    strokeCap(ROUND);
   }
 
   bool waitSync()
@@ -88,6 +90,27 @@ void rectMode(ShapeAttributesMode mode)
   processing::shapeModeRect = mode;
 }
 
+void strokeCap(ShapeAttributesCap cap)
+{
+  switch(cap)
+  {
+    case ShapeAttributesCap::ROUND:
+      processing::ctx.setStrokeCaps(BL_STROKE_CAP_ROUND);
+      break;
+    case ShapeAttributesCap::SQUARE:
+      processing::ctx.setStrokeCaps(BL_STROKE_CAP_BUTT);
+      break;
+    case ShapeAttributesCap::PROJECT:
+      processing::ctx.setStrokeCaps(BL_STROKE_CAP_SQUARE);
+      break; 
+  }
+}
+
+void strokeWeight(double w)
+{
+  processing::ctx.setStrokeWidth(w);
+}
+
 void point(int x, int y, Color c)
 {
   uint32_t ix = y * processing::width + x;
@@ -139,6 +162,12 @@ void ellipse(int a, int b, int c, int d)
 
   if (processing::shouldStroke)
     processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_ELLIPSE, &ellipse);
+}
+
+void line(int x1, int y1, int x2, int y2)
+{
+  BLLine line{static_cast<double>(x1), static_cast<double>(y1), static_cast<double>(x2), static_cast<double>(y2)};
+  processing::ctx.strokeGeometry(BLGeometryType::BL_GEOMETRY_TYPE_LINE, &line);
 }
 
 void rect(int a, int b, int c, int d, int r)

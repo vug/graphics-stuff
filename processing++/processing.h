@@ -10,6 +10,13 @@ struct Color
   uint8_t b = 255;
 };
 
+enum ShapeAttributesCap
+{
+  ROUND = 0,
+  SQUARE = 1,
+  PROJECT = 2,
+};
+
 enum ShapeAttributesMode
 {
   CORNER = 0,
@@ -33,6 +40,7 @@ namespace processing
 
   extern ShapeAttributesMode shapeModeEllipse;
   extern ShapeAttributesMode shapeModeRect;
+  extern ShapeAttributesCap shapeCap;
 
   // Create Blend2d Image, ImageBuffer, Context. Set default drawing settings.
   void initContext();
@@ -52,11 +60,17 @@ void size(int w, int h);
 void ellipseMode(ShapeAttributesMode mode);
 // https://processing.org/reference/rectMode_.html
 void rectMode(ShapeAttributesMode mode);
+// https://processing.org/reference/strokeCap_.html
+void strokeCap(ShapeAttributesCap cap);
+// https://processing.org/reference/strokeWeight_.html
+void strokeWeight(double w);
 //  2D Primitives
 // https://processing.org/reference/circle_.html
 void circle(int x, int y, int r);
 // https://processing.org/reference/ellipse_.html
 void ellipse(int a, int b, int c, int d);
+// https://processing.org/reference/line_.html
+void line(int x1, int y1, int x2, int y2);
 // https://processing.org/reference/point_.html
 void point(int x, int y, Color c);
 // https://processing.org/reference/rect_.html
