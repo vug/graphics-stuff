@@ -94,6 +94,14 @@ void point(int x, int y, Color c)
   processing::imageBuffer[ix] = MFB_RGB(c.r, c.g, c.b);
 }
 
+void circle(int x, int y, int r)
+{
+  ShapeAttributesMode tmp = processing::shapeModeEllipse;
+  ellipseMode(CENTER);
+  ellipse(x, y, r, r);
+  ellipseMode(tmp);
+}
+
 void ellipse(int a, int b, int c, int d)
 {
   int cx = a, cy = b, rx = c, ry = d;

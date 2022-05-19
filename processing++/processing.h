@@ -53,6 +53,8 @@ void ellipseMode(ShapeAttributesMode mode);
 // https://processing.org/reference/rectMode_.html
 void rectMode(ShapeAttributesMode mode);
 //  2D Primitives
+// https://processing.org/reference/circle_.html
+void circle(int x, int y, int r);
 // https://processing.org/reference/ellipse_.html
 void ellipse(int a, int b, int c, int d);
 // https://processing.org/reference/rect_.html
