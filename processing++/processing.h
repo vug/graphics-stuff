@@ -57,10 +57,12 @@ void rectMode(ShapeAttributesMode mode);
 void circle(int x, int y, int r);
 // https://processing.org/reference/ellipse_.html
 void ellipse(int a, int b, int c, int d);
-// https://processing.org/reference/rect_.html
-void rect(int a, int b, int c, int d, int r = 0);
 // https://processing.org/reference/point_.html
 void point(int x, int y, Color c);
+// https://processing.org/reference/rect_.html
+void rect(int a, int b, int c, int d, int r = 0);
+// https://processing.org/reference/square_.html
+void square(int x, int y, int s);
 
 // Color
 //   Setting

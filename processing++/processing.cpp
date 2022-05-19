@@ -198,6 +198,14 @@ void rect(int a, int b, int c, int d, int r)
   }
 }
 
+void square(int x, int y, int s)
+{
+  ShapeAttributesMode tmp = processing::shapeModeRect;
+  rectMode(CORNER);
+  rect(x, y, s, s);
+  rectMode(tmp);
+}
+
 void background(uint8_t r, uint8_t g, uint8_t b)
 {
   for (auto ix = 0; ix < processing::width * processing::height; ++ix)
