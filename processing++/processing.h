@@ -5,18 +5,18 @@
 
 #include <vector>
 
-struct Color
+// Both Cap and Join has ROUND value. Since we are not using `enum class` but just `enum`
+// as a hacky solution combined enumarations of Cap and Join.
+enum ShapeAttributesCapOrJoin
 {
-  uint8_t r = 255;
-  uint8_t g = 255;
-  uint8_t b = 255;
-};
-
-enum ShapeAttributesCap
-{
+  // Cap
   ROUND = 0,
   SQUARE = 1,
   PROJECT = 2,
+  // Join
+  // ROUND,
+  MITER,
+  BEVEL,
 };
 
 enum ShapeAttributesMode
@@ -60,7 +60,8 @@ namespace processing
 
   extern ShapeAttributesMode shapeModeEllipse;
   extern ShapeAttributesMode shapeModeRect;
-  extern ShapeAttributesCap shapeCap;
+  extern ShapeAttributesCapOrJoin shapeCap;
+  extern ShapeAttributesCapOrJoin shapeJoin;
   extern ShapeVertexBeginMode shapeVertexBeginMode;
   extern ShapeVertexEndMode shapeVertexEndMode;
   extern std::vector<BLPointI> shapeVertices;
@@ -85,7 +86,9 @@ void ellipseMode(ShapeAttributesMode mode);
 // https://processing.org/reference/rectMode_.html
 void rectMode(ShapeAttributesMode mode);
 // https://processing.org/reference/strokeCap_.html
-void strokeCap(ShapeAttributesCap cap);
+void strokeCap(ShapeAttributesCapOrJoin cap);
+// https://processing.org/reference/strokeJoin_.html
+void strokeJoin(ShapeAttributesCapOrJoin join);
 // https://processing.org/reference/strokeWeight_.html
 void strokeWeight(double w);
 //  Vertex

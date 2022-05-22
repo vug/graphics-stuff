@@ -17,7 +17,8 @@ namespace processing
 
   ShapeAttributesMode shapeModeEllipse = CENTER;
   ShapeAttributesMode shapeModeRect = CORNER;
-  ShapeAttributesCap shapeCap = ROUND;
+  ShapeAttributesCapOrJoin shapeCap = ShapeAttributesCapOrJoin::ROUND;
+  ShapeAttributesCapOrJoin shapeJoin = ShapeAttributesCapOrJoin::MITER;
   ShapeVertexBeginMode shapeVertexBeginMode = POLYGON;
   ShapeVertexEndMode shapeVertexEndMode = NONE;
   std::vector<BLPointI> shapeVertices = {};
@@ -104,20 +105,42 @@ void rectMode(ShapeAttributesMode mode)
   processing::shapeModeRect = mode;
 }
 
-void strokeCap(ShapeAttributesCap cap)
+void strokeCap(ShapeAttributesCapOrJoin cap)
 {
   switch (cap)
   {
-  case ShapeAttributesCap::ROUND:
+  case ShapeAttributesCapOrJoin::ROUND:
     processing::ctx.setStrokeCaps(BL_STROKE_CAP_ROUND);
     break;
-  case ShapeAttributesCap::SQUARE:
+  case ShapeAttributesCapOrJoin::SQUARE:
     processing::ctx.setStrokeCaps(BL_STROKE_CAP_BUTT);
     break;
-  case ShapeAttributesCap::PROJECT:
+  case ShapeAttributesCapOrJoin::PROJECT:
     processing::ctx.setStrokeCaps(BL_STROKE_CAP_SQUARE);
     break;
+  default:
+    assert(false);
+    break;
   }
+}
+
+void strokeJoin(ShapeAttributesCapOrJoin join)
+{
+  switch (join)
+  {
+  case ShapeAttributesCapOrJoin::ROUND:
+    processing::ctx.setStrokeJoin(BL_STROKE_JOIN_ROUND);
+    break;
+  case ShapeAttributesCapOrJoin::MITER:
+    processing::ctx.setStrokeJoin(BL_STROKE_JOIN_MITER_CLIP);
+    break;
+  case ShapeAttributesCapOrJoin::BEVEL:
+    processing::ctx.setStrokeJoin(BL_STROKE_JOIN_BEVEL);
+    break;
+  default:
+    assert(false);
+    break;
+  }  
 }
 
 void strokeWeight(double w)
