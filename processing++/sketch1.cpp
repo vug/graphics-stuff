@@ -19,7 +19,8 @@ void draw()
       auto g = static_cast<uint8_t>(y * 255.0f / h);
       auto b = static_cast<uint8_t>(255.0f);
       // auto b = 255.0f * (std::sin(now) * 0.5f + 0.5f);
-      point(x, y, {r, g, b});
+      stroke(r, g, b);
+      point(x, y);
     }
   }
 

@@ -1,5 +1,7 @@
 #include "processing.h"
 
+#include <cassert>
+
 namespace processing
 {
   struct mfb_window *window;
@@ -57,6 +59,15 @@ namespace processing
 
     mfb_set_viewport(processing::window, 0, 0, processing::width, processing::height);
     initContext();
+  }
+
+  BLRgba32 getStrokeColor()
+  {
+    BLVarCore var;
+    BLRgba32 col;
+    processing::ctx.getStrokeStyle(var);
+    blVarToRgba32(&var, &col.value);
+    return col;
   }
 } // namespace processing
 
@@ -128,12 +139,14 @@ void vertex(int x, int y)
 void endShape(ShapeVertexEndMode mode)
 {
   BLPath path;
+  const auto &verts = processing::shapeVertices;
   switch (processing::shapeVertexBeginMode)
   {
   case ShapeVertexBeginMode::POLYGON:
-    for (size_t ix = 0; ix < processing::shapeVertices.size(); ++ix)
+  {
+    for (size_t ix = 0; ix < verts.size(); ++ix)
     {
-      const auto &p = processing::shapeVertices[ix];
+      const auto &p = verts[ix];
       if (ix == 0)
         path.moveTo(p.x, p.y);
       else
@@ -141,7 +154,108 @@ void endShape(ShapeVertexEndMode mode)
     }
     if (mode == ShapeVertexEndMode::CLOSE)
       path.close();
-    break;
+  }
+  break;
+  case ShapeVertexBeginMode::POINTS:
+  {
+    for (const auto &p : verts)
+      point(p.x, p.y);
+  }
+  break;
+  case ShapeVertexBeginMode::LINES:
+  {
+    assert(verts.size() % 2 == 0);
+    for (size_t ix = 0; ix < verts.size(); ix += 2)
+    {
+      const auto &p1 = verts[ix];
+      const auto &p2 = verts[ix + 1];
+      const BLLine line{static_cast<double>(p1.x), static_cast<double>(p1.y), static_cast<double>(p2.x), static_cast<double>(p2.y)};
+      path.addLine(line);
+    }
+  }
+  break;
+  case ShapeVertexBeginMode::TRIANGLES:
+  {
+    assert(verts.size() % 3 == 0);
+    for (size_t ix = 0; ix < verts.size(); ix += 3)
+    {
+      const auto &p1 = verts[ix];
+      const auto &p2 = verts[ix + 1];
+      const auto &p3 = verts[ix + 2];
+      const BLTriangle triangle{
+          static_cast<double>(p1.x), static_cast<double>(p1.y),
+          static_cast<double>(p2.x), static_cast<double>(p2.y),
+          static_cast<double>(p3.x), static_cast<double>(p3.y)};
+      path.addTriangle(triangle);
+    }
+  }
+  break;
+  case ShapeVertexBeginMode::TRIANGLE_STRIP:
+  {
+    assert(verts.size() >= 3);
+    size_t ix = 2;
+    do
+    {
+      const BLPointI &p1 = verts[ix - 2];
+      const BLPointI &p2 = verts[ix - 1];
+      const BLPointI &p3 = verts[ix];
+      const BLTriangle triangle{
+          static_cast<double>(p1.x), static_cast<double>(p1.y),
+          static_cast<double>(p2.x), static_cast<double>(p2.y),
+          static_cast<double>(p3.x), static_cast<double>(p3.y)};
+      path.addTriangle(triangle);
+      ++ix;
+    } while (ix < verts.size());
+  }
+  break;
+  case ShapeVertexBeginMode::TRIANGLE_FAN:
+  {
+    assert(verts.size() >= 3);
+    size_t ix = 2;
+    const BLPointI &p1 = verts[0];
+    do
+    {
+      const BLPointI &p2 = verts[ix - 1];
+      const BLPointI &p3 = verts[ix];
+      const BLTriangle triangle{
+          static_cast<double>(p1.x), static_cast<double>(p1.y),
+          static_cast<double>(p2.x), static_cast<double>(p2.y),
+          static_cast<double>(p3.x), static_cast<double>(p3.y)};
+      path.addTriangle(triangle);
+      ++ix;
+    } while (ix < verts.size());
+  }
+  break;
+  case ShapeVertexBeginMode::QUADS:
+  {
+    assert(verts.size() % 4 == 0);
+    for (size_t ix = 0; ix < verts.size(); ix += 4)
+    {
+      const auto &p1 = verts[ix];
+      const auto &p2 = verts[ix + 1];
+      const auto &p3 = verts[ix + 2];
+      const auto &p4 = verts[ix + 3];
+      const std::vector<BLPointI> quad = {p1, p2, p3, p4};
+      path.addPolygon(quad.data(), quad.size());
+    }
+  }
+  break;
+  case ShapeVertexBeginMode::QUAD_STRIP:
+  {
+    assert(verts.size() >= 4);
+    size_t ix = 3;
+    do
+    {
+      const BLPointI &p1 = verts[ix - 3];
+      const BLPointI &p2 = verts[ix - 2];
+      const BLPointI &p3 = verts[ix];
+      const BLPointI &p4 = verts[ix - 1];
+      const std::vector<BLPointI> quad = {p1, p2, p3, p4};
+      path.addPolygon(quad.data(), quad.size());
+      ix += 2;
+    } while (ix < verts.size());
+  }
+  break;
   }
 
   if (processing::shouldFill)
@@ -151,10 +265,11 @@ void endShape(ShapeVertexEndMode mode)
     processing::ctx.strokePath(path);
 }
 
-void point(int x, int y, Color c)
+void point(int x, int y)
 {
+  const auto &c = processing::getStrokeColor();
   uint32_t ix = y * processing::width + x;
-  processing::imageBuffer[ix] = MFB_RGB(c.r, c.g, c.b);
+  processing::imageBuffer[ix] = MFB_RGB(c.r(), c.g(), c.b());
 }
 
 void circle(int x, int y, int r)

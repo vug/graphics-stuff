@@ -31,10 +31,10 @@ enum ShapeVertexBeginMode
 {
   POLYGON = 0,
   POINTS,
-  LINES, 
-  TRIANGLES, 
-  TRIANGLE_FAN, 
-  TRIANGLE_STRIP, 
+  LINES,
+  TRIANGLES,
+  TRIANGLE_FAN,
+  TRIANGLE_STRIP,
   QUADS,
   QUAD_STRIP
 };
@@ -70,6 +70,7 @@ namespace processing
   bool waitSync();
   mfb_update_state updateWindow();
   void resize(struct mfb_window *window, int w, int h);
+  BLRgba32 getStrokeColor();
 };
 
 int width();
@@ -102,7 +103,7 @@ void ellipse(int a, int b, int c, int d);
 // https://processing.org/reference/line_.html
 void line(int x1, int y1, int x2, int y2);
 // https://processing.org/reference/point_.html
-void point(int x, int y, Color c);
+void point(int x, int y);
 // https://processing.org/reference/rect_.html
 void rect(int a, int b, int c, int d, int r = 0);
 // https://processing.org/reference/square_.html
