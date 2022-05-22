@@ -16,6 +16,9 @@ namespace processing
   ShapeAttributesMode shapeModeEllipse = CENTER;
   ShapeAttributesMode shapeModeRect = CORNER;
   ShapeAttributesCap shapeCap = ROUND;
+  ShapeVertexBeginMode shapeVertexBeginMode = POLYGON;
+  ShapeVertexEndMode shapeVertexEndMode = NONE;
+  std::vector<BLPointI> shapeVertices = {};
 
   void initContext()
   {
@@ -92,23 +95,60 @@ void rectMode(ShapeAttributesMode mode)
 
 void strokeCap(ShapeAttributesCap cap)
 {
-  switch(cap)
+  switch (cap)
   {
-    case ShapeAttributesCap::ROUND:
-      processing::ctx.setStrokeCaps(BL_STROKE_CAP_ROUND);
-      break;
-    case ShapeAttributesCap::SQUARE:
-      processing::ctx.setStrokeCaps(BL_STROKE_CAP_BUTT);
-      break;
-    case ShapeAttributesCap::PROJECT:
-      processing::ctx.setStrokeCaps(BL_STROKE_CAP_SQUARE);
-      break; 
+  case ShapeAttributesCap::ROUND:
+    processing::ctx.setStrokeCaps(BL_STROKE_CAP_ROUND);
+    break;
+  case ShapeAttributesCap::SQUARE:
+    processing::ctx.setStrokeCaps(BL_STROKE_CAP_BUTT);
+    break;
+  case ShapeAttributesCap::PROJECT:
+    processing::ctx.setStrokeCaps(BL_STROKE_CAP_SQUARE);
+    break;
   }
 }
 
 void strokeWeight(double w)
 {
   processing::ctx.setStrokeWidth(w);
+}
+
+void beginShape(ShapeVertexBeginMode mode)
+{
+  processing::shapeVertices.clear();
+  processing::shapeVertexBeginMode = mode;
+}
+
+void vertex(int x, int y)
+{
+  processing::shapeVertices.emplace_back(x, y);
+}
+
+void endShape(ShapeVertexEndMode mode)
+{
+  BLPath path;
+  switch (processing::shapeVertexBeginMode)
+  {
+  case ShapeVertexBeginMode::POLYGON:
+    for (size_t ix = 0; ix < processing::shapeVertices.size(); ++ix)
+    {
+      const auto &p = processing::shapeVertices[ix];
+      if (ix == 0)
+        path.moveTo(p.x, p.y);
+      else
+        path.lineTo(p.x, p.y);
+    }
+    if (mode == ShapeVertexEndMode::CLOSE)
+      path.close();
+    break;
+  }
+
+  if (processing::shouldFill)
+    processing::ctx.fillPath(path);
+
+  if (processing::shouldStroke)
+    processing::ctx.strokePath(path);
 }
 
 void point(int x, int y, Color c)
