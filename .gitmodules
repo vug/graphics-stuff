@@ -7,3 +7,6 @@
 [submodule "dependencies/minifb"]
 	path = dependencies/minifb
 	url = https://github.com/emoon/minifb
+[submodule "dependencies/ColorSpace"]
+	path = dependencies/ColorSpace
+	url = https://github.com/berendeanicolae/ColorSpace.git
