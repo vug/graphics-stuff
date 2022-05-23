@@ -3,6 +3,7 @@
 #define BL_STATIC
 #include <blend2d.h>
 
+#include <array>
 #include <vector>
 
 // Both Cap and Join has ROUND value. Since we are not using `enum class` but just `enum`
@@ -36,13 +37,33 @@ enum ShapeVertexBeginMode
   TRIANGLE_FAN,
   TRIANGLE_STRIP,
   QUADS,
-  QUAD_STRIP
+  QUAD_STRIP,
 };
 
 enum ShapeVertexEndMode
 {
   NONE = 0,
   CLOSE = 1,
+};
+
+enum ColorMode
+{
+  RGB = 0,
+  HSB,
+};
+
+class color
+{
+public:
+  color() = default;
+  color(uint8_t gray);
+  color(int v1, int v2, int v3);
+  color(float v1, float v2, float v3);
+
+  const BLRgba32 getValue() const { return value; }
+
+private:
+  BLRgba32 value{0xFFFFFFFF};
 };
 
 namespace processing
@@ -65,6 +86,10 @@ namespace processing
   extern ShapeVertexBeginMode shapeVertexBeginMode;
   extern ShapeVertexEndMode shapeVertexEndMode;
   extern std::vector<BLPointI> shapeVertices;
+  extern ColorMode colorModeSetting;
+  extern std::array<float, 3> colorMaxSetting;
+  extern const std::array<float, 3> colorMaxRgb;
+  extern const std::array<float, 3> colorMaxHsb;
 
   // Create Blend2d Image, ImageBuffer, Context. Set default drawing settings.
   void initContext();
@@ -72,6 +97,9 @@ namespace processing
   mfb_update_state updateWindow();
   void resize(struct mfb_window *window, int w, int h);
   BLRgba32 getStrokeColor();
+  BLRgba32 getColorFromTripletNormalized(float v1, float v2, float v3);
+  BLRgba32 getColorFromTriplet(int v1, int v2, int v3);
+  BLRgba32 getColorFromTriplet(float v1, float v2, float v3);
 };
 
 int width();
@@ -115,13 +143,22 @@ void square(int x, int y, int s);
 // Color
 //   Setting
 // https://processing.org/reference/background_.html
-void background(uint8_t r, uint8_t g, uint8_t b);
+void background(color c);
+void background(uint8_t v1, uint8_t v2, uint8_t v3);
+// https://processing.org/reference/colorMode_.html
+void colorMode(ColorMode mode, float max = 255.f);
+void colorMode(ColorMode mode, float max1, float max2, float max3);
 // https://processing.org/reference/fill_.html
+void fill(color c);
 void fill(uint8_t gray);
-void fill(uint8_t r, uint8_t g, uint8_t b);
+void fill(int v1, int v2, int v3);
+void fill(float v1, float v2, float v3);
 // https://processing.org/reference/noFill_.html
 void noFill();
 // https://processing.org/reference/noStroke_.html
 void noStroke();
 // https://processing.org/reference/stroke_.html
-void stroke(uint8_t r, uint8_t g, uint8_t b);
+void stroke(color c);
+void stroke(uint8_t gray);
+void stroke(int v1, int v2, int v3);
+void stroke(float v1, float v2, float v3);

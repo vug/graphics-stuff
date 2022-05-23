@@ -1,6 +1,14 @@
 #include "processing.h"
+#include <ColorSpace.h>
 
 #include <cassert>
+
+color::color(uint8_t gray)
+    : value({gray, gray, gray, 255}) {}
+color::color(int v1, int v2, int v3)
+    : value(processing::getColorFromTriplet(v1, v2, v3)) {}
+color::color(float v1, float v2, float v3)
+    : value(processing::getColorFromTriplet(v1, v2, v3)) {}
 
 namespace processing
 {
@@ -22,6 +30,10 @@ namespace processing
   ShapeVertexBeginMode shapeVertexBeginMode = POLYGON;
   ShapeVertexEndMode shapeVertexEndMode = NONE;
   std::vector<BLPointI> shapeVertices = {};
+  ColorMode colorModeSetting = ColorMode::RGB;
+  std::array<float, 3> colorMaxSetting = {255.f, 255.f, 255.f};
+  const std::array<float, 3> colorMaxRgb = {255.f, 255.f, 255.f};
+  const std::array<float, 3> colorMaxHsb = {360.f, 1.f, 1.f};
 
   void initContext()
   {
@@ -69,6 +81,39 @@ namespace processing
     processing::ctx.getStrokeStyle(var);
     blVarToRgba32(&var, &col.value);
     return col;
+  }
+
+  BLRgba32 getColorFromTripletNormalized(float v1, float v2, float v3)
+  {
+    switch (colorModeSetting)
+    {
+    case ColorMode::RGB:
+      return BLRgba32{static_cast<uint32_t>(v1), static_cast<uint32_t>(v2), static_cast<uint32_t>(v3)};
+    case ColorMode::HSB:
+    {
+      ColorSpace::Hsb hsb{static_cast<double>(v1), static_cast<double>(v2), static_cast<double>(v3)};
+      ColorSpace::Rgb rgb;
+      hsb.ToRgb(&rgb);
+      return BLRgba32{static_cast<uint8_t>(rgb.r), static_cast<uint8_t>(rgb.g), static_cast<uint8_t>(rgb.b)};
+    }
+    default:
+      assert(false); // Unknown color mode
+      return BLRgba32{0xFFFFFFFF};
+    }
+  }
+
+  BLRgba32 getColorFromTriplet(int v1, int v2, int v3)
+  {
+    return getColorFromTriplet(static_cast<float>(v1), static_cast<float>(v2), static_cast<float>(v3));
+  }
+
+  BLRgba32 getColorFromTriplet(float v1, float v2, float v3)
+  {
+    const auto &colorMax = processing::colorModeSetting == ColorMode::RGB ? colorMaxRgb : colorMaxHsb;
+    const float n1 = v1 / colorMaxSetting[0] * colorMax[0];
+    const float n2 = v2 / colorMaxSetting[1] * colorMax[1];
+    const float n3 = v3 / colorMaxSetting[2] * colorMax[2];
+    return getColorFromTripletNormalized(n1, n2, n3);
   }
 } // namespace processing
 
@@ -140,7 +185,7 @@ void strokeJoin(ShapeAttributesCapOrJoin join)
   default:
     assert(false);
     break;
-  }  
+  }
 }
 
 void strokeWeight(double w)
@@ -413,10 +458,36 @@ void square(int x, int y, int s)
   rectMode(tmp);
 }
 
-void background(uint8_t r, uint8_t g, uint8_t b)
+void background(color c)
 {
+  const auto col = c.getValue();
   for (auto ix = 0; ix < processing::width * processing::height; ++ix)
-    processing::imageBuffer[ix] = MFB_RGB(r, g, b);
+    processing::imageBuffer[ix] = MFB_RGB(col.r(), col.g(), col.b());
+}
+
+void background(uint8_t v1, uint8_t v2, uint8_t v3)
+{
+  const auto c = processing::getColorFromTriplet(v1, v2, v3);
+  for (auto ix = 0; ix < processing::width * processing::height; ++ix)
+    processing::imageBuffer[ix] = MFB_RGB(c.r(), c.g(), c.b());
+}
+
+void colorMode(ColorMode mode, float max)
+{
+  processing::colorModeSetting = mode;
+  processing::colorMaxSetting = {max, max, max};
+}
+
+void colorMode(ColorMode mode, float max1, float max2, float max3)
+{
+  processing::colorModeSetting = mode;
+  processing::colorMaxSetting = {max1, max2, max3};
+}
+
+void fill(color c)
+{
+  processing::shouldFill = true;
+  processing::ctx.setFillStyle(c.getValue());
 }
 
 void fill(uint8_t gray)
@@ -424,10 +495,18 @@ void fill(uint8_t gray)
   fill(gray, gray, gray);
 }
 
-void fill(uint8_t r, uint8_t g, uint8_t b)
+void fill(int v1, int v2, int v3)
 {
   processing::shouldFill = true;
-  processing::ctx.setFillStyle(BLRgba32{r, g, b, 255});
+  const auto col = processing::getColorFromTriplet(v1, v2, v3);
+  processing::ctx.setFillStyle(col);
+}
+
+void fill(float v1, float v2, float v3)
+{
+  processing::shouldFill = true;
+  const auto col = processing::getColorFromTriplet(v1, v2, v3);
+  processing::ctx.setFillStyle(col);
 }
 
 void noFill()
@@ -440,8 +519,27 @@ void noStroke()
   processing::shouldStroke = false;
 }
 
-void stroke(uint8_t r, uint8_t g, uint8_t b)
+void stroke(color c)
+{
+  processing::shouldFill = true;
+  processing::ctx.setStrokeStyle(c.getValue());
+}
+
+void stroke(uint8_t gray)
+{
+  stroke(gray, gray, gray);
+}
+
+void stroke(int v1, int v2, int v3)
 {
   processing::shouldStroke = true;
-  processing::ctx.setStrokeStyle(BLRgba32{r, g, b, 255});
+  const auto col = processing::getColorFromTriplet(v1, v2, v3);
+  processing::ctx.setStrokeStyle(col);
+}
+
+void stroke(float v1, float v2, float v3)
+{
+  processing::shouldStroke = true;
+  const auto col = processing::getColorFromTriplet(v1, v2, v3);
+  processing::ctx.setStrokeStyle(col);
 }

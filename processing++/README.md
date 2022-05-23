@@ -7,7 +7,7 @@ build ColorSpace via
 ```cmd
 cd dependencies\ColorSpace
 mkdir bld
-cl /c /EHsc src\ColorSpace.cpp src\Comparison.cpp src\Conversion.cpp /Fobld\
+cl /c /EHsc src\ColorSpace.cpp src\Comparison.cpp src\Conversion.cpp /Fobld\ /MD
 lib bld/ColorSpace.obj bld/Comparison.obj bld/Conversion.obj /out:bld\ColorSpace.lib
 ```
 
