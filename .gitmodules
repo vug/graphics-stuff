@@ -10,3 +10,6 @@
 [submodule "dependencies/ColorSpace"]
 	path = dependencies/ColorSpace
 	url = https://github.com/berendeanicolae/ColorSpace.git
+[submodule "dependencies/OpenMesh"]
+	path = dependencies/OpenMesh
+	url = https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
