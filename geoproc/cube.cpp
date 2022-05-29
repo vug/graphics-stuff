@@ -10,8 +10,9 @@ typedef OpenMesh::PolyMesh_ArrayKernelT<> MyMesh;
 // ----------------------------------------------------------------------------
 // Build a simple cube and write it to std::cout
 
-int main()
+int main(int argc, char* argv[])
 {
+    const char* filename = argc == 2 ? argv[1] : "cube.off";
     MyMesh mesh;
 
     // generate vertices
@@ -76,9 +77,9 @@ int main()
     // write mesh
     try
     {
-        if (!OpenMesh::IO::write_mesh(mesh, "cube.off"))
+        if (!OpenMesh::IO::write_mesh(mesh, filename))
         {
-            std::cerr << "Cannot write mesh to file 'cube.off'" << std::endl;
+            std::cerr << "Cannot write mesh to file '" << filename << "'" << std::endl;
             return 1;
         }
     }
