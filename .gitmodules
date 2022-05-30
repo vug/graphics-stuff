@@ -13,3 +13,6 @@
 [submodule "dependencies/OpenMesh"]
 	path = dependencies/OpenMesh
 	url = https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
+[submodule "dependencies/raylib"]
+	path = dependencies/raylib
+	url = https://github.com/raysan5/raylib

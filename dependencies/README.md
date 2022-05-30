@@ -62,3 +62,33 @@ Example compilation
 ```cmd
 cl /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/OpenMesh/src" ../dependencies/OpenMesh/build/Build/lib/OpenMeshCore.lib /MD /D_USE_MATH_DEFINES /EHsc cube.cpp
 ```
+
+# Raylib
+
+* https://www.raylib.com/
+  * https://www.raylib.com/examples.html
+* https://github.com/raysan5/raylib
+  * https://github.com/raysan5/raylib/releases binaries can be downloaded from here
+* https://github.com/raysan5/raylib/wiki#development-platforms
+  * https://github.com/raysan5/raylib/wiki/Working-on-Windows
+
+```
+cd dependencies
+git submodule add https://github.com/raysan5/raylib
+cd raylib
+mkdir build
+cd build
+cmake .. -L
+cmake .. -DOPENGL_VERSION=4.3 
+```
+
+default OpenGL Version was 3.3. See `CMakeOptions.txt`: `enum_option(OPENGL_VERSION "OFF;4.3;3.3;2.1;1.1;ES 2.0" "Force a specific OpenGL Version?")`
+
+* `raylib.lib` file is in `dependencies\raylib\build\raylib\Release`
+* examples are in `dependencies\raylib\build\examples\Release`
+
+Example compilation
+
+```cmd
+cl /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/raylib/build/raylib/include" ../dependencies/raylib/build/raylib/Release/raylib.lib User32.lib gdi32.lib Shell32.lib Winmm.lib /MD /EHsc raylib.cpp
+```
