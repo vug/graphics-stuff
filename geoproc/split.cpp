@@ -36,8 +36,22 @@ int main(int argc, char *argv[])
   }
   OpenMesh::IO::write_mesh(mesh, "split_original.off");
 
+  // Only do the split if vl and vr are neighbors of v (otw OpenMesh silently crashes)
+  auto v = center;
+  auto vl = vertices[0];
+  auto vr = vertices[numCorners / 2];
+  bool isLeftNeighbor = false;
+  bool isRightNeighbor = false;
+  for (auto vv_it = mesh.vv_iter(v); vv_it.is_valid(); ++vv_it)
+  {
+    if (*vv_it == vl)
+      isLeftNeighbor = true;
+    if (*vv_it == vr)
+      isRightNeighbor = true;
+  }
   MyMesh::VertexHandle newVertex = mesh.add_vertex(MyMesh::Point(newX, newY, 0));
-  mesh.vertex_split(newVertex, center, vertices[0], vertices[numCorners / 2]);
+  if (isLeftNeighbor && isRightNeighbor)
+    mesh.vertex_split(newVertex, v, vl, vr);
   OpenMesh::IO::write_mesh(mesh, filename);
 
   return 0;
