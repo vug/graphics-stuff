@@ -7,7 +7,8 @@
         "${workspaceFolder}/dependencies/blend2d/src",
         "${workspaceFolder}/dependencies/ColorSpace/src",
         "${workspaceFolder}/dependencies/minifb/include",
-        "${workspaceFolder}/dependencies/OpenMesh/src"
+        "${workspaceFolder}/dependencies/OpenMesh/src",
+        "${workspaceFolder}/dependencies/raylib/build/raylib/include"
       ],
       "intelliSenseMode": "windows-msvc-x64",
       "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.30.30705/bin/Hostx64/x64/cl.exe",
