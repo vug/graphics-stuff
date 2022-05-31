@@ -80,6 +80,8 @@ mkdir build
 cd build
 cmake .. -L
 cmake .. -DOPENGL_VERSION=4.3 
+cmake --build . --config Release
+cmake --build . --config Debug
 ```
 
 default OpenGL Version was 3.3. See `CMakeOptions.txt`: `enum_option(OPENGL_VERSION "OFF;4.3;3.3;2.1;1.1;ES 2.0" "Force a specific OpenGL Version?")`
@@ -92,3 +94,5 @@ Example compilation
 ```cmd
 cl /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/raylib/build/raylib/include" ../dependencies/raylib/build/raylib/Release/raylib.lib User32.lib gdi32.lib Shell32.lib Winmm.lib /MD /EHsc raylib.cpp
 ```
+
+`/Zi` for debug symbols
