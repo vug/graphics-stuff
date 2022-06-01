@@ -63,8 +63,9 @@ int main()
     if (IsKeyPressed('Y')) // Method 2
     {
       Mesh &modelMesh = model.meshes[0];
+      makeTriangleMesh(modelMesh, ++numTriangles);
       UpdateMeshBuffer(modelMesh, 0, modelMesh.vertices, sizeof(float) * modelMesh.vertexCount * 3, 0);
-      // from UploadMesh index of vbo for indices is 6
+      // from UploadMesh: index of vbo for indices is 6
       UpdateMeshBuffer(modelMesh, 6, modelMesh.indices, sizeof(unsigned int) * modelMesh.vertexCount, 0);
       debugPrint(model);
     }
