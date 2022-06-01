@@ -7,6 +7,12 @@
 // only fills vertices and indices. rest of the member are not used.
 void makeTriangleMesh(Mesh &mesh, int n)
 {
+  if (mesh.vertices)
+  {
+    delete[] mesh.vertices;
+    delete[] mesh.indices;
+  }
+
   mesh.triangleCount = n;
   mesh.vertexCount = n * 3;
   mesh.vertices = new float[mesh.vertexCount * 3];
