@@ -16,3 +16,6 @@
 [submodule "dependencies/raylib"]
 	path = dependencies/raylib
 	url = https://github.com/raysan5/raylib
+[submodule "dependencies/glfw"]
+	path = dependencies/glfw
+	url = https://github.com/glfw/glfw

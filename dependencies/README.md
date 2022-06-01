@@ -63,16 +63,16 @@ Example compilation
 cl /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/OpenMesh/src" ../dependencies/OpenMesh/build/Build/lib/OpenMeshCore.lib /MD /D_USE_MATH_DEFINES /EHsc cube.cpp
 ```
 
-# Raylib
+## Raylib
 
-* https://www.raylib.com/
-  * https://www.raylib.com/examples.html
-* https://github.com/raysan5/raylib
-  * https://github.com/raysan5/raylib/releases binaries can be downloaded from here
-* https://github.com/raysan5/raylib/wiki#development-platforms
-  * https://github.com/raysan5/raylib/wiki/Working-on-Windows
+* <https://www.raylib.com/>
+  * <https://www.raylib.com/examples.html>
+* <https://github.com/raysan5/raylib>
+  * <https://github.com/raysan5/raylib/releases> binaries can be downloaded from here
+* <https://github.com/raysan5/raylib/wiki#development-platforms>
+  * <https://github.com/raysan5/raylib/wiki/Working-on-Windows>
 
-```
+```cmd
 cd dependencies
 git submodule add https://github.com/raysan5/raylib
 cd raylib
@@ -96,3 +96,50 @@ cl /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/raylib/build
 ```
 
 `/Zi` for debug symbols
+
+## GLFW
+
+* <https://www.glfw.org/>
+
+```cmd
+cd dependencies
+git submodule add https://github.com/glfw/glfw.git
+cd glfw
+mkdir build
+cd build
+cmake .. -L
+cmake .. -DGLFW_BUILD_DOCS=OFF -DGLFW_BUILD_EXAMPLES=Off -DGLFW_BUILD_TESTS=OFF -DGLFW_INSTALL=OFF
+cmake --build . --config Release
+cmake --build . --config Debug
+```
+
+options
+
+```txt
+BUILD_SHARED_LIBS:BOOL=OFF
+CMAKE_CONFIGURATION_TYPES:STRING=Debug;Release;MinSizeRel;RelWithDebInfo
+CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/GLFW
+GLFW_BUILD_DOCS:BOOL=ON
+GLFW_BUILD_EXAMPLES:BOOL=ON
+GLFW_BUILD_TESTS:BOOL=ON
+GLFW_BUILD_WIN32:BOOL=ON
+GLFW_INSTALL:BOOL=ON
+GLFW_LIBRARY_TYPE:STRING=
+GLFW_USE_HYBRID_HPG:BOOL=OFF
+USE_MSVC_RUNTIME_LIBRARY_DLL:BOOL=ON
+```
+
+outputs
+
+* glfw.vcxproj -> C:\Users\veliu\Documents\repos\graphics-stuff\dependencies\glfw\build\src\Release\glfw3.lib
+* glfw.vcxproj -> C:\Users\veliu\Documents\repos\graphics-stuff\dependencies\glfw\build\src\Debug\glfw3.lib
+
+```cmd
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib Opengl32.lib User32.lib Gdi32.lib Shell32.lib /MD /EHsc glfw_01.cpp
+```
+
+`/Zi` for debug symbols
+
+```cmd
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib User32.lib gdi32.lib Shell32.lib Winmm.lib /MD /EHsc dynmesh.cpp /Zi
+```
