@@ -170,3 +170,44 @@ Could have tried "v2 but submodule dependency", but not necessarily needed.
 ```cmd
 cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib /I"../dependencies/glad/include" ../dependencies/glad/glad.lib Opengl32.lib User32.lib Gdi32.lib Shell32.lib /MD /EHsc glfw_02.cpp
 ```
+
+# GLM
+
+* <https://github.com/g-truc/glm>
+
+```cmd
+git submodule add https://github.com/g-truc/glm.git
+cmake .. -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DGLM_TEST_ENABLE=OFF
+```
+
+options
+
+```txt
+BUILD_SHARED_LIBS:BOOL=ON
+BUILD_STATIC_LIBS:BOOL=ON
+BUILD_TESTING:BOOL=ON
+CMAKE_CONFIGURATION_TYPES:STRING=Debug;Release;MinSizeRel;RelWithDebInfo
+CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/glm
+GLM_DISABLE_AUTO_DETECTION:BOOL=OFF
+GLM_QUIET:BOOL=OFF
+GLM_TEST_ENABLE:BOOL=ON
+GLM_TEST_ENABLE_CXX_11:BOOL=OFF
+GLM_TEST_ENABLE_CXX_14:BOOL=OFF
+GLM_TEST_ENABLE_CXX_17:BOOL=OFF
+GLM_TEST_ENABLE_CXX_20:BOOL=OFF
+GLM_TEST_ENABLE_CXX_98:BOOL=OFF
+GLM_TEST_ENABLE_FAST_MATH:BOOL=OFF
+GLM_TEST_ENABLE_LANG_EXTENSIONS:BOOL=OFF
+GLM_TEST_ENABLE_SIMD_AVX:BOOL=OFF
+GLM_TEST_ENABLE_SIMD_AVX2:BOOL=OFF
+GLM_TEST_ENABLE_SIMD_SSE2:BOOL=OFF
+GLM_TEST_ENABLE_SIMD_SSE3:BOOL=OFF
+GLM_TEST_ENABLE_SIMD_SSE4_1:BOOL=OFF
+GLM_TEST_ENABLE_SIMD_SSE4_2:BOOL=OFF
+GLM_TEST_ENABLE_SIMD_SSSE3:BOOL=OFF
+GLM_TEST_FORCE_PURE:BOOL=OFF
+```
+
+```cmd
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glm" ../dependencies/glm/build/glm/Release/glm_static.lib /EHsc glm_test.cpp
+```

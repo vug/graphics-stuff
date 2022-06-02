@@ -6,7 +6,9 @@
         "${default}",
         "${workspaceFolder}/dependencies/blend2d/src",
         "${workspaceFolder}/dependencies/ColorSpace/src",
+        "${workspaceFolder}/dependencies/glad/include",
         "${workspaceFolder}/dependencies/glfw/include",
+        "${workspaceFolder}/dependencies/glm/",
         "${workspaceFolder}/dependencies/minifb/include",
         "${workspaceFolder}/dependencies/OpenMesh/src",
         "${workspaceFolder}/dependencies/raylib/build/raylib/include"
