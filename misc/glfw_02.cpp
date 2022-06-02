@@ -1,4 +1,8 @@
-// modified from: http://learnopengl.com/code_viewer.php?code=getting-started/hellowindow2 GLEW replaced with Glad
+/**
+ * bring OpenGL functions via Glad. Set clear color.
+ * 
+ * modified from: http://learnopengl.com/code_viewer.php?code=getting-started/hellowindow2 GLEW replaced with Glad
+ */
 #include <glad/glad.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>

@@ -1,11 +1,12 @@
 /**
- * Draw wireframe mesh using simple shaders
+ * Dynamically update mesh, add new triangles via glBufferData
  */
 #include <glad/glad.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <vector>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
@@ -26,6 +27,16 @@ void main()
     FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
 }
 )";
+
+std::vector<float> vertices = {
+    0.0f, 0.0f, 0.0f, // p1
+    0.0f, 0.1f, 0.0f, // p2
+    0.1f, 0.0f, 0.0f, // p3
+};
+std::vector<unsigned int> indices = {
+    0, 1, 2, // triangle1
+};
+unsigned int vbo, vao, ebo;
 
 int main()
 {
@@ -79,25 +90,14 @@ int main()
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
 
-  float vertices[] = {
-      0.5f, 0.5f, 0.0f,   // top right
-      0.5f, -0.5f, 0.0f,  // bottom right
-      -0.5f, -0.5f, 0.0f, // bottom left
-      -0.5f, 0.5f, 0.0f   // top left
-  };
-  unsigned int indices[] = {
-      0, 1, 3,
-      1, 2, 3,
-  };
-  unsigned int vbo, vao, ebo;
   glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
   glGenBuffers(1, &ebo);
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -115,8 +115,7 @@ int main()
 
     glUseProgram(shaderProgram);
     glBindVertexArray(vao);
-    // glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     glfwSwapBuffers(window);
@@ -136,6 +135,23 @@ void key_callback(GLFWwindow *window, int key, [[maybe_unused]] int scancode, in
 {
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GL_TRUE);
+  if (key == GLFW_KEY_T && action == GLFW_PRESS)
+  {
+    const size_t lastIx = vertices.size();
+    for (size_t ix = 0; ix < 9; ++ix)
+      vertices.push_back(vertices[lastIx - 9 + ix] + (ix % 3 == 2 ? 0.0f : 0.05f));
+    for (int i = 0; i < 3; ++i)
+      indices.push_back(static_cast<unsigned int>(indices.size()));
+
+    // glBufferSubData only updates the buffer content, can't extend it.
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  }
 }
 
 void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height)
