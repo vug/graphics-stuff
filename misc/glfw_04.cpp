@@ -46,6 +46,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_SAMPLES, 8);
 
   GLFWwindow *window = glfwCreateWindow(width, height, "Wireframe Mesh Render", nullptr, nullptr);
   glfwMakeContextCurrent(window);
@@ -107,6 +108,7 @@ int main()
   // glEnable(GL_LINE_SMOOTH);
   // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
   // glLineWidth(1.0f);
+  glEnable(GL_MULTISAMPLE);
 
   while (!glfwWindowShouldClose(window))
   {
