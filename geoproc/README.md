@@ -40,3 +40,9 @@ Just raylib with debug symbols
 ```cmd
 cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/raylib/build/raylib/include" ../dependencies/raylib/build/raylib/Release/raylib.lib User32.lib gdi32.lib Shell32.lib Winmm.lib /MD /EHsc dynmesh.cpp /Zi
 ```
+
+to use OpenGL API explicitly
+
+```cmd
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/raylib/build/raylib/include" /I"../dependencies/raylib/src" ../dependencies/raylib/build/raylib/Release/raylib.lib User32.lib gdi32.lib Shell32.lib Winmm.lib /MD /EHsc dynmesh.cpp /Zi
+```

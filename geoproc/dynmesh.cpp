@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <rlgl.h>
+#include "external/glad.h"
 
 #include <iostream>
 
@@ -70,9 +71,12 @@ int main()
     {
       Mesh &modelMesh = model.meshes[0];
       makeTriangleMesh(modelMesh, ++numTriangles);
-      UpdateMeshBuffer(modelMesh, 0, modelMesh.vertices, sizeof(float) * modelMesh.vertexCount * 3, 0);
+      glBindBuffer(GL_ARRAY_BUFFER, modelMesh.vboId[0]);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(float) * modelMesh.vertexCount * 3, modelMesh.vertices, GL_STATIC_DRAW);
       // from UploadMesh: index of vbo for indices is 6
-      UpdateMeshBuffer(modelMesh, 6, modelMesh.indices, sizeof(unsigned int) * modelMesh.vertexCount, 0);
+      rlLoadVertexBufferElement()
+          glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, modelMesh.vboId[6]);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * modelMesh.vertexCount, modelMesh.indices, GL_STATIC_DRAW);
       debugPrint(model);
     }
 
