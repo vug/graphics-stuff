@@ -1,4 +1,5 @@
 .vscode
+dependencies/glad/glad.lib
 # ?
 *.ilk
 # debug symbols

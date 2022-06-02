@@ -140,6 +140,33 @@ cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/g
 
 `/Zi` for debug symbols
 
+## Glad
+
+v1
+
+* <https://glad.dav1d.de/>
+* gl: Version 4.6
+* no extensions
+* profile: core
+* Generate a loader: checked (tutorial says `--no-loader` though)
+* permalink: <https://glad.dav1d.de/#language=c&specification=gl&api=gl%3D4.6&api=gles1%3Dnone&api=gles2%3Dnone&api=glsc2%3Dnone&profile=core&loader=on>
+
+v2
+
+* <https://gen.glad.sh/>
+* gl: Version 4.6
+* profile: core
+* no other options (could try `loader` and `header only`)
+* permalink: <https://gen.glad.sh/#generator=c&api=gl%3D4.6&profile=gl%3Dcore%2Cgles1%3Dcommon>
+
+Could have tried "v2 but submodule dependency", but not necessarily needed.
+
+* download glad.zip
+* extract it into `dependencies/glad`
+* `cl /std:c++20 /W4 /I"include" /c /EHsc src\glad.c /MD`
+* `lib glad.obj /out:glad.lib`
+* `del glad.obj`
+
 ```cmd
-cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib User32.lib gdi32.lib Shell32.lib Winmm.lib /MD /EHsc dynmesh.cpp /Zi
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib /I"../dependencies/glad/include" ../dependencies/glad/glad.lib Opengl32.lib User32.lib Gdi32.lib Shell32.lib /MD /EHsc glfw_02.cpp
 ```
