@@ -1,23 +1,31 @@
 /**
- * Dynamically update mesh via amortized memory allocation
+ * Icosahedron mesh generation. GLM camera orbit around it.
  */
 #include <glad/glad.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <vector>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+void makeIcosahedron(std::vector<float> &verts, std::vector<unsigned int> &idxs);
 
 const char *vertexShaderSource = R"(
 #version 460 core
 layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
 }
 )";
 const char *fragmentShaderSource = R"(
@@ -28,6 +36,9 @@ void main()
     FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
 }
 )";
+
+int width = 800;
+int height = 600;
 
 int numMaxVertices = 64;
 std::vector<float> vertices = {
@@ -40,73 +51,15 @@ std::vector<unsigned int> indices = {
 };
 unsigned int vbo, vao, ebo;
 
-void makeIcosahedron(std::vector<float> &verts, std::vector<unsigned int> &idxs)
-{
-  verts.clear();
-  idxs.clear();
-
-  float phi = (1.0f + sqrt(5.0f)) * 0.5f; // golden ratio
-  float a = 1.0f;
-  float b = 1.0f / phi;
-
-  std::vector<glm::vec3> vec3s = {
-      glm::vec3(0, b, -a),
-      glm::vec3(b, a, 0),
-      glm::vec3(-b, a, 0),
-      glm::vec3(0, b, a),
-      glm::vec3(0, -b, a),
-      glm::vec3(-a, 0, b),
-      glm::vec3(0, -b, -a),
-      glm::vec3(a, 0, -b),
-      glm::vec3(a, 0, b),
-      glm::vec3(-a, 0, -b),
-      glm::vec3(b, -a, 0),
-      glm::vec3(-b, -a, 0),
-  };
-
-  for (auto &v : vec3s)
-  {
-    v /= v.length();
-    vertices.push_back(v.x);
-    vertices.push_back(v.y);
-    vertices.push_back(v.z);
-  }
-
-  indices = {
-      2, 1, 0,   // 0
-      1, 2, 3,   // 1
-      5, 4, 3,   //
-      4, 8, 3,   //
-      7, 6, 0,   //
-      6, 9, 0,   //
-      11, 10, 4, //
-      10, 11, 6, //
-      9, 5, 2,   //
-      5, 9, 11,  //
-      8, 7, 1,   //
-      7, 8, 10,  //
-      2, 5, 3,   //
-      8, 1, 3,   //
-      9, 2, 0,   //
-      1, 7, 0,   //
-      11, 9, 6,  //
-      7, 10, 6,  //
-      5, 11, 4,  //
-      10, 8, 4,  //
-  };
-}
-
 int main()
 {
-  const int width = 800;
-  const int height = 600;
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_SAMPLES, 8);
 
-  GLFWwindow *window = glfwCreateWindow(width, height, "Wireframe Mesh Render", nullptr, nullptr);
+  GLFWwindow *window = glfwCreateWindow(width, height, "camera orbits around an icosahedron", nullptr, nullptr);
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetKeyCallback(window, key_callback);
@@ -179,11 +132,27 @@ int main()
 
   while (!glfwWindowShouldClose(window))
   {
+    double t = glfwGetTime();
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    glm::vec3 cameraPos = glm::vec3(std::cos(t), 1.0f, std::sin(t));
+    glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+    const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    const float fov = 45.0f;
+    glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, up);
+    glm::mat4 projection = glm::perspective(glm::radians(fov), static_cast<float>(width) / height, 0.1f, 100.0f);
+    const int viewLoc = glGetUniformLocation(shaderProgram, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    const int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
     glUseProgram(shaderProgram);
     glBindVertexArray(vao);
+    glm::mat4 model = glm::mat4(1.0f);
+    const int modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
@@ -237,7 +206,65 @@ void key_callback(GLFWwindow *window, int key, [[maybe_unused]] int scancode, in
   }
 }
 
-void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height)
+void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int w, int h)
 {
+  width = w;
+  height = h;
   glViewport(0, 0, width, height);
+}
+
+void makeIcosahedron(std::vector<float> &verts, std::vector<unsigned int> &idxs)
+{
+  verts.clear();
+  idxs.clear();
+
+  float phi = (1.0f + sqrt(5.0f)) * 0.5f; // golden ratio
+  float a = 1.0f;
+  float b = 1.0f / phi;
+
+  std::vector<glm::vec3> vec3s = {
+      glm::vec3(0, b, -a),
+      glm::vec3(b, a, 0),
+      glm::vec3(-b, a, 0),
+      glm::vec3(0, b, a),
+      glm::vec3(0, -b, a),
+      glm::vec3(-a, 0, b),
+      glm::vec3(0, -b, -a),
+      glm::vec3(a, 0, -b),
+      glm::vec3(a, 0, b),
+      glm::vec3(-a, 0, -b),
+      glm::vec3(b, -a, 0),
+      glm::vec3(-b, -a, 0),
+  };
+
+  for (auto &v : vec3s)
+  {
+    v /= v.length();
+    vertices.push_back(v.x);
+    vertices.push_back(v.y);
+    vertices.push_back(v.z);
+  }
+
+  indices = {
+      2, 1, 0,   // 0
+      1, 2, 3,   // 1
+      5, 4, 3,   //
+      4, 8, 3,   //
+      7, 6, 0,   //
+      6, 9, 0,   //
+      11, 10, 4, //
+      10, 11, 6, //
+      9, 5, 2,   //
+      5, 9, 11,  //
+      8, 7, 1,   //
+      7, 8, 10,  //
+      2, 5, 3,   //
+      8, 1, 3,   //
+      9, 2, 0,   //
+      1, 7, 0,   //
+      11, 9, 6,  //
+      7, 10, 6,  //
+      5, 11, 4,  //
+      10, 8, 4,  //
+  };
 }
