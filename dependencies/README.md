@@ -171,13 +171,13 @@ Could have tried "v2 but submodule dependency", but not necessarily needed.
 cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib /I"../dependencies/glad/include" ../dependencies/glad/glad.lib Opengl32.lib User32.lib Gdi32.lib Shell32.lib /MD /EHsc glfw_02.cpp
 ```
 
-# GLM
+## GLM
 
 * <https://github.com/g-truc/glm>
 
 ```cmd
 git submodule add https://github.com/g-truc/glm.git
-cmake .. -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DGLM_TEST_ENABLE=OFF
+cmake .. -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DGLM_TEST_ENABLE=OFF -DBUILD_STATIC_LIBS=ON
 ```
 
 options
@@ -212,8 +212,7 @@ GLM_TEST_FORCE_PURE:BOOL=OFF
 cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glm" ../dependencies/glm/build/glm/Release/glm_static.lib /EHsc glm_test.cpp
 ```
 
-# ImGui
-
+## ImGui
 
 * <https://github.com/ocornut/imgui>
 * docking branch: <https://github.com/ocornut/imgui/tree/docking>
