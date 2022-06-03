@@ -211,3 +211,23 @@ GLM_TEST_FORCE_PURE:BOOL=OFF
 ```cmd
 cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glm" ../dependencies/glm/build/glm/Release/glm_static.lib /EHsc glm_test.cpp
 ```
+
+# ImGui
+
+
+* <https://github.com/ocornut/imgui>
+* docking branch: <https://github.com/ocornut/imgui/tree/docking>
+
+```cmd
+git submodule add --branch docking https://github.com/ocornut/imgui.git
+cd imgui
+mkdir build
+cl /std:c++20 /c /EHsc /I"." /I"../glfw/include" imgui.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp imgui_demo.cpp backends/imgui_impl_glfw.cpp backends/imgui_impl_opengl3.cpp /MD /Fo.\build\
+cd build
+lib *.obj /out:imgui.lib
+del *.obj
+```
+
+```cmd
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/imgui" /I"../dependencies/imgui/backends" ../dependencies/imgui/build/imgui.lib /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib Opengl32.lib Gdi32.lib Shell32.lib /MD /EHsc imgui_test.cpp
+```

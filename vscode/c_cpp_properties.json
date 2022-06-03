@@ -9,6 +9,8 @@
         "${workspaceFolder}/dependencies/glad/include",
         "${workspaceFolder}/dependencies/glfw/include",
         "${workspaceFolder}/dependencies/glm/",
+        "${workspaceFolder}/dependencies/imgui/",
+        "${workspaceFolder}/dependencies/imgui/backends/",
         "${workspaceFolder}/dependencies/minifb/include",
         "${workspaceFolder}/dependencies/OpenMesh/src",
         "${workspaceFolder}/dependencies/raylib/build/raylib/include"
