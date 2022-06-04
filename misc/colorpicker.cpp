@@ -1,4 +1,5 @@
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -7,11 +8,14 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <string>
 #include <vector>
 
 void glfw_error_callback(int error, const char *description);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+static inline uint8_t ImSaturate(uint8_t f) { return (f < 0) ? 0 : (f > 255) ? 255
+                                                                             : f; }
 
 int width = 800;
 int height = 600;
@@ -90,17 +94,10 @@ int main()
   bool showDemo = false;
   float clearColor[3] = {0.2f, 0.3f, 0.3f};
 
-  MyImage img{256, 256};
-  {
-    std::vector<glm::u8vec4> pixels(img.getWidth() * img.getHeight());
-    for (uint32_t i = 0; i < img.getHeight(); ++i)
-      for (uint32_t j = 0; j < img.getWidth(); ++j)
-      {
-        const int ix = (i * img.getWidth() + j);
-        pixels[ix] = {static_cast<uint8_t>(i), static_cast<uint8_t>(0), static_cast<uint8_t>(j), static_cast<uint8_t>(255)};
-      }
-    img.updateData(pixels);
-  }
+  glm::u8vec3 colorPicker = {51, 77, 77};
+  MyImage bar1{32, 256};
+  MyImage bar2{32, 256};
+  MyImage bar3{32, 256};
 
   while (!glfwWindowShouldClose(window))
   {
@@ -113,7 +110,55 @@ int main()
 
     ImGui::Begin("Main");
     ImGui::Checkbox("Demo", &showDemo);
-    ImGui::Image((void *)(intptr_t)img.getId(), {static_cast<float>(img.getWidth()), static_cast<float>(img.getHeight())});
+    {
+      const auto &img = bar1;
+      std::vector<glm::u8vec4> pixels1(img.getWidth() * img.getHeight());
+      std::vector<glm::u8vec4> pixels2(img.getWidth() * img.getHeight());
+      std::vector<glm::u8vec4> pixels3(img.getWidth() * img.getHeight());
+      for (uint32_t i = 0; i < img.getHeight(); ++i)
+        for (uint32_t j = 0; j < img.getWidth(); ++j)
+        {
+          const int ix = (i * img.getWidth() + j);
+          pixels1[ix] = {static_cast<uint8_t>(i), colorPicker.g, colorPicker.b, 255};
+          pixels2[ix] = {colorPicker.r, static_cast<uint8_t>(i), colorPicker.b, 255};
+          pixels3[ix] = {colorPicker.r, colorPicker.g, static_cast<uint8_t>(i), 255};
+        }
+      bar1.updateData(pixels1);
+      bar2.updateData(pixels2);
+      bar3.updateData(pixels3);
+    }
+    int col[3] = {colorPicker.r, colorPicker.g, colorPicker.b};
+    if (ImGui::DragInt3("color", col, 1, 0, 255, "%3d", ImGuiSliderFlags_None))
+    {
+      colorPicker.r = static_cast<uint8_t>(col[0]);
+      colorPicker.g = static_cast<uint8_t>(col[1]);
+      colorPicker.b = static_cast<uint8_t>(col[2]);
+    }
+    ImVec2 m = ImGui::GetMousePos();
+    ImVec2 bar1Pos = ImGui::GetCursorScreenPos();
+    ImGui::Image((void *)(intptr_t)bar1.getId(), {static_cast<float>(bar1.getWidth()), static_cast<float>(bar1.getHeight())});
+    ImGui::SetCursorScreenPos(bar1Pos);
+    ImGui::InvisibleButton("bar1Button", {32, 256});
+    if (ImGui::IsItemActive())
+    {
+      colorPicker.r = ImSaturate(static_cast<uint8_t>(m.y - bar1Pos.y));
+      std::cout << "bar1\n";
+    }
+    ImGui::SameLine();
+    ImVec2 bar2Pos = ImGui::GetCursorScreenPos();
+    ImGui::Image((void *)(intptr_t)bar2.getId(), {static_cast<float>(bar2.getWidth()), static_cast<float>(bar2.getHeight())});
+    ImGui::SetCursorScreenPos(bar2Pos);
+    ImGui::InvisibleButton("bar2Button", {32, 256});
+    if (ImGui::IsItemActive())
+      colorPicker.g = ImSaturate(static_cast<uint8_t>(m.y - bar2Pos.y));
+    ImGui::SameLine();
+    ImVec2 bar3Pos = ImGui::GetCursorScreenPos();
+    ImGui::Image((void *)(intptr_t)bar3.getId(), {static_cast<float>(bar1.getWidth()), static_cast<float>(bar1.getHeight())});
+    ImGui::SetCursorScreenPos(bar3Pos);
+    ImGui::InvisibleButton("bar3Button", {32, 256});
+    if (ImGui::IsItemActive())
+      colorPicker.b = ImSaturate(static_cast<uint8_t>(m.y - bar3Pos.y));
+    ImGui::Text("bar1: (%.0f, %.0f), bar2: (%.0f, %.0f), bar3: (%.0f, %.0f)", bar1Pos.x, bar1Pos.y, bar2Pos.x, bar2Pos.y, bar3Pos.x, bar3Pos.y);
     ImGui::Separator();
     ImGui::ColorPicker3("clear color", clearColor, ImGuiColorEditFlags_None);
     ImGui::End();
