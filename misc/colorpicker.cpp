@@ -17,8 +17,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 
 bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size);
 
-int width = 800;
-int height = 600;
+int appWidth = 800;
+int appHeight = 600;
 
 class MyImage
 {
@@ -64,7 +64,7 @@ int main()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_SAMPLES, 8);
 
-  GLFWwindow *window = glfwCreateWindow(width, height, "Skeleton", nullptr, nullptr);
+  GLFWwindow *window = glfwCreateWindow(appWidth, appHeight, "Skeleton", nullptr, nullptr);
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetKeyCallback(window, key_callback);
@@ -193,9 +193,9 @@ void key_callback(GLFWwindow *window, int key, [[maybe_unused]] int scancode, in
 
 void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int w, int h)
 {
-  width = w;
-  height = h;
-  glViewport(0, 0, width, height);
+  appWidth = w;
+  appHeight = h;
+  glViewport(0, 0, appWidth, appHeight);
 }
 
 bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size)
