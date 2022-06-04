@@ -129,6 +129,7 @@ int main()
       bar2.updateData(pixels2);
       bar3.updateData(pixels3);
     }
+
     int col[3] = {colorPicker.r, colorPicker.g, colorPicker.b};
     if (ImGui::DragInt3("RGB", col, 1, 0, 255, "%3d", ImGuiSliderFlags_None))
     {
@@ -136,17 +137,29 @@ int main()
       colorPicker.g = static_cast<uint8_t>(col[1]);
       colorPicker.b = static_cast<uint8_t>(col[2]);
     }
-    static float val1 = static_cast<float>(colorPicker.r) / barSize.y;
+
+    float colHSV[3];
+    ImGui::ColorConvertRGBtoHSV(colorPicker.r / 255.f, colorPicker.g / 255.f, colorPicker.b / 255.f, colHSV[0], colHSV[1], colHSV[2]);
+    if (ImGui::DragFloat3("HSV", colHSV, 1.f / 255.f, 0.0f, 1.0f, "%.3f"))
+    {
+      float colRGB[3];
+      ImGui::ColorConvertHSVtoRGB(colHSV[0], colHSV[1], colHSV[2], colRGB[0], colRGB[1], colRGB[2]);
+      colorPicker.r = static_cast<uint8_t>(colRGB[0] * 255);
+      colorPicker.g = static_cast<uint8_t>(colRGB[1] * 255);
+      colorPicker.b = static_cast<uint8_t>(colRGB[2] * 255);
+    }
+
+    float val1 = static_cast<float>(colorPicker.r) / barSize.y;
     if (ImBar("bar1", val1, bar1.getId(), barSize))
       colorPicker.r = static_cast<uint8_t>(val1 * 255);
     ImGui::SameLine();
 
-    static float val2 = static_cast<float>(colorPicker.g) / barSize.y;
+    float val2 = static_cast<float>(colorPicker.g) / barSize.y;
     if (ImBar("bar2", val2, bar2.getId(), barSize))
       colorPicker.g = static_cast<uint8_t>(val2 * 255);
     ImGui::SameLine();
 
-    static float val3 = static_cast<float>(colorPicker.b) / barSize.y;
+    float val3 = static_cast<float>(colorPicker.b) / barSize.y;
     if (ImBar("bar3", val3, bar3.getId(), barSize))
       colorPicker.b = static_cast<uint8_t>(val3 * 255);
 
@@ -158,7 +171,7 @@ int main()
 
     ImGui::Render();
 
-    glClearColor(clearColor[0], clearColor[1], clearColor[2], 1.0f);
+    glClearColor(imCol.x, imCol.y, imCol.z, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
