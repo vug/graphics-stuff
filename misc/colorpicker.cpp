@@ -6,6 +6,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <memory>
 #include <iostream>
 
 void glfw_error_callback(int error, const char *description);
@@ -14,6 +15,46 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 
 int width = 800;
 int height = 600;
+
+class MyImage
+{
+public:
+  MyImage(int w, int h, std::unique_ptr<unsigned char[]> img_data)
+      : width(w), height(h), data(std::move(img_data))
+  {
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  MyImage(int w, int h)
+      : MyImage(w, h, nullptr) {}
+
+  // make sure img_data has correct width & height
+  void updateData(std::unique_ptr<unsigned char[]> img_data)
+  {
+    data = std::move(img_data);
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  std::unique_ptr<unsigned char[]> data;
+
+  uint32_t getWidth() const { return width; }
+  uint32_t getHeight() const { return height; }
+  uint32_t getId() const { return id; }
+
+private:
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t id = 0;
+};
 
 int main()
 {
@@ -53,26 +94,17 @@ int main()
   bool showDemo = false;
   float clearColor[3] = {0.2f, 0.3f, 0.3f};
 
-  int image_width = 256;
-  int image_height = 256;
-  unsigned char *image_data = new unsigned char[image_height * image_width * 4];
-  for (int i = 0; i < image_height; ++i)
-    for (int j = 0; j < image_width; ++j)
+  std::unique_ptr<unsigned char[]> data(new unsigned char[256 * 256 * 4]);
+  for (uint32_t i = 0; i < 256; ++i)
+    for (uint32_t j = 0; j < 256; ++j)
     {
-      const int ix = (i * image_width + j) * 4;
-      image_data[ix + 0] = static_cast<unsigned char>(i);
-      image_data[ix + 1] = static_cast<unsigned char>(0);
-      image_data[ix + 2] = static_cast<unsigned char>(j);
-      image_data[ix + 3] = static_cast<unsigned char>(255);
+      const int ix = (i * 256 + j) * 4;
+      data[ix + 0] = static_cast<unsigned char>(i);
+      data[ix + 1] = static_cast<unsigned char>(0);
+      data[ix + 2] = static_cast<unsigned char>(j);
+      data[ix + 3] = static_cast<unsigned char>(255);
     }
-  GLuint image_texture;
-  glGenTextures(1, &image_texture);
-  glBindTexture(GL_TEXTURE_2D, image_texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+  MyImage img{256, 256, std::move(data)};
 
   while (!glfwWindowShouldClose(window))
   {
@@ -85,7 +117,7 @@ int main()
 
     ImGui::Begin("Main");
     ImGui::Checkbox("Demo", &showDemo);
-    ImGui::Image((void *)(intptr_t)image_texture, {static_cast<float>(image_width), static_cast<float>(image_height)});
+    ImGui::Image((void *)(intptr_t)img.getId(), {static_cast<float>(img.getWidth()), static_cast<float>(img.getHeight())});
     ImGui::Separator();
     ImGui::ColorPicker3("clear color", clearColor, ImGuiColorEditFlags_None);
     ImGui::End();
