@@ -18,7 +18,14 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
 
 bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size);
-bool ImColorPicker(float *colorRGB, MyImage *imgs, ImVec2 barSize);
+enum class ImColorSpaceMode
+{
+  RGB_FIXED = 0,
+  RGB_ACTIVE,
+  HSV_FIXED,
+  HSV_ACTIVE,
+};
+bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2 barSize);
 
 int appWidth = 800;
 int appHeight = 600;
@@ -76,7 +83,7 @@ int main()
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::Separator();
 
-    ImColorPicker(colorRGB, imgs, {64, 256});
+    ImColorPicker(colorRGB, ImColorSpaceMode::HSV_ACTIVE, imgs, {64, 256});
     ImGui::SameLine();
     ImVec4 imCol = {colorRGB[0], colorRGB[1], colorRGB[2], 1.0};
     ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {64, 64});
@@ -189,7 +196,7 @@ bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size)
   return hasChanged;
 }
 
-bool ImColorPicker(float *colorRGB, MyImage *imgs, ImVec2 barSize)
+bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2 barSize)
 {
   bool hasChanged = false;
   const uint32_t barWidth = static_cast<uint32_t>(barSize.x);
@@ -201,8 +208,9 @@ bool ImColorPicker(float *colorRGB, MyImage *imgs, ImVec2 barSize)
     imgs[1] = MyImage{barWidth, barHeight};
     imgs[2] = MyImage{barWidth, barHeight};
   }
+  float colorHSV[3];
+  ImGui::ColorConvertRGBtoHSV(colorRGB[0], colorRGB[1], colorRGB[2], colorHSV[0], colorHSV[1], colorHSV[2]);
 
-  glm::u8vec3 colorRGBBytes = {static_cast<uint8_t>(colorRGB[0] * 255.f), static_cast<uint8_t>(colorRGB[1] * 255.f), static_cast<uint8_t>(colorRGB[2] * 255.f)};
   {
     std::vector<glm::u8vec4> pixels1(barWidth * barHeight);
     std::vector<glm::u8vec4> pixels2(barWidth * barHeight);
@@ -211,9 +219,30 @@ bool ImColorPicker(float *colorRGB, MyImage *imgs, ImVec2 barSize)
       for (uint32_t j = 0; j < barWidth; ++j)
       {
         const int ix = (i * barWidth + j);
-        pixels1[ix] = {static_cast<uint8_t>(i), colorRGBBytes.g, colorRGBBytes.b, 255};
-        pixels2[ix] = {colorRGBBytes.r, static_cast<uint8_t>(i), colorRGBBytes.b, 255};
-        pixels3[ix] = {colorRGBBytes.r, colorRGBBytes.g, static_cast<uint8_t>(i), 255};
+        switch (mode)
+        {
+        case ImColorSpaceMode::RGB_ACTIVE:
+        {
+          glm::u8vec3 colorRGBBytes = {static_cast<uint8_t>(colorRGB[0] * 255.f), static_cast<uint8_t>(colorRGB[1] * 255.f), static_cast<uint8_t>(colorRGB[2] * 255.f)};
+          pixels1[ix] = {static_cast<uint8_t>(i), colorRGBBytes.g, colorRGBBytes.b, 255};
+          pixels2[ix] = {colorRGBBytes.r, static_cast<uint8_t>(i), colorRGBBytes.b, 255};
+          pixels3[ix] = {colorRGBBytes.r, colorRGBBytes.g, static_cast<uint8_t>(i), 255};
+        }
+        break;
+        case ImColorSpaceMode::HSV_ACTIVE:
+        {
+          float rgb1[3];
+          ImGui::ColorConvertHSVtoRGB(static_cast<float>(i) / barHeight, colorHSV[1], colorHSV[2], rgb1[0], rgb1[1], rgb1[2]);
+          float rgb2[3];
+          ImGui::ColorConvertHSVtoRGB(colorHSV[0], static_cast<float>(i) / barHeight, colorHSV[2], rgb2[0], rgb2[1], rgb2[2]);
+          float rgb3[3];
+          ImGui::ColorConvertHSVtoRGB(colorHSV[0], colorHSV[1], static_cast<float>(i) / barHeight, rgb3[0], rgb3[1], rgb3[2]);
+          pixels1[ix] = {static_cast<uint8_t>(rgb1[0] * 255), static_cast<uint8_t>(rgb1[1] * 255), static_cast<uint8_t>(rgb1[2] * 255), 255};
+          pixels2[ix] = {static_cast<uint8_t>(rgb2[0] * 255), static_cast<uint8_t>(rgb2[1] * 255), static_cast<uint8_t>(rgb2[2] * 255), 255};
+          pixels3[ix] = {static_cast<uint8_t>(rgb3[0] * 255), static_cast<uint8_t>(rgb3[1] * 255), static_cast<uint8_t>(rgb3[2] * 255), 255};
+        }
+        break;
+        }
       }
     imgs[0].updateData(pixels1);
     imgs[1].updateData(pixels2);
@@ -222,19 +251,44 @@ bool ImColorPicker(float *colorRGB, MyImage *imgs, ImVec2 barSize)
 
   hasChanged |= ImGui::DragFloat3("RGB", colorRGB, 1.f / 255.f, 0.f, 1.f, "%.3f", ImGuiSliderFlags_None);
 
-  float colorHSV[3];
-  ImGui::ColorConvertRGBtoHSV(colorRGB[0], colorRGB[1], colorRGB[2], colorHSV[0], colorHSV[1], colorHSV[2]);
   if (ImGui::DragFloat3("HSV", colorHSV, 1.f / 255.f, 0.0f, 1.0f, "%.3f"))
   {
     ImGui::ColorConvertHSVtoRGB(colorHSV[0], colorHSV[1], colorHSV[2], colorRGB[0], colorRGB[1], colorRGB[2]);
     hasChanged = true;
   }
 
-  hasChanged |= ImBar("bar1", colorRGB[0], imgs[0].getId(), barSize);
+  float val1, val2, val3;
+  switch (mode)
+  {
+  case ImColorSpaceMode::RGB_ACTIVE:
+    val1 = colorRGB[0];
+    val2 = colorRGB[1];
+    val3 = colorRGB[2];
+    break;
+  case ImColorSpaceMode::HSV_ACTIVE:
+    val1 = colorHSV[0];
+    val2 = colorHSV[1];
+    val3 = colorHSV[2];
+    break;
+  }
+  hasChanged |= ImBar("bar1", val1, imgs[0].getId(), barSize);
   ImGui::SameLine();
-  hasChanged |= ImBar("bar2", colorRGB[1], imgs[1].getId(), barSize);
+  hasChanged |= ImBar("bar2", val2, imgs[1].getId(), barSize);
   ImGui::SameLine();
-  hasChanged |= ImBar("bar3", colorRGB[2], imgs[2].getId(), barSize);
+  hasChanged |= ImBar("bar3", val3, imgs[2].getId(), barSize);
+
+  // only when changed?
+  switch (mode)
+  {
+  case ImColorSpaceMode::RGB_ACTIVE:
+    colorRGB[0] = val1;
+    colorRGB[1] = val2;
+    colorRGB[2] = val3;
+    break;
+  case ImColorSpaceMode::HSV_ACTIVE:
+    ImGui::ColorConvertHSVtoRGB(val1, val2, val3, colorRGB[0], colorRGB[1], colorRGB[2]);
+    break;
+  }
 
   return hasChanged;
 }
