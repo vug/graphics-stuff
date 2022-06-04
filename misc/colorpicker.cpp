@@ -19,7 +19,7 @@ int height = 600;
 class MyImage
 {
 public:
-  MyImage(int w, int h, std::vector<uint8_t> img_data)
+  MyImage(int w, int h, const std::vector<glm::u8vec4> &pixels)
       : width(w), height(h)
   {
     glGenTextures(1, &id);
@@ -28,17 +28,17 @@ public:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
   MyImage(int w, int h)
-      : MyImage(w, h, std::vector<uint8_t>(w * h * 4)) {}
+      : MyImage(w, h, std::vector<glm::u8vec4>(w * h * 4)) {}
 
-  void updateData(std::vector<uint8_t> img_data)
+  void updateData(const std::vector<glm::u8vec4> &pixels)
   {
     glBindTexture(GL_TEXTURE_2D, id);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, img_data.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
@@ -92,17 +92,14 @@ int main()
 
   MyImage img{256, 256};
   {
-    std::vector<uint8_t> data(img.getWidth() * img.getHeight() * 4);
+    std::vector<glm::u8vec4> pixels(img.getWidth() * img.getHeight());
     for (uint32_t i = 0; i < img.getHeight(); ++i)
       for (uint32_t j = 0; j < img.getWidth(); ++j)
       {
-        const int ix = (i * img.getWidth() + j) * 4;
-        data[ix + 0] = static_cast<unsigned char>(i);
-        data[ix + 1] = static_cast<unsigned char>(0);
-        data[ix + 2] = static_cast<unsigned char>(j);
-        data[ix + 3] = static_cast<unsigned char>(255);
+        const int ix = (i * img.getWidth() + j);
+        pixels[ix] = {static_cast<uint8_t>(i), static_cast<uint8_t>(0), static_cast<uint8_t>(j), static_cast<uint8_t>(255)};
       }
-    img.updateData(data);
+    img.updateData(pixels);
   }
 
   while (!glfwWindowShouldClose(window))
