@@ -11,50 +11,17 @@
 #include <string>
 #include <vector>
 
+class MyImage;
+
 void glfw_error_callback(int error, const char *description);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
 
 bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size);
+bool ImColorPicker(float *colorRGB, MyImage *imgs, ImVec2 barSize);
 
 int appWidth = 800;
 int appHeight = 600;
-
-class MyImage
-{
-public:
-  MyImage(uint32_t w, uint32_t h, const std::vector<glm::u8vec4> &pixels)
-      : width(w), height(h)
-  {
-    glGenTextures(1, &id);
-    glBindTexture(GL_TEXTURE_2D, id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    glBindTexture(GL_TEXTURE_2D, 0);
-  }
-
-  MyImage(uint32_t w, uint32_t h)
-      : MyImage(w, h, std::vector<glm::u8vec4>(w * h * 4)) {}
-
-  void updateData(const std::vector<glm::u8vec4> &pixels)
-  {
-    glBindTexture(GL_TEXTURE_2D, id);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    glBindTexture(GL_TEXTURE_2D, 0);
-  }
-
-  uint32_t getWidth() const { return width; }
-  uint32_t getHeight() const { return height; }
-  uint32_t getId() const { return id; }
-
-private:
-  uint32_t width = 0;
-  uint32_t height = 0;
-  uint32_t id = 0;
-};
 
 int main()
 {
@@ -93,13 +60,8 @@ int main()
 
   bool showDemo = false;
 
-  float colorRGB[3] = {51.f / 255.f, 77.f / 255.f, 77.f / 255.f}; // source of truth
-  const ImVec2 barSize = {64.f, 256.f};
-  const uint32_t barWidth = static_cast<uint32_t>(barSize.x);
-  const uint32_t barHeight = static_cast<uint32_t>(barSize.y);
-  MyImage bar1{barWidth, barHeight};
-  MyImage bar2{barWidth, barHeight};
-  MyImage bar3{barWidth, barHeight};
+  float colorRGB[3] = {51.f / 255.f, 77.f / 255.f, 77.f / 255.f};
+  MyImage *imgs = nullptr;
 
   while (!glfwWindowShouldClose(window))
   {
@@ -114,38 +76,8 @@ int main()
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::Separator();
 
-    glm::u8vec3 colorRGBBytes = {static_cast<uint8_t>(colorRGB[0] * 255.f), static_cast<uint8_t>(colorRGB[1] * 255.f), static_cast<uint8_t>(colorRGB[2] * 255.f)};
-    {
-      std::vector<glm::u8vec4> pixels1(barWidth * barHeight);
-      std::vector<glm::u8vec4> pixels2(barWidth * barHeight);
-      std::vector<glm::u8vec4> pixels3(barWidth * barHeight);
-      for (uint32_t i = 0; i < barHeight; ++i)
-        for (uint32_t j = 0; j < barWidth; ++j)
-        {
-          const int ix = (i * barWidth + j);
-          pixels1[ix] = {static_cast<uint8_t>(i), colorRGBBytes.g, colorRGBBytes.b, 255};
-          pixels2[ix] = {colorRGBBytes.r, static_cast<uint8_t>(i), colorRGBBytes.b, 255};
-          pixels3[ix] = {colorRGBBytes.r, colorRGBBytes.g, static_cast<uint8_t>(i), 255};
-        }
-      bar1.updateData(pixels1);
-      bar2.updateData(pixels2);
-      bar3.updateData(pixels3);
-    }
-
-    ImGui::DragFloat3("RGB", colorRGB, 1.f / 255.f, 0.f, 1.f, "%.3f", ImGuiSliderFlags_None);
-
-    float colorHSV[3];
-    ImGui::ColorConvertRGBtoHSV(colorRGB[0], colorRGB[1], colorRGB[2], colorHSV[0], colorHSV[1], colorHSV[2]);
-    if (ImGui::DragFloat3("HSV", colorHSV, 1.f / 255.f, 0.0f, 1.0f, "%.3f"))
-      ImGui::ColorConvertHSVtoRGB(colorHSV[0], colorHSV[1], colorHSV[2], colorRGB[0], colorRGB[1], colorRGB[2]);
-
-    ImBar("bar1", colorRGB[0], bar1.getId(), barSize);
+    ImColorPicker(colorRGB, imgs, {64, 256});
     ImGui::SameLine();
-    ImBar("bar2", colorRGB[1], bar2.getId(), barSize);
-    ImGui::SameLine();
-    ImBar("bar3", colorRGB[2], bar3.getId(), barSize);
-    ImGui::SameLine();
-
     ImVec4 imCol = {colorRGB[0], colorRGB[1], colorRGB[2], 1.0};
     ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {64, 64});
     ImGui::Separator();
@@ -180,6 +112,42 @@ int main()
   glfwTerminate();
   return 0;
 }
+
+class MyImage
+{
+public:
+  MyImage(uint32_t w, uint32_t h, const std::vector<glm::u8vec4> &pixels)
+      : width(w), height(h)
+  {
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  MyImage(uint32_t w, uint32_t h)
+      : MyImage(w, h, std::vector<glm::u8vec4>(w * h * 4)) {}
+
+  void updateData(const std::vector<glm::u8vec4> &pixels)
+  {
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  uint32_t getWidth() const { return width; }
+  uint32_t getHeight() const { return height; }
+  uint32_t getId() const { return id; }
+
+private:
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t id = 0;
+};
 
 void glfw_error_callback(int error, const char *description)
 {
@@ -218,5 +186,55 @@ bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size)
   float x = barPos.x;
   float y = barPos.y + val * size.y;
   draw_list->AddTriangle({x, y}, {x - 3, y - 3}, {x - 3, y + 3}, 0xFFFFFFFF, 1.0f);
+  return hasChanged;
+}
+
+bool ImColorPicker(float *colorRGB, MyImage *imgs, ImVec2 barSize)
+{
+  bool hasChanged = false;
+  const uint32_t barWidth = static_cast<uint32_t>(barSize.x);
+  const uint32_t barHeight = static_cast<uint32_t>(barSize.y);
+  if (imgs == nullptr)
+  {
+    imgs = (MyImage *)malloc(sizeof(MyImage) * 3);
+    imgs[0] = MyImage{barWidth, barHeight};
+    imgs[1] = MyImage{barWidth, barHeight};
+    imgs[2] = MyImage{barWidth, barHeight};
+  }
+
+  glm::u8vec3 colorRGBBytes = {static_cast<uint8_t>(colorRGB[0] * 255.f), static_cast<uint8_t>(colorRGB[1] * 255.f), static_cast<uint8_t>(colorRGB[2] * 255.f)};
+  {
+    std::vector<glm::u8vec4> pixels1(barWidth * barHeight);
+    std::vector<glm::u8vec4> pixels2(barWidth * barHeight);
+    std::vector<glm::u8vec4> pixels3(barWidth * barHeight);
+    for (uint32_t i = 0; i < barHeight; ++i)
+      for (uint32_t j = 0; j < barWidth; ++j)
+      {
+        const int ix = (i * barWidth + j);
+        pixels1[ix] = {static_cast<uint8_t>(i), colorRGBBytes.g, colorRGBBytes.b, 255};
+        pixels2[ix] = {colorRGBBytes.r, static_cast<uint8_t>(i), colorRGBBytes.b, 255};
+        pixels3[ix] = {colorRGBBytes.r, colorRGBBytes.g, static_cast<uint8_t>(i), 255};
+      }
+    imgs[0].updateData(pixels1);
+    imgs[1].updateData(pixels2);
+    imgs[2].updateData(pixels3);
+  }
+
+  hasChanged |= ImGui::DragFloat3("RGB", colorRGB, 1.f / 255.f, 0.f, 1.f, "%.3f", ImGuiSliderFlags_None);
+
+  float colorHSV[3];
+  ImGui::ColorConvertRGBtoHSV(colorRGB[0], colorRGB[1], colorRGB[2], colorHSV[0], colorHSV[1], colorHSV[2]);
+  if (ImGui::DragFloat3("HSV", colorHSV, 1.f / 255.f, 0.0f, 1.0f, "%.3f"))
+  {
+    ImGui::ColorConvertHSVtoRGB(colorHSV[0], colorHSV[1], colorHSV[2], colorRGB[0], colorRGB[1], colorRGB[2]);
+    hasChanged = true;
+  }
+
+  hasChanged |= ImBar("bar1", colorRGB[0], imgs[0].getId(), barSize);
+  ImGui::SameLine();
+  hasChanged |= ImBar("bar2", colorRGB[1], imgs[1].getId(), barSize);
+  ImGui::SameLine();
+  hasChanged |= ImBar("bar3", colorRGB[2], imgs[2].getId(), barSize);
+
   return hasChanged;
 }
