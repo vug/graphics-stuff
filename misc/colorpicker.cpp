@@ -14,8 +14,8 @@
 void glfw_error_callback(int error, const char *description);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
-static inline uint8_t ImSaturate(uint8_t f) { return (f < 0) ? 0 : (f > 255) ? 255
-                                                                             : f; }
+
+bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size);
 
 int width = 800;
 int height = 600;
@@ -110,7 +110,6 @@ int main()
       ImGui::ShowDemoWindow();
 
     ImGui::Begin("Main");
-    ImDrawList *draw_list = ImGui::GetWindowDrawList();
     ImGui::Checkbox("Demo", &showDemo);
     {
       std::vector<glm::u8vec4> pixels1(barWidth * barHeight);
@@ -135,38 +134,22 @@ int main()
       colorPicker.g = static_cast<uint8_t>(col[1]);
       colorPicker.b = static_cast<uint8_t>(col[2]);
     }
-    ImVec2 m = ImGui::GetMousePos();
-    // TODO: abstract bar. when changed, updates the arrow, returns/sets selected value in [0.f, 1.f] range.
-    // then, set colorPicker color value based on the colorspace choice.
-    ImVec2 bar1Pos = ImGui::GetCursorScreenPos();
-    ImGui::Image((void *)(intptr_t)bar1.getId(), {static_cast<float>(bar1.getWidth()), static_cast<float>(bar1.getHeight())});
-    ImGui::SetCursorScreenPos(bar1Pos);
-    ImGui::InvisibleButton("bar1Button", {barWidth, 256});
-    // Note that it is active as long as mouse button is pressed
-    if (ImGui::IsItemActive())
-      colorPicker.r = ImSaturate(static_cast<uint8_t>(m.y - bar1Pos.y));
-    {
-      float x = bar1Pos.x;
-      float y = bar1Pos.y + colorPicker.r / 255.0f * barHeight;
-      draw_list->AddTriangle({x, y}, {x - 3, y - 3}, {x - 3, y + 3}, 0xFFFFFFFF, 1.0f);
-    }
+    static float val1 = static_cast<float>(colorPicker.r) / barHeight;
+    if (ImBar("bar1", val1, bar1.getId(), {barWidth, barHeight}))
+      colorPicker.r = static_cast<uint8_t>(val1 * 255);
     ImGui::SameLine();
-    ImVec2 bar2Pos = ImGui::GetCursorScreenPos();
-    ImGui::Image((void *)(intptr_t)bar2.getId(), {static_cast<float>(bar2.getWidth()), static_cast<float>(bar2.getHeight())});
-    ImGui::SetCursorScreenPos(bar2Pos);
-    ImGui::InvisibleButton("bar2Button", {barWidth, 256});
-    if (ImGui::IsItemActive())
-      colorPicker.g = ImSaturate(static_cast<uint8_t>(m.y - bar2Pos.y));
+
+    static float val2 = static_cast<float>(colorPicker.g) / barHeight;
+    if (ImBar("bar2", val2, bar2.getId(), {barWidth, barHeight}))
+      colorPicker.g = static_cast<uint8_t>(val2 * 255);
     ImGui::SameLine();
-    ImVec2 bar3Pos = ImGui::GetCursorScreenPos();
-    ImGui::Image((void *)(intptr_t)bar3.getId(), {static_cast<float>(bar1.getWidth()), static_cast<float>(bar1.getHeight())});
-    ImGui::SetCursorScreenPos(bar3Pos);
-    ImGui::InvisibleButton("bar3Button", {barWidth, 256});
-    if (ImGui::IsItemActive())
-      colorPicker.b = ImSaturate(static_cast<uint8_t>(m.y - bar3Pos.y));
+
+    static float val3 = static_cast<float>(colorPicker.b) / barHeight;
+    if (ImBar("bar3", val3, bar3.getId(), {barWidth, barHeight}))
+      colorPicker.b = static_cast<uint8_t>(val3 * 255);
+
     ImVec4 imCol = {static_cast<float>(colorPicker.r) / 255, static_cast<float>(colorPicker.g) / 255, static_cast<float>(colorPicker.b) / 255, 1.0};
     ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {64, 64});
-    ImGui::Text("bar1: (%.0f, %.0f), bar2: (%.0f, %.0f), bar3: (%.0f, %.0f)", bar1Pos.x, bar1Pos.y, bar2Pos.x, bar2Pos.y, bar3Pos.x, bar3Pos.y);
     ImGui::Separator();
     ImGui::ColorPicker3("clear color", clearColor, ImGuiColorEditFlags_None);
     ImGui::End();
@@ -213,4 +196,26 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int w, int h
   width = w;
   height = h;
   glViewport(0, 0, width, height);
+}
+
+bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size)
+{
+  bool hasChanged = false;
+  const ImVec2 barPos = ImGui::GetCursorScreenPos();
+  ImGui::Image((void *)(intptr_t)textureId, size);
+  ImGui::SetCursorScreenPos(barPos);
+  ImGui::InvisibleButton(str_id, size);
+  // Active as long as mouse button is pressed
+  if (ImGui::IsItemActive())
+  {
+    const ImVec2 m = ImGui::GetMousePos();
+    val = (m.y - barPos.y) / size.y;
+    val = std::min(std::max(0.f, val), 1.f);
+    hasChanged = true;
+  }
+  ImDrawList *draw_list = ImGui::GetWindowDrawList();
+  float x = barPos.x;
+  float y = barPos.y + val * size.y;
+  draw_list->AddTriangle({x, y}, {x - 3, y - 3}, {x - 3, y + 3}, 0xFFFFFFFF, 1.0f);
+  return hasChanged;
 }
