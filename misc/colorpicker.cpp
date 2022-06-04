@@ -92,9 +92,8 @@ int main()
   ImGui_ImplOpenGL3_Init("#version 460");
 
   bool showDemo = false;
-  float clearColor[3] = {0.2f, 0.3f, 0.3f};
 
-  glm::u8vec3 colorPicker = {51, 77, 77};
+  float colorRGB[3] = {51.f / 255.f, 77.f / 255.f, 77.f / 255.f}; // source of truth
   const ImVec2 barSize = {64.f, 256.f};
   const uint32_t barWidth = static_cast<uint32_t>(barSize.x);
   const uint32_t barHeight = static_cast<uint32_t>(barSize.y);
@@ -113,6 +112,9 @@ int main()
 
     ImGui::Begin("Main");
     ImGui::Checkbox("Demo", &showDemo);
+    ImGui::Separator();
+
+    glm::u8vec3 colorRGBBytes = {static_cast<uint8_t>(colorRGB[0] * 255.f), static_cast<uint8_t>(colorRGB[1] * 255.f), static_cast<uint8_t>(colorRGB[2] * 255.f)};
     {
       std::vector<glm::u8vec4> pixels1(barWidth * barHeight);
       std::vector<glm::u8vec4> pixels2(barWidth * barHeight);
@@ -121,57 +123,41 @@ int main()
         for (uint32_t j = 0; j < barWidth; ++j)
         {
           const int ix = (i * barWidth + j);
-          pixels1[ix] = {static_cast<uint8_t>(i), colorPicker.g, colorPicker.b, 255};
-          pixels2[ix] = {colorPicker.r, static_cast<uint8_t>(i), colorPicker.b, 255};
-          pixels3[ix] = {colorPicker.r, colorPicker.g, static_cast<uint8_t>(i), 255};
+          pixels1[ix] = {static_cast<uint8_t>(i), colorRGBBytes.g, colorRGBBytes.b, 255};
+          pixels2[ix] = {colorRGBBytes.r, static_cast<uint8_t>(i), colorRGBBytes.b, 255};
+          pixels3[ix] = {colorRGBBytes.r, colorRGBBytes.g, static_cast<uint8_t>(i), 255};
         }
       bar1.updateData(pixels1);
       bar2.updateData(pixels2);
       bar3.updateData(pixels3);
     }
 
-    int col[3] = {colorPicker.r, colorPicker.g, colorPicker.b};
-    if (ImGui::DragInt3("RGB", col, 1, 0, 255, "%3d", ImGuiSliderFlags_None))
-    {
-      colorPicker.r = static_cast<uint8_t>(col[0]);
-      colorPicker.g = static_cast<uint8_t>(col[1]);
-      colorPicker.b = static_cast<uint8_t>(col[2]);
-    }
+    ImGui::DragFloat3("RGB", colorRGB, 1.f / 255.f, 0.f, 1.f, "%.3f", ImGuiSliderFlags_None);
 
-    float colHSV[3];
-    ImGui::ColorConvertRGBtoHSV(colorPicker.r / 255.f, colorPicker.g / 255.f, colorPicker.b / 255.f, colHSV[0], colHSV[1], colHSV[2]);
-    if (ImGui::DragFloat3("HSV", colHSV, 1.f / 255.f, 0.0f, 1.0f, "%.3f"))
-    {
-      float colRGB[3];
-      ImGui::ColorConvertHSVtoRGB(colHSV[0], colHSV[1], colHSV[2], colRGB[0], colRGB[1], colRGB[2]);
-      colorPicker.r = static_cast<uint8_t>(colRGB[0] * 255);
-      colorPicker.g = static_cast<uint8_t>(colRGB[1] * 255);
-      colorPicker.b = static_cast<uint8_t>(colRGB[2] * 255);
-    }
+    float colorHSV[3];
+    ImGui::ColorConvertRGBtoHSV(colorRGB[0], colorRGB[1], colorRGB[2], colorHSV[0], colorHSV[1], colorHSV[2]);
+    if (ImGui::DragFloat3("HSV", colorHSV, 1.f / 255.f, 0.0f, 1.0f, "%.3f"))
+      ImGui::ColorConvertHSVtoRGB(colorHSV[0], colorHSV[1], colorHSV[2], colorRGB[0], colorRGB[1], colorRGB[2]);
 
-    float val1 = static_cast<float>(colorPicker.r) / barSize.y;
-    if (ImBar("bar1", val1, bar1.getId(), barSize))
-      colorPicker.r = static_cast<uint8_t>(val1 * 255);
+    ImBar("bar1", colorRGB[0], bar1.getId(), barSize);
+    ImGui::SameLine();
+    ImBar("bar2", colorRGB[1], bar2.getId(), barSize);
+    ImGui::SameLine();
+    ImBar("bar3", colorRGB[2], bar3.getId(), barSize);
     ImGui::SameLine();
 
-    float val2 = static_cast<float>(colorPicker.g) / barSize.y;
-    if (ImBar("bar2", val2, bar2.getId(), barSize))
-      colorPicker.g = static_cast<uint8_t>(val2 * 255);
-    ImGui::SameLine();
-
-    float val3 = static_cast<float>(colorPicker.b) / barSize.y;
-    if (ImBar("bar3", val3, bar3.getId(), barSize))
-      colorPicker.b = static_cast<uint8_t>(val3 * 255);
-
-    ImVec4 imCol = {static_cast<float>(colorPicker.r) / 255, static_cast<float>(colorPicker.g) / 255, static_cast<float>(colorPicker.b) / 255, 1.0};
+    ImVec4 imCol = {colorRGB[0], colorRGB[1], colorRGB[2], 1.0};
     ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {64, 64});
     ImGui::Separator();
-    ImGui::ColorPicker3("clear color", clearColor, ImGuiColorEditFlags_None);
+
+    // TODO: remove when done with my color picker
+    static float someColor[3] = {0.2f, 0.3f, 0.3f};
+    ImGui::ColorPicker3("clear color", someColor, ImGuiColorEditFlags_None);
     ImGui::End();
 
     ImGui::Render();
 
-    glClearColor(imCol.x, imCol.y, imCol.z, 1.0f);
+    glClearColor(colorRGB[0], colorRGB[1], colorRGB[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
