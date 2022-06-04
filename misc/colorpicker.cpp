@@ -95,7 +95,7 @@ int main()
   float clearColor[3] = {0.2f, 0.3f, 0.3f};
 
   glm::u8vec3 colorPicker = {51, 77, 77};
-  const int barWidth = 32, barHeight = 256;
+  const int barWidth = 64, barHeight = 256;
   MyImage bar1{barWidth, barHeight};
   MyImage bar2{barWidth, barHeight};
   MyImage bar3{barWidth, barHeight};
@@ -141,31 +141,31 @@ int main()
     ImVec2 bar1Pos = ImGui::GetCursorScreenPos();
     ImGui::Image((void *)(intptr_t)bar1.getId(), {static_cast<float>(bar1.getWidth()), static_cast<float>(bar1.getHeight())});
     ImGui::SetCursorScreenPos(bar1Pos);
-    ImGui::InvisibleButton("bar1Button", {32, 256});
+    ImGui::InvisibleButton("bar1Button", {barWidth, 256});
     // Note that it is active as long as mouse button is pressed
     if (ImGui::IsItemActive())
       colorPicker.r = ImSaturate(static_cast<uint8_t>(m.y - bar1Pos.y));
     {
       float x = bar1Pos.x;
-      float y = bar1Pos.y + colorPicker.r / 255.0 * barHeight;
+      float y = bar1Pos.y + colorPicker.r / 255.0f * barHeight;
       draw_list->AddTriangle({x, y}, {x - 3, y - 3}, {x - 3, y + 3}, 0xFFFFFFFF, 1.0f);
     }
     ImGui::SameLine();
     ImVec2 bar2Pos = ImGui::GetCursorScreenPos();
     ImGui::Image((void *)(intptr_t)bar2.getId(), {static_cast<float>(bar2.getWidth()), static_cast<float>(bar2.getHeight())});
     ImGui::SetCursorScreenPos(bar2Pos);
-    ImGui::InvisibleButton("bar2Button", {32, 256});
+    ImGui::InvisibleButton("bar2Button", {barWidth, 256});
     if (ImGui::IsItemActive())
       colorPicker.g = ImSaturate(static_cast<uint8_t>(m.y - bar2Pos.y));
     ImGui::SameLine();
     ImVec2 bar3Pos = ImGui::GetCursorScreenPos();
     ImGui::Image((void *)(intptr_t)bar3.getId(), {static_cast<float>(bar1.getWidth()), static_cast<float>(bar1.getHeight())});
     ImGui::SetCursorScreenPos(bar3Pos);
-    ImGui::InvisibleButton("bar3Button", {32, 256});
+    ImGui::InvisibleButton("bar3Button", {barWidth, 256});
     if (ImGui::IsItemActive())
       colorPicker.b = ImSaturate(static_cast<uint8_t>(m.y - bar3Pos.y));
     ImVec4 imCol = {static_cast<float>(colorPicker.r) / 255, static_cast<float>(colorPicker.g) / 255, static_cast<float>(colorPicker.b) / 255, 1.0};
-    ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {50, 50});
+    ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {64, 64});
     ImGui::Text("bar1: (%.0f, %.0f), bar2: (%.0f, %.0f), bar3: (%.0f, %.0f)", bar1Pos.x, bar1Pos.y, bar2Pos.x, bar2Pos.y, bar3Pos.x, bar3Pos.y);
     ImGui::Separator();
     ImGui::ColorPicker3("clear color", clearColor, ImGuiColorEditFlags_None);
