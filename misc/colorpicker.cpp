@@ -6,8 +6,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include <memory>
 #include <iostream>
+#include <vector>
 
 void glfw_error_callback(int error, const char *description);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -19,8 +19,8 @@ int height = 600;
 class MyImage
 {
 public:
-  MyImage(int w, int h, std::unique_ptr<unsigned char[]> img_data)
-      : width(w), height(h), data(std::move(img_data))
+  MyImage(int w, int h, std::vector<uint8_t> img_data)
+      : width(w), height(h)
   {
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
@@ -28,23 +28,19 @@ public:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data.data());
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
   MyImage(int w, int h)
-      : MyImage(w, h, nullptr) {}
+      : MyImage(w, h, std::vector<uint8_t>(w * h * 4)) {}
 
-  // make sure img_data has correct width & height
-  void updateData(std::unique_ptr<unsigned char[]> img_data)
+  void updateData(std::vector<uint8_t> img_data)
   {
-    data = std::move(img_data);
     glBindTexture(GL_TEXTURE_2D, id);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data.get());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, img_data.data());
     glBindTexture(GL_TEXTURE_2D, 0);
   }
-
-  std::unique_ptr<unsigned char[]> data;
 
   uint32_t getWidth() const { return width; }
   uint32_t getHeight() const { return height; }
@@ -94,17 +90,20 @@ int main()
   bool showDemo = false;
   float clearColor[3] = {0.2f, 0.3f, 0.3f};
 
-  std::unique_ptr<unsigned char[]> data(new unsigned char[256 * 256 * 4]);
-  for (uint32_t i = 0; i < 256; ++i)
-    for (uint32_t j = 0; j < 256; ++j)
-    {
-      const int ix = (i * 256 + j) * 4;
-      data[ix + 0] = static_cast<unsigned char>(i);
-      data[ix + 1] = static_cast<unsigned char>(0);
-      data[ix + 2] = static_cast<unsigned char>(j);
-      data[ix + 3] = static_cast<unsigned char>(255);
-    }
-  MyImage img{256, 256, std::move(data)};
+  MyImage img{256, 256};
+  {
+    std::vector<uint8_t> data(img.getWidth() * img.getHeight() * 4);
+    for (uint32_t i = 0; i < img.getHeight(); ++i)
+      for (uint32_t j = 0; j < img.getWidth(); ++j)
+      {
+        const int ix = (i * img.getWidth() + j) * 4;
+        data[ix + 0] = static_cast<unsigned char>(i);
+        data[ix + 1] = static_cast<unsigned char>(0);
+        data[ix + 2] = static_cast<unsigned char>(j);
+        data[ix + 3] = static_cast<unsigned char>(255);
+      }
+    img.updateData(data);
+  }
 
   while (!glfwWindowShouldClose(window))
   {
