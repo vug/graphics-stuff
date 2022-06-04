@@ -95,9 +95,10 @@ int main()
   float clearColor[3] = {0.2f, 0.3f, 0.3f};
 
   glm::u8vec3 colorPicker = {51, 77, 77};
-  MyImage bar1{32, 256};
-  MyImage bar2{32, 256};
-  MyImage bar3{32, 256};
+  const int barWidth = 32, barHeight = 256;
+  MyImage bar1{barWidth, barHeight};
+  MyImage bar2{barWidth, barHeight};
+  MyImage bar3{barWidth, barHeight};
 
   while (!glfwWindowShouldClose(window))
   {
@@ -109,16 +110,16 @@ int main()
       ImGui::ShowDemoWindow();
 
     ImGui::Begin("Main");
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
     ImGui::Checkbox("Demo", &showDemo);
     {
-      const auto &img = bar1;
-      std::vector<glm::u8vec4> pixels1(img.getWidth() * img.getHeight());
-      std::vector<glm::u8vec4> pixels2(img.getWidth() * img.getHeight());
-      std::vector<glm::u8vec4> pixels3(img.getWidth() * img.getHeight());
-      for (uint32_t i = 0; i < img.getHeight(); ++i)
-        for (uint32_t j = 0; j < img.getWidth(); ++j)
+      std::vector<glm::u8vec4> pixels1(barWidth * barHeight);
+      std::vector<glm::u8vec4> pixels2(barWidth * barHeight);
+      std::vector<glm::u8vec4> pixels3(barWidth * barHeight);
+      for (uint32_t i = 0; i < barHeight; ++i)
+        for (uint32_t j = 0; j < barWidth; ++j)
         {
-          const int ix = (i * img.getWidth() + j);
+          const int ix = (i * barWidth + j);
           pixels1[ix] = {static_cast<uint8_t>(i), colorPicker.g, colorPicker.b, 255};
           pixels2[ix] = {colorPicker.r, static_cast<uint8_t>(i), colorPicker.b, 255};
           pixels3[ix] = {colorPicker.r, colorPicker.g, static_cast<uint8_t>(i), 255};
@@ -128,21 +129,26 @@ int main()
       bar3.updateData(pixels3);
     }
     int col[3] = {colorPicker.r, colorPicker.g, colorPicker.b};
-    if (ImGui::DragInt3("color", col, 1, 0, 255, "%3d", ImGuiSliderFlags_None))
+    if (ImGui::DragInt3("RGB", col, 1, 0, 255, "%3d", ImGuiSliderFlags_None))
     {
       colorPicker.r = static_cast<uint8_t>(col[0]);
       colorPicker.g = static_cast<uint8_t>(col[1]);
       colorPicker.b = static_cast<uint8_t>(col[2]);
     }
     ImVec2 m = ImGui::GetMousePos();
+    // TODO: abstract bar. when changed, updates the arrow, returns/sets selected value in [0.f, 1.f] range.
+    // then, set colorPicker color value based on the colorspace choice.
     ImVec2 bar1Pos = ImGui::GetCursorScreenPos();
     ImGui::Image((void *)(intptr_t)bar1.getId(), {static_cast<float>(bar1.getWidth()), static_cast<float>(bar1.getHeight())});
     ImGui::SetCursorScreenPos(bar1Pos);
     ImGui::InvisibleButton("bar1Button", {32, 256});
+    // Note that it is active as long as mouse button is pressed
     if (ImGui::IsItemActive())
-    {
       colorPicker.r = ImSaturate(static_cast<uint8_t>(m.y - bar1Pos.y));
-      std::cout << "bar1\n";
+    {
+      float x = bar1Pos.x;
+      float y = bar1Pos.y + colorPicker.r / 255.0 * barHeight;
+      draw_list->AddTriangle({x, y}, {x - 3, y - 3}, {x - 3, y + 3}, 0xFFFFFFFF, 1.0f);
     }
     ImGui::SameLine();
     ImVec2 bar2Pos = ImGui::GetCursorScreenPos();
@@ -158,6 +164,8 @@ int main()
     ImGui::InvisibleButton("bar3Button", {32, 256});
     if (ImGui::IsItemActive())
       colorPicker.b = ImSaturate(static_cast<uint8_t>(m.y - bar3Pos.y));
+    ImVec4 imCol = {static_cast<float>(colorPicker.r) / 255, static_cast<float>(colorPicker.g) / 255, static_cast<float>(colorPicker.b) / 255, 1.0};
+    ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {50, 50});
     ImGui::Text("bar1: (%.0f, %.0f), bar2: (%.0f, %.0f), bar3: (%.0f, %.0f)", bar1Pos.x, bar1Pos.y, bar2Pos.x, bar2Pos.y, bar3Pos.x, bar3Pos.y);
     ImGui::Separator();
     ImGui::ColorPicker3("clear color", clearColor, ImGuiColorEditFlags_None);
