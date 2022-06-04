@@ -23,7 +23,7 @@ int appHeight = 600;
 class MyImage
 {
 public:
-  MyImage(int w, int h, const std::vector<glm::u8vec4> &pixels)
+  MyImage(uint32_t w, uint32_t h, const std::vector<glm::u8vec4> &pixels)
       : width(w), height(h)
   {
     glGenTextures(1, &id);
@@ -36,7 +36,7 @@ public:
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
-  MyImage(int w, int h)
+  MyImage(uint32_t w, uint32_t h)
       : MyImage(w, h, std::vector<glm::u8vec4>(w * h * 4)) {}
 
   void updateData(const std::vector<glm::u8vec4> &pixels)
@@ -95,7 +95,9 @@ int main()
   float clearColor[3] = {0.2f, 0.3f, 0.3f};
 
   glm::u8vec3 colorPicker = {51, 77, 77};
-  const int barWidth = 64, barHeight = 256;
+  const ImVec2 barSize = {64.f, 256.f};
+  const uint32_t barWidth = static_cast<uint32_t>(barSize.x);
+  const uint32_t barHeight = static_cast<uint32_t>(barSize.y);
   MyImage bar1{barWidth, barHeight};
   MyImage bar2{barWidth, barHeight};
   MyImage bar3{barWidth, barHeight};
@@ -134,18 +136,18 @@ int main()
       colorPicker.g = static_cast<uint8_t>(col[1]);
       colorPicker.b = static_cast<uint8_t>(col[2]);
     }
-    static float val1 = static_cast<float>(colorPicker.r) / barHeight;
-    if (ImBar("bar1", val1, bar1.getId(), {barWidth, barHeight}))
+    static float val1 = static_cast<float>(colorPicker.r) / barSize.y;
+    if (ImBar("bar1", val1, bar1.getId(), barSize))
       colorPicker.r = static_cast<uint8_t>(val1 * 255);
     ImGui::SameLine();
 
-    static float val2 = static_cast<float>(colorPicker.g) / barHeight;
-    if (ImBar("bar2", val2, bar2.getId(), {barWidth, barHeight}))
+    static float val2 = static_cast<float>(colorPicker.g) / barSize.y;
+    if (ImBar("bar2", val2, bar2.getId(), barSize))
       colorPicker.g = static_cast<uint8_t>(val2 * 255);
     ImGui::SameLine();
 
-    static float val3 = static_cast<float>(colorPicker.b) / barHeight;
-    if (ImBar("bar3", val3, bar3.getId(), {barWidth, barHeight}))
+    static float val3 = static_cast<float>(colorPicker.b) / barSize.y;
+    if (ImBar("bar3", val3, bar3.getId(), barSize))
       colorPicker.b = static_cast<uint8_t>(val3 * 255);
 
     ImVec4 imCol = {static_cast<float>(colorPicker.r) / 255, static_cast<float>(colorPicker.g) / 255, static_cast<float>(colorPicker.b) / 255, 1.0};
