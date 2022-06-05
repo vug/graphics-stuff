@@ -25,7 +25,7 @@ enum class ImColorSpaceMode
   HSV_FIXED,
   HSV_ACTIVE,
 };
-bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2 barSize);
+bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *&imgs, ImVec2 barSize);
 
 int appWidth = 800;
 int appHeight = 600;
@@ -200,7 +200,7 @@ bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size)
   return hasChanged;
 }
 
-bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2 barSize)
+bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *&imgs, ImVec2 barSize)
 {
   bool hasChanged = false;
   const uint32_t barWidth = static_cast<uint32_t>(barSize.x);
