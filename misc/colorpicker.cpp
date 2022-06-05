@@ -38,7 +38,7 @@ int main()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_SAMPLES, 8);
 
-  GLFWwindow *window = glfwCreateWindow(appWidth, appHeight, "Skeleton", nullptr, nullptr);
+  GLFWwindow *window = glfwCreateWindow(appWidth, appHeight, "Active Color Picker", nullptr, nullptr);
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetKeyCallback(window, key_callback);
@@ -49,9 +49,9 @@ int main()
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO &io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
   ImGui::StyleColorsDark();
   // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
@@ -69,6 +69,7 @@ int main()
 
   float colorRGB[3] = {51.f / 255.f, 77.f / 255.f, 77.f / 255.f};
   MyImage *imgs = nullptr;
+  ImColorSpaceMode colorMode = ImColorSpaceMode::RGB_ACTIVE;
 
   while (!glfwWindowShouldClose(window))
   {
@@ -83,10 +84,13 @@ int main()
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::Separator();
 
-    ImColorPicker(colorRGB, ImColorSpaceMode::HSV_ACTIVE, imgs, {64, 256});
+    int colorModeIx = static_cast<int>(colorMode);
+    if (ImGui::Combo("mode", &colorModeIx, "RGB (Fixed)\0RGB (Active)\0HSV (Fixed)\0HSV (Active)"))
+      colorMode = static_cast<ImColorSpaceMode>(colorModeIx);
+    ImColorPicker(colorRGB, colorMode, imgs, {64, 256});
     ImGui::SameLine();
     ImVec4 imCol = {colorRGB[0], colorRGB[1], colorRGB[2], 1.0};
-    ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {64, 64});
+    ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {128, 128});
     ImGui::Separator();
 
     // TODO: remove when done with my color picker
@@ -221,6 +225,13 @@ bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2
         const int ix = (i * barWidth + j);
         switch (mode)
         {
+        case ImColorSpaceMode::RGB_FIXED:
+        {
+          pixels1[ix] = {static_cast<uint8_t>(i), 0, 0, 255};
+          pixels2[ix] = {0, static_cast<uint8_t>(i), 0, 255};
+          pixels3[ix] = {0, 0, static_cast<uint8_t>(i), 255};
+        }
+        break;
         case ImColorSpaceMode::RGB_ACTIVE:
         {
           glm::u8vec3 colorRGBBytes = {static_cast<uint8_t>(colorRGB[0] * 255.f), static_cast<uint8_t>(colorRGB[1] * 255.f), static_cast<uint8_t>(colorRGB[2] * 255.f)};
@@ -229,14 +240,25 @@ bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2
           pixels3[ix] = {colorRGBBytes.r, colorRGBBytes.g, static_cast<uint8_t>(i), 255};
         }
         break;
+        case ImColorSpaceMode::HSV_FIXED:
+        {
+          const float val = static_cast<float>(i) / barHeight;
+          float rgb1[3];
+          ImGui::ColorConvertHSVtoRGB(val, 1.0f, 1.0f, rgb1[0], rgb1[1], rgb1[2]);
+          pixels1[ix] = {static_cast<uint8_t>(rgb1[0] * 255), static_cast<uint8_t>(rgb1[1] * 255), static_cast<uint8_t>(rgb1[2] * 255), 255};
+          pixels2[ix] = {static_cast<uint8_t>(val * 255), static_cast<uint8_t>(val * 255), static_cast<uint8_t>(val * 255), 255};
+          pixels3[ix] = pixels2[ix];
+        }
+        break;
         case ImColorSpaceMode::HSV_ACTIVE:
         {
+          const float val = static_cast<float>(i) / barHeight;
           float rgb1[3];
-          ImGui::ColorConvertHSVtoRGB(static_cast<float>(i) / barHeight, colorHSV[1], colorHSV[2], rgb1[0], rgb1[1], rgb1[2]);
+          ImGui::ColorConvertHSVtoRGB(val, colorHSV[1], colorHSV[2], rgb1[0], rgb1[1], rgb1[2]);
           float rgb2[3];
-          ImGui::ColorConvertHSVtoRGB(colorHSV[0], static_cast<float>(i) / barHeight, colorHSV[2], rgb2[0], rgb2[1], rgb2[2]);
+          ImGui::ColorConvertHSVtoRGB(colorHSV[0], val, colorHSV[2], rgb2[0], rgb2[1], rgb2[2]);
           float rgb3[3];
-          ImGui::ColorConvertHSVtoRGB(colorHSV[0], colorHSV[1], static_cast<float>(i) / barHeight, rgb3[0], rgb3[1], rgb3[2]);
+          ImGui::ColorConvertHSVtoRGB(colorHSV[0], colorHSV[1], val, rgb3[0], rgb3[1], rgb3[2]);
           pixels1[ix] = {static_cast<uint8_t>(rgb1[0] * 255), static_cast<uint8_t>(rgb1[1] * 255), static_cast<uint8_t>(rgb1[2] * 255), 255};
           pixels2[ix] = {static_cast<uint8_t>(rgb2[0] * 255), static_cast<uint8_t>(rgb2[1] * 255), static_cast<uint8_t>(rgb2[2] * 255), 255};
           pixels3[ix] = {static_cast<uint8_t>(rgb3[0] * 255), static_cast<uint8_t>(rgb3[1] * 255), static_cast<uint8_t>(rgb3[2] * 255), 255};
@@ -260,11 +282,13 @@ bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2
   float val1, val2, val3;
   switch (mode)
   {
+  case ImColorSpaceMode::RGB_FIXED:
   case ImColorSpaceMode::RGB_ACTIVE:
     val1 = colorRGB[0];
     val2 = colorRGB[1];
     val3 = colorRGB[2];
     break;
+  case ImColorSpaceMode::HSV_FIXED:
   case ImColorSpaceMode::HSV_ACTIVE:
     val1 = colorHSV[0];
     val2 = colorHSV[1];
@@ -280,11 +304,13 @@ bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2
   // only when changed?
   switch (mode)
   {
+  case ImColorSpaceMode::RGB_FIXED:
   case ImColorSpaceMode::RGB_ACTIVE:
     colorRGB[0] = val1;
     colorRGB[1] = val2;
     colorRGB[2] = val3;
     break;
+  case ImColorSpaceMode::HSV_FIXED:
   case ImColorSpaceMode::HSV_ACTIVE:
     ImGui::ColorConvertHSVtoRGB(val1, val2, val3, colorRGB[0], colorRGB[1], colorRGB[2]);
     break;
