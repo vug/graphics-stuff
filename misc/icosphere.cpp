@@ -18,6 +18,7 @@ using MyMesh = OpenMesh::TriMesh_ArrayKernelT<>;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+// logic from https://www.danielsieger.com/blog/2021/03/27/generating-spheres.html
 void makeIcosahedronOMesh(MyMesh &oMesh);
 void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv);
 
@@ -293,14 +294,18 @@ void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv)
   if (numSubDiv == 0)
     return;
 
-  OpenMesh::Subdivider::Uniform::LoopT<MyMesh> loopSubd;
-  loopSubd.attach(oMesh);
-  loopSubd(numSubDiv);
-  loopSubd.detach();
-
-  for (auto &v : oMesh.vertices())
+  // At each iteration first subdivide then project on sphere instead of subdividing n-times and projecting at the end
+  for (uint32_t i = 0; i < numSubDiv; ++i)
   {
-    auto &p = oMesh.point(v);
-    p.normalize();
+    OpenMesh::Subdivider::Uniform::LoopT<MyMesh> loopSubd;
+    loopSubd.attach(oMesh);
+    loopSubd(1);
+    loopSubd.detach();
+
+    for (auto &v : oMesh.vertices())
+    {
+      auto &p = oMesh.point(v);
+      p.normalize();
+    }
   }
 }
