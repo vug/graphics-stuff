@@ -11,7 +11,41 @@
 #include <string>
 #include <vector>
 
-class MyImage;
+class MyImage
+{
+public:
+  MyImage(uint32_t w, uint32_t h, const std::vector<glm::u8vec4> &pixels)
+      : width(w), height(h)
+  {
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  MyImage(uint32_t w, uint32_t h)
+      : MyImage(w, h, std::vector<glm::u8vec4>(w * h * 4)) {}
+
+  void updateData(const std::vector<glm::u8vec4> &pixels)
+  {
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  uint32_t getWidth() const { return width; }
+  uint32_t getHeight() const { return height; }
+  uint32_t getId() const { return id; }
+
+private:
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t id = 0;
+};
 
 void glfw_error_callback(int error, const char *description);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -25,7 +59,7 @@ enum class ImColorSpaceMode
   HSV_FIXED,
   HSV_ACTIVE,
 };
-bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *&imgs, ImVec2 barSize);
+bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2 barSize);
 
 int appWidth = 800;
 int appHeight = 600;
@@ -68,7 +102,7 @@ int main()
   bool showDemo = false;
 
   float colorRGB[3] = {51.f / 255.f, 77.f / 255.f, 77.f / 255.f};
-  MyImage *imgs = nullptr;
+  std::vector<MyImage> imgs = {{64, 256}, {64, 256}, {64, 256}};
   ImColorSpaceMode colorMode = ImColorSpaceMode::RGB_ACTIVE;
 
   while (!glfwWindowShouldClose(window))
@@ -87,7 +121,7 @@ int main()
     int colorModeIx = static_cast<int>(colorMode);
     if (ImGui::Combo("mode", &colorModeIx, "RGB (Fixed)\0RGB (Active)\0HSV (Fixed)\0HSV (Active)"))
       colorMode = static_cast<ImColorSpaceMode>(colorModeIx);
-    ImColorPicker(colorRGB, colorMode, imgs, {64, 256});
+    ImColorPicker(colorRGB, colorMode, imgs.data(), {64, 256});
     ImGui::SameLine();
     ImVec4 imCol = {colorRGB[0], colorRGB[1], colorRGB[2], 1.0};
     ImGui::ColorButton("picked color", imCol, ImGuiColorEditFlags_None, {128, 128});
@@ -123,42 +157,6 @@ int main()
   glfwTerminate();
   return 0;
 }
-
-class MyImage
-{
-public:
-  MyImage(uint32_t w, uint32_t h, const std::vector<glm::u8vec4> &pixels)
-      : width(w), height(h)
-  {
-    glGenTextures(1, &id);
-    glBindTexture(GL_TEXTURE_2D, id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    glBindTexture(GL_TEXTURE_2D, 0);
-  }
-
-  MyImage(uint32_t w, uint32_t h)
-      : MyImage(w, h, std::vector<glm::u8vec4>(w * h * 4)) {}
-
-  void updateData(const std::vector<glm::u8vec4> &pixels)
-  {
-    glBindTexture(GL_TEXTURE_2D, id);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    glBindTexture(GL_TEXTURE_2D, 0);
-  }
-
-  uint32_t getWidth() const { return width; }
-  uint32_t getHeight() const { return height; }
-  uint32_t getId() const { return id; }
-
-private:
-  uint32_t width = 0;
-  uint32_t height = 0;
-  uint32_t id = 0;
-};
 
 void glfw_error_callback(int error, const char *description)
 {
@@ -200,7 +198,7 @@ bool ImBar(const char *str_id, float &val, uint32_t textureId, ImVec2 size)
   return hasChanged;
 }
 
-bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *&imgs, ImVec2 barSize)
+bool ImColorPicker(float *colorRGB, ImColorSpaceMode mode, MyImage *imgs, ImVec2 barSize)
 {
   bool hasChanged = false;
   const uint32_t barWidth = static_cast<uint32_t>(barSize.x);
