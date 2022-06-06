@@ -74,8 +74,7 @@ int main()
       glBindBuffer(GL_ARRAY_BUFFER, modelMesh.vboId[0]);
       glBufferData(GL_ARRAY_BUFFER, sizeof(float) * modelMesh.vertexCount * 3, modelMesh.vertices, GL_STATIC_DRAW);
       // from UploadMesh: index of vbo for indices is 6
-      rlLoadVertexBufferElement()
-          glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, modelMesh.vboId[6]);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, modelMesh.vboId[6]);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * modelMesh.vertexCount, modelMesh.indices, GL_STATIC_DRAW);
       debugPrint(model);
     }
