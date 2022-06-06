@@ -9,6 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Tools/Subdivider/Uniform/LoopT.hh>
 
 #include <iostream>
 #include <vector>
@@ -18,6 +19,7 @@ using MyMesh = OpenMesh::TriMesh_ArrayKernelT<>;
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
 void makeIcosahedronOMesh(MyMesh &oMesh);
+void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv);
 
 const char *vertexShaderSource = R"(
 #version 460 core
@@ -96,7 +98,8 @@ int main()
   glDeleteShader(fragmentShader);
 
   MyMesh oMesh;
-  makeIcosahedronOMesh(oMesh);
+  // makeIcosahedronOMesh(oMesh);
+  makeIcosphereOMesh(oMesh, 3);
 
   std::vector<float> vertices = {};
   std::vector<unsigned int> indices = {};
@@ -118,7 +121,6 @@ int main()
   glGenBuffers(1, &vbo);
   glGenBuffers(1, &ebo);
   glBindVertexArray(vao);
-  // Allocate 16 vertices worth memory initially
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size() * 3, nullptr, GL_STATIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -135,9 +137,6 @@ int main()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  // glEnable(GL_LINE_SMOOTH);
-  // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-  // glLineWidth(1.0f);
   glEnable(GL_MULTISAMPLE);
 
   while (!glfwWindowShouldClose(window))
@@ -183,37 +182,6 @@ void key_callback(GLFWwindow *window, int key, [[maybe_unused]] int scancode, in
 {
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GL_TRUE);
-  // if (key == GLFW_KEY_T && action == GLFW_PRESS)
-  // {
-  //   const size_t lastIx = vertices.size();
-  //   for (size_t ix = 0; ix < 9; ++ix)
-  //     vertices.push_back(vertices[lastIx - 9 + ix] + (ix % 3 == 2 ? 0.0f : 0.05f));
-  //   for (int i = 0; i < 3; ++i)
-  //     indices.push_back(static_cast<unsigned int>(indices.size()));
-
-  //   // If allocated memory is enough, just use glBufferSubData for fast upload
-  //   // When not enough, use glBufferData double memory size
-  //   if (indices.size() <= numMaxVertices)
-  //   {
-  //     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  //     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * vertices.size(), vertices.data());
-  //     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  //     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(unsigned int) * indices.size(), indices.data());
-  //     glBindBuffer(GL_ARRAY_BUFFER, 0);
-  //   }
-  //   else
-  //   {
-  //     // std::cout << "num vertices: " << indices.size() << ", max vertices: " << numMaxVertices << ". Amortize!\n";
-  //     numMaxVertices *= 2;
-  //     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  //     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * numMaxVertices * 3, vertices.data(), GL_STATIC_DRAW);
-  //     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  //     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  //     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numMaxVertices, indices.data(), GL_STATIC_DRAW);
-  //     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-  //   }
-  // }
 }
 
 void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int w, int h)
@@ -249,8 +217,6 @@ void makeIcosahedronOMesh(MyMesh &oMesh)
   for (const auto &p : points)
     vertices.push_back(oMesh.add_vertex(p / p.norm()));
 
-  std::vector<std::vector<int>> foo = {{1, 2}, {3, 4}};
-
   std::vector<std::vector<MyMesh::VertexHandle>> faceTriangles = {
       {vertices[2], vertices[1], vertices[0]},   // 0
       {vertices[1], vertices[2], vertices[3]},   // 1
@@ -276,4 +242,23 @@ void makeIcosahedronOMesh(MyMesh &oMesh)
 
   for (const auto &f : faceTriangles)
     oMesh.add_face(f);
+}
+
+void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv)
+{
+  makeIcosahedronOMesh(oMesh);
+
+  if (numSubDiv == 0)
+    return;
+
+  OpenMesh::Subdivider::Uniform::LoopT<MyMesh> loopSubd;
+  loopSubd.attach(oMesh);
+  loopSubd(numSubDiv);
+  loopSubd.detach();
+
+  for (auto &v : oMesh.vertices())
+  {
+    auto &p = oMesh.point(v);
+    p.normalize();
+  }
 }
