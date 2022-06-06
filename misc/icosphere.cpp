@@ -23,23 +23,40 @@ void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv);
 
 const char *vertexShaderSource = R"(
 #version 460 core
-layout (location = 0) in vec3 aPos;
+layout (location = 0) in vec3 vPos;
+layout (location = 1) in vec3 vNorm;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+out VertexData
+{
+  vec3 modelPos;
+  vec3 modelNorm;
+} vertexData;
+
 void main()
 {
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    gl_Position = projection * view * model * vec4(vPos, 1.0);
+    vertexData.modelPos = vPos;
+    vertexData.modelNorm = vNorm;
 }
 )";
 const char *fragmentShaderSource = R"(
 #version 460 core
+
+in VertexData
+{
+  vec3 modelPos;
+  vec3 modelNorm;
+} vertexData;
+
 out vec4 FragColor;
 void main()
 {
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    // FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    FragColor = vec4(vertexData.modelNorm, 1.0f);
 }
 )";
 
@@ -101,50 +118,74 @@ int main()
   // makeIcosahedronOMesh(oMesh);
   makeIcosphereOMesh(oMesh, 3);
 
-  std::vector<float> vertices = {};
+  std::vector<glm::vec3> positions = {};
+  std::vector<glm::vec3> normals = {};
   std::vector<unsigned int> indices = {};
-  unsigned int vbo, vao, ebo;
+  unsigned int vboPos, vboNorm, vao, ebo;
 
   for (const auto &v : oMesh.vertices())
   {
     const auto &p = oMesh.point(v);
-    vertices.push_back(p[0]);
-    vertices.push_back(p[1]);
-    vertices.push_back(p[2]);
+    positions.emplace_back(p[0], p[1], p[2]);
   }
 
+  normals.resize(positions.size());
   for (auto f : oMesh.faces())
+  {
+    // const auto& fNorm = oMesh.calc_normal(f);
     for (auto v : f.vertices())
+    {
+      const int ix = v.idx();
       indices.push_back(v.idx());
 
+      // flat shading for normals: won't work because vertices are shared among faces
+      // glm::vec3 n = {fNorm[0], fNorm[1], fNorm[2]};
+
+      const auto &vNorm = oMesh.calc_normal(v);
+      glm::vec3 n = {vNorm[0], vNorm[1], vNorm[2]};
+
+      // cheat for sphere
+      // const auto& p = oMesh.point(v);
+      // glm::vec3 n = {p[0], p[1], p[2]};
+
+      n += 1.f;
+      n *= 0.5f;
+      normals[ix] = n;
+    }
+  }
+  std::cout << positions.size() << " " << normals.size() << " " << indices.size() << "\n";
+
   glGenVertexArrays(1, &vao);
-  glGenBuffers(1, &vbo);
+  glGenBuffers(1, &vboPos);
+  glGenBuffers(1, &vboNorm);
   glGenBuffers(1, &ebo);
   glBindVertexArray(vao);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size() * 3, nullptr, GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), nullptr, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
 
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * vertices.size(), vertices.data());
+  glBindBuffer(GL_ARRAY_BUFFER, vboPos);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * positions.size() * 3, positions.data(), GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vboNorm);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normals.size() * 3, normals.data(), GL_STATIC_DRAW);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(unsigned int) * indices.size(), indices.data());
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glBindVertexArray(0);
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glEnable(GL_MULTISAMPLE);
+  glEnable(GL_DEPTH_TEST);
 
   while (!glfwWindowShouldClose(window))
   {
     double t = glfwGetTime();
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::vec3 cameraPos = glm::vec3(std::cos(t), 1.0f, std::sin(t)) * 2.f;
     glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -170,7 +211,8 @@ int main()
   }
 
   glDeleteVertexArrays(1, &vao);
-  glDeleteBuffers(1, &vbo);
+  glDeleteBuffers(1, &vboPos);
+  glDeleteBuffers(1, &vboNorm);
   glDeleteBuffers(1, &ebo);
   glDeleteProgram(shaderProgram);
 
