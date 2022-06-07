@@ -27,37 +27,75 @@ const char *vertexShaderSource = R"(
 layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec3 vNorm;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+uniform mat4 WorldFromObject;
+uniform mat4 ViewFromWorld;
+uniform mat4 ProjectionFromView;
+uniform mat3 WorldNormalFromObject;
 
 out VertexData
 {
-  vec3 modelPos;
-  vec3 modelNorm;
+  vec3 ObjectPosition;
+  vec3 WorldPosition;
+  vec3 ObjectNormal;
+  vec3 WorldNormal;
 } vertexData;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(vPos, 1.0);
-    vertexData.modelPos = vPos;
-    vertexData.modelNorm = vNorm;
+    gl_Position = ProjectionFromView * ViewFromWorld * WorldFromObject * vec4(vPos, 1.0);
+
+    vertexData.ObjectPosition = vPos;
+    vertexData.WorldPosition = vec3(WorldFromObject * vec4(vertexData.ObjectPosition, 1.0));
+    vertexData.ObjectNormal = vNorm;
+    // vertexData.WorldNormal = WorldNormalFromObject * vNorm;
+    vertexData.WorldNormal = mat3(transpose(inverse(WorldFromObject))) * vNorm;
 }
 )";
 const char *fragmentShaderSource = R"(
 #version 460 core
 
+uniform vec3 cameraPos;
+
 in VertexData
 {
-  vec3 modelPos;
-  vec3 modelNorm;
+  vec3 ObjectPosition;
+  vec3 WorldPosition;
+  vec3 ObjectNormal;
+  vec3 WorldNormal;
 } vertexData;
 
 out vec4 FragColor;
 void main()
 {
     // FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-    FragColor = vec4(vertexData.modelNorm, 1.0f);
+    // FragColor = vec4((vertexData.ObjectNormal * 0.5 + 0.5), 1.0f);
+    // FragColor = vec4((normalize(vertexData.WorldNormal) * 0.5 + 0.5), 1.0f);
+
+    // something feels wrong about below
+    vec3 lightColor = vec3(0.8, 0.7, 0.2);
+    vec3 objectColor = vec3(0.1, 0.2, 0.8);
+    vec3 lightPos = vec3(4, 2, 0);
+    float ambientStrength = 0.1;
+    float diffuseStrength = 0.75;
+    float specularStrength = 2.5;
+
+    // ambient
+    vec3 ambient = ambientStrength * lightColor;
+  	
+    // diffuse 
+    vec3 norm = normalize(vertexData.WorldNormal);
+    vec3 lightDir = normalize(lightPos - vertexData.WorldPosition);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diffuseStrength * diff * lightColor;
+    
+    // specular
+    vec3 viewDir = normalize(cameraPos - vertexData.WorldPosition);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightColor;  
+        
+    vec3 result = (ambient + diffuse + specular) * objectColor;
+    FragColor = vec4(result, 1.0);
 }
 )";
 
@@ -149,12 +187,9 @@ int main()
       // const auto& p = oMesh.point(v);
       // glm::vec3 n = {p[0], p[1], p[2]};
 
-      n += 1.f;
-      n *= 0.5f;
       normals[ix] = n;
     }
   }
-  std::cout << positions.size() << " " << normals.size() << " " << indices.size() << "\n";
 
   glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vboPos);
@@ -177,7 +212,7 @@ int main()
   glEnableVertexAttribArray(1);
   glBindVertexArray(0);
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glEnable(GL_MULTISAMPLE);
   glEnable(GL_DEPTH_TEST);
 
@@ -188,22 +223,33 @@ int main()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::vec3 cameraPos = glm::vec3(std::cos(t), 1.0f, std::sin(t)) * 2.f;
     glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    const float fov = 45.0f;
-    glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, up);
-    glm::mat4 projection = glm::perspective(glm::radians(fov), static_cast<float>(width) / height, 0.1f, 100.0f);
-    const int viewLoc = glGetUniformLocation(shaderProgram, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    const int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    const float fov = 20.0f;
+
+    glm::vec3 cameraPos = glm::vec3(std::cos(t), 0.2, std::sin(t)) * 5.f;
+    const int cameraPosLoc = glGetUniformLocation(shaderProgram, "cameraPos");
+    glUniform3fv(cameraPosLoc, 1, glm::value_ptr(cameraPos));
+
+    glm::mat4 ViewFromWorld = glm::lookAt(cameraPos, cameraTarget, up);
+    const int ViewFromWorldLoc = glGetUniformLocation(shaderProgram, "ViewFromWorld");
+    glUniformMatrix4fv(ViewFromWorldLoc, 1, GL_FALSE, glm::value_ptr(ViewFromWorld));
+
+    glm::mat4 ProjectionFromView = glm::perspective(glm::radians(fov), static_cast<float>(width) / height, 0.1f, 100.0f);
+    const int ProjectionFromViewLoc = glGetUniformLocation(shaderProgram, "ProjectionFromView");
+    glUniformMatrix4fv(ProjectionFromViewLoc, 1, GL_FALSE, glm::value_ptr(ProjectionFromView));
 
     glUseProgram(shaderProgram);
+
     glBindVertexArray(vao);
-    glm::mat4 model = glm::mat4(1.0f);
-    const int modelLoc = glGetUniformLocation(shaderProgram, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glm::mat4 WorldFromObject = glm::scale(glm::mat4(1.0f), {0.1, 0.5, 0.3});
+    const int WorldFromObjectLoc = glGetUniformLocation(shaderProgram, "WorldFromObject");
+    glUniformMatrix4fv(WorldFromObjectLoc, 1, GL_FALSE, glm::value_ptr(WorldFromObject));
+
+    glm::mat4 WorldNormalFromObject = glm::mat3(glm::transpose(glm::inverse(WorldFromObject)));
+    const int WorldNormalFromObjectLoc = glGetUniformLocation(shaderProgram, "WorldNormalFromObject");
+    glUniformMatrix3fv(WorldNormalFromObjectLoc, 1, GL_FALSE, glm::value_ptr(WorldNormalFromObject));
+
     glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
