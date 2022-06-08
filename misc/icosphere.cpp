@@ -226,8 +226,13 @@ int main()
   lights.numLights = static_cast<uint32_t>(lights.lights.size());
   lights.lights.resize(100);
 
-  uint32_t shaderProgram = compileShaders(vertexShader, fragmentShader);
-  shaderBlockBinding(shaderProgram, "Lights", 0);
+  uint32_t shaderMain = compileShaders(vertexShader, fragmentShader);
+  uint32_t shaderPoints = compileShaders(vertexShader, fragmentShaderPoint);
+
+  shaderBlockBinding(shaderMain, "Lights", 0);
+  shaderBlockBinding(shaderPoints, "Lights", 0);
+
+  std::vector<uint32_t> shaders = {shaderMain, shaderPoints};
 
   glGenBuffers(1, &uboLights);
   glBindBuffer(GL_UNIFORM_BUFFER, uboLights);
@@ -262,26 +267,32 @@ int main()
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(Light) * 100, sizeof(int32_t), &lights.numLights);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glUseProgram(shaderProgram);
-    // glm::vec3 cameraPos = glm::vec3(std::cos(t), 0.2, std::sin(t)) * 5.f;
-    glm::vec3 cameraPos = glm::vec3(0.f, 0.2f, 5.f);
-    shaderSetVector3fv(shaderProgram, "cameraPos", glm::value_ptr(cameraPos));
-    glm::mat4 ViewFromWorld = glm::lookAt(cameraPos, cameraTarget, up);
-    shaderSetMatrix4fv(shaderProgram, "ViewFromWorld", glm::value_ptr(ViewFromWorld));
-    glm::mat4 ProjectionFromView = glm::perspective(glm::radians(fov), static_cast<float>(width) / height, 0.1f, 100.0f);
-    shaderSetMatrix4fv(shaderProgram, "ProjectionFromView", glm::value_ptr(ProjectionFromView));
+    for (auto &shaderProgram : shaders)
+    {
+      glUseProgram(shaderProgram);
+      // glm::vec3 cameraPos = glm::vec3(std::cos(t), 0.2, std::sin(t)) * 5.f;
+      glm::vec3 cameraPos = glm::vec3(0.f, 0.2f, 5.f);
+      shaderSetVector3fv(shaderProgram, "cameraPos", glm::value_ptr(cameraPos));
+      glm::mat4 ViewFromWorld = glm::lookAt(cameraPos, cameraTarget, up);
+      shaderSetMatrix4fv(shaderProgram, "ViewFromWorld", glm::value_ptr(ViewFromWorld));
+      glm::mat4 ProjectionFromView = glm::perspective(glm::radians(fov), static_cast<float>(width) / height, 0.1f, 100.0f);
+      shaderSetMatrix4fv(shaderProgram, "ProjectionFromView", glm::value_ptr(ProjectionFromView));
 
-    glBindVertexArray(vao);
-    glm::mat4 WorldFromObject = glm::rotate(glm::mat4(1.0f), t, {0.f, 1.f, 0.f});
-    WorldFromObject = glm::scale(WorldFromObject, {0.3, 0.5, 0.1});
-    shaderSetMatrix4fv(shaderProgram, "WorldFromObject", glm::value_ptr(WorldFromObject));
-    glm::mat4 WorldNormalFromObject = glm::mat3(glm::transpose(glm::inverse(WorldFromObject)));
-    shaderSetMatrix3fv(shaderProgram, "WorldNormalFromObject", glm::value_ptr(WorldNormalFromObject));
+      glBindVertexArray(vao);
+      glm::mat4 WorldFromObject = glm::rotate(glm::mat4(1.0f), t, {0.f, 1.f, 0.f});
+      WorldFromObject = glm::scale(WorldFromObject, {0.3, 0.5, 0.1});
+      shaderSetMatrix4fv(shaderProgram, "WorldFromObject", glm::value_ptr(WorldFromObject));
+      glm::mat4 WorldNormalFromObject = glm::mat3(glm::transpose(glm::inverse(WorldFromObject)));
+      shaderSetMatrix3fv(shaderProgram, "WorldNormalFromObject", glm::value_ptr(WorldNormalFromObject));
 
-    glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
-    // glDrawElements(GL_POINTS, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
-    // glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(positions.size()));
-    glBindVertexArray(0);
+      if (shaderProgram == shaderMain)
+        glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
+      if (shaderProgram == shaderPoints)
+        glDrawElements(GL_POINTS, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
+        
+      // glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(positions.size()));
+      glBindVertexArray(0);
+    }
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -291,7 +302,8 @@ int main()
   glDeleteBuffers(1, &vboPos);
   glDeleteBuffers(1, &vboNorm);
   glDeleteBuffers(1, &ebo);
-  glDeleteProgram(shaderProgram);
+  glDeleteProgram(shaderMain);
+  glDeleteProgram(shaderPoints);
 
   glfwTerminate();
   return 0;
