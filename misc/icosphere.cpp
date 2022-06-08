@@ -289,7 +289,7 @@ int main()
         glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
       if (shaderProgram == shaderPoints)
         glDrawElements(GL_POINTS, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
-        
+
       // glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(positions.size()));
       glBindVertexArray(0);
     }
@@ -302,6 +302,7 @@ int main()
   glDeleteBuffers(1, &vboPos);
   glDeleteBuffers(1, &vboNorm);
   glDeleteBuffers(1, &ebo);
+  glDeleteBuffers(1, &uboLights);
   glDeleteProgram(shaderMain);
   glDeleteProgram(shaderPoints);
 
