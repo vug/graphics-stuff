@@ -25,6 +25,26 @@ void makeIndexedMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &posit
 void makeTriangleMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &positions, std::vector<glm::vec3> &normals, std::vector<uint32_t> &indices, bool flat = true);
 //
 uint32_t compileShaders(const char *vertexShaderSource, const char *fragmentShaderSource);
+void shaderSetVector3fv(uint32_t shaderId, const char *name, float *value)
+{
+  const int location = glGetUniformLocation(shaderId, name);
+  glUniform3fv(location, 1, value);
+}
+void shaderSetMatrix3fv(uint32_t shaderId, const char *name, float *value)
+{
+  const int location = glGetUniformLocation(shaderId, name);
+  glUniformMatrix3fv(location, 1, GL_FALSE, value);
+}
+void shaderSetMatrix4fv(uint32_t shaderId, const char *name, float *value)
+{
+  const int location = glGetUniformLocation(shaderId, name);
+  glUniformMatrix4fv(location, 1, GL_FALSE, value);
+}
+void shaderBlockBinding(uint32_t shaderId, const char *name, uint32_t binding)
+{
+  unsigned int index = glGetUniformBlockIndex(shaderId, name);
+  glUniformBlockBinding(shaderId, index, binding);
+}
 
 struct Light
 {
@@ -136,6 +156,16 @@ void main()
 }
 )";
 
+const char *fragmentShaderPoint = R"(
+#version 460 core
+
+out vec4 FragColor;
+void main()
+{
+    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+}
+)";
+
 int width = 800;
 int height = 600;
 
@@ -153,8 +183,6 @@ int main()
   glfwSetKeyCallback(window, key_callback);
 
   gladLoadGL();
-
-  uint32_t shaderProgram = compileShaders(vertexShader, fragmentShader);
 
   MyMesh oMesh;
   // makeIcosahedronOMesh(oMesh);
@@ -198,14 +226,14 @@ int main()
   lights.numLights = static_cast<uint32_t>(lights.lights.size());
   lights.lights.resize(100);
 
-  unsigned int lightsIdx = glGetUniformBlockIndex(shaderProgram, "Lights");
-  glUniformBlockBinding(shaderProgram, lightsIdx, 0);
+  uint32_t shaderProgram = compileShaders(vertexShader, fragmentShader);
+  shaderBlockBinding(shaderProgram, "Lights", 0);
 
   glGenBuffers(1, &uboLights);
   glBindBuffer(GL_UNIFORM_BUFFER, uboLights);
-  size_t sizeofLights = sizeof(Light) * 100 + sizeof(int);
+  const size_t sizeofLights = sizeof(Light) * 100 + sizeof(int);
   glBufferData(GL_UNIFORM_BUFFER, sizeofLights, nullptr, GL_DYNAMIC_DRAW); // this allocates space for the UBO.
-  glBindBufferRange(GL_UNIFORM_BUFFER, lightsIdx, uboLights, 0, sizeofLights);
+  glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboLights, 0, sizeofLights);
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
   // glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
@@ -228,36 +256,27 @@ int main()
     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     const float fov = 20.0f;
 
-    // glm::vec3 cameraPos = glm::vec3(std::cos(t), 0.2, std::sin(t)) * 5.f;
-    glm::vec3 cameraPos = glm::vec3(0.f, 0.2f, 5.f);
-    const int cameraPosLoc = glGetUniformLocation(shaderProgram, "cameraPos");
-    glUniform3fv(cameraPosLoc, 1, glm::value_ptr(cameraPos));
-
-    glm::mat4 ViewFromWorld = glm::lookAt(cameraPos, cameraTarget, up);
-    const int ViewFromWorldLoc = glGetUniformLocation(shaderProgram, "ViewFromWorld");
-    glUniformMatrix4fv(ViewFromWorldLoc, 1, GL_FALSE, glm::value_ptr(ViewFromWorld));
-
-    glm::mat4 ProjectionFromView = glm::perspective(glm::radians(fov), static_cast<float>(width) / height, 0.1f, 100.0f);
-    const int ProjectionFromViewLoc = glGetUniformLocation(shaderProgram, "ProjectionFromView");
-    glUniformMatrix4fv(ProjectionFromViewLoc, 1, GL_FALSE, glm::value_ptr(ProjectionFromView));
-
-    glUseProgram(shaderProgram);
-
-    glBindVertexArray(vao);
-    glm::mat4 WorldFromObject = glm::rotate(glm::mat4(1.0f), t, {0.f, 1.f, 0.f});
-    WorldFromObject = glm::scale(WorldFromObject, {0.3, 0.5, 0.1});
-    const int WorldFromObjectLoc = glGetUniformLocation(shaderProgram, "WorldFromObject");
-    glUniformMatrix4fv(WorldFromObjectLoc, 1, GL_FALSE, glm::value_ptr(WorldFromObject));
-
-    glm::mat4 WorldNormalFromObject = glm::mat3(glm::transpose(glm::inverse(WorldFromObject)));
-    const int WorldNormalFromObjectLoc = glGetUniformLocation(shaderProgram, "WorldNormalFromObject");
-    glUniformMatrix3fv(WorldNormalFromObjectLoc, 1, GL_FALSE, glm::value_ptr(WorldNormalFromObject));
-
     glBindBuffer(GL_UNIFORM_BUFFER, uboLights);
     // glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeofLights, &lights); // crashes :-O
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Light) * 100, lights.lights.data());
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(Light) * 100, sizeof(int32_t), &lights.numLights);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    glUseProgram(shaderProgram);
+    // glm::vec3 cameraPos = glm::vec3(std::cos(t), 0.2, std::sin(t)) * 5.f;
+    glm::vec3 cameraPos = glm::vec3(0.f, 0.2f, 5.f);
+    shaderSetVector3fv(shaderProgram, "cameraPos", glm::value_ptr(cameraPos));
+    glm::mat4 ViewFromWorld = glm::lookAt(cameraPos, cameraTarget, up);
+    shaderSetMatrix4fv(shaderProgram, "ViewFromWorld", glm::value_ptr(ViewFromWorld));
+    glm::mat4 ProjectionFromView = glm::perspective(glm::radians(fov), static_cast<float>(width) / height, 0.1f, 100.0f);
+    shaderSetMatrix4fv(shaderProgram, "ProjectionFromView", glm::value_ptr(ProjectionFromView));
+
+    glBindVertexArray(vao);
+    glm::mat4 WorldFromObject = glm::rotate(glm::mat4(1.0f), t, {0.f, 1.f, 0.f});
+    WorldFromObject = glm::scale(WorldFromObject, {0.3, 0.5, 0.1});
+    shaderSetMatrix4fv(shaderProgram, "WorldFromObject", glm::value_ptr(WorldFromObject));
+    glm::mat4 WorldNormalFromObject = glm::mat3(glm::transpose(glm::inverse(WorldFromObject)));
+    shaderSetMatrix3fv(shaderProgram, "WorldNormalFromObject", glm::value_ptr(WorldNormalFromObject));
 
     glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
     // glDrawElements(GL_POINTS, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
