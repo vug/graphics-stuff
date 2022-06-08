@@ -21,6 +21,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 // logic from https://www.danielsieger.com/blog/2021/03/27/generating-spheres.html
 void makeIcosahedronOMesh(MyMesh &oMesh);
 void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv);
+void makeIndexedMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &positions, std::vector<glm::vec3> &normals, std::vector<uint32_t> &indices);
+void makeTriangleMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &positions, std::vector<glm::vec3> &normals, std::vector<uint32_t> &indices, bool flat = true);
 
 struct Light
 {
@@ -188,42 +190,16 @@ int main()
 
   MyMesh oMesh;
   // makeIcosahedronOMesh(oMesh);
-  makeIcosphereOMesh(oMesh, 3);
+  makeIcosphereOMesh(oMesh, 0);
 
   std::vector<glm::vec3> positions = {};
   std::vector<glm::vec3> normals = {};
   std::vector<unsigned int> indices = {};
+
+  // makeIndexedMeshFromOMesh(oMesh, positions, normals, indices);
+  makeTriangleMeshFromOMesh(oMesh, positions, normals, indices);
+
   unsigned int vboPos, vboNorm, vao, ebo, uboLights;
-
-  for (const auto &v : oMesh.vertices())
-  {
-    const auto &p = oMesh.point(v);
-    positions.emplace_back(p[0], p[1], p[2]);
-  }
-
-  normals.resize(positions.size());
-  for (auto f : oMesh.faces())
-  {
-    // const auto& fNorm = oMesh.calc_normal(f);
-    for (auto v : f.vertices())
-    {
-      const int ix = v.idx();
-      indices.push_back(v.idx());
-
-      // flat shading for normals: won't work because vertices are shared among faces
-      // glm::vec3 n = {fNorm[0], fNorm[1], fNorm[2]};
-
-      const auto &vNorm = oMesh.calc_normal(v);
-      glm::vec3 n = {vNorm[0], vNorm[1], vNorm[2]};
-
-      // cheat for sphere
-      // const auto& p = oMesh.point(v);
-      // glm::vec3 n = {p[0], p[1], p[2]};
-
-      normals[ix] = n;
-    }
-  }
-
   glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vboPos);
   glGenBuffers(1, &vboNorm);
@@ -267,6 +243,8 @@ int main()
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glEnable(GL_MULTISAMPLE);
   glEnable(GL_DEPTH_TEST);
+  // glDisable(GL_CULL_FACE);
+  // glCullFace(GL_FRONT);
 
   while (!glfwWindowShouldClose(window))
   {
@@ -310,7 +288,8 @@ int main()
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(Light) * 100, sizeof(int32_t), &lights.numLights);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
+    // glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(positions.size()));
     glBindVertexArray(0);
 
     glfwSwapBuffers(window);
@@ -412,6 +391,68 @@ void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv)
     {
       auto &p = oMesh.point(v);
       p.normalize();
+    }
+  }
+}
+
+void makeIndexedMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &positions, std::vector<glm::vec3> &normals, std::vector<uint32_t> &indices)
+{
+  positions.clear();
+  normals.clear();
+  indices.clear();
+
+  for (const auto &v : oMesh.vertices())
+  {
+    const auto &p = oMesh.point(v);
+    positions.emplace_back(p[0], p[1], p[2]);
+  }
+
+  normals.resize(positions.size());
+  for (auto f : oMesh.faces())
+  {
+    // const auto& fNorm = oMesh.calc_normal(f);
+    for (auto v : f.vertices())
+    {
+      const int ix = v.idx();
+      indices.push_back(v.idx());
+
+      // flat shading for normals: won't work because vertices are shared among faces
+      // glm::vec3 n = {fNorm[0], fNorm[1], fNorm[2]};
+
+      const auto &vNorm = oMesh.calc_normal(v);
+      glm::vec3 n = {vNorm[0], vNorm[1], vNorm[2]};
+
+      // cheat for sphere
+      // const auto& p = oMesh.point(v);
+      // glm::vec3 n = {p[0], p[1], p[2]};
+
+      normals[ix] = n;
+    }
+  }
+}
+
+void makeTriangleMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &positions, std::vector<glm::vec3> &normals, std::vector<uint32_t> &indices, bool flat)
+{
+  positions.clear();
+  normals.clear();
+  indices.clear();
+
+  normals.resize(positions.size());
+  for (auto f : oMesh.faces())
+  {
+    const auto &fNorm = oMesh.calc_normal(f);
+    for (auto v : f.vertices())
+    {
+      const auto &p = oMesh.point(v);
+      positions.emplace_back(p[0], p[1], p[2]);
+
+      if (flat)
+        normals.emplace_back(fNorm[0], fNorm[1], fNorm[2]);
+      else
+      {
+        const auto &vNorm = oMesh.calc_normal(v);
+        normals.emplace_back(vNorm[0], vNorm[1], vNorm[2]);
+      }
     }
   }
 }
