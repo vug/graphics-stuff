@@ -23,6 +23,8 @@ void makeIcosahedronOMesh(MyMesh &oMesh);
 void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv);
 void makeIndexedMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &positions, std::vector<glm::vec3> &normals, std::vector<uint32_t> &indices);
 void makeTriangleMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &positions, std::vector<glm::vec3> &normals, std::vector<uint32_t> &indices, bool flat = true);
+//
+uint32_t compileShaders(const char *vertexShaderSource, const char *fragmentShaderSource);
 
 struct Light
 {
@@ -37,7 +39,7 @@ struct Lights
   uint32_t numLights;
 };
 
-const char *vertexShaderSource = R"(
+const char *vertexShader = R"(
 #version 460 core
 layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec3 vNorm;
@@ -58,15 +60,15 @@ out VertexData
 void main()
 {
     gl_Position = ProjectionFromView * ViewFromWorld * WorldFromObject * vec4(vPos, 1.0);
+    gl_PointSize = 10.0f;
 
     vertexData.ObjectPosition = vPos;
-    vertexData.WorldPosition = vec3(WorldFromObject * vec4(vertexData.ObjectPosition, 1.0));
     vertexData.ObjectNormal = vNorm;
-    // vertexData.WorldNormal = WorldNormalFromObject * vNorm;
+    vertexData.WorldPosition = vec3(WorldFromObject * vec4(vertexData.ObjectPosition, 1.0));
     vertexData.WorldNormal = mat3(transpose(inverse(WorldFromObject))) * vNorm;
 }
 )";
-const char *fragmentShaderSource = R"(
+const char *fragmentShader = R"(
 #version 460 core
 
 uniform vec3 cameraPos;
@@ -152,41 +154,7 @@ int main()
 
   gladLoadGL();
 
-  unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-  glCompileShader(vertexShader);
-  int success;
-  char infoLog[512];
-  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-  if (!success)
-  {
-    glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-              << infoLog << std::endl;
-  }
-  unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-  glCompileShader(fragmentShader);
-  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-  if (!success)
-  {
-    glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-              << infoLog << std::endl;
-  }
-  unsigned int shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glLinkProgram(shaderProgram);
-  glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-  if (!success)
-  {
-    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-              << infoLog << std::endl;
-  }
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+  uint32_t shaderProgram = compileShaders(vertexShader, fragmentShader);
 
   MyMesh oMesh;
   // makeIcosahedronOMesh(oMesh);
@@ -196,8 +164,8 @@ int main()
   std::vector<glm::vec3> normals = {};
   std::vector<unsigned int> indices = {};
 
-  // makeIndexedMeshFromOMesh(oMesh, positions, normals, indices);
-  makeTriangleMeshFromOMesh(oMesh, positions, normals, indices);
+  makeIndexedMeshFromOMesh(oMesh, positions, normals, indices);
+  // makeTriangleMeshFromOMesh(oMesh, positions, normals, indices);
 
   unsigned int vboPos, vboNorm, vao, ebo, uboLights;
   glGenVertexArrays(1, &vao);
@@ -240,9 +208,12 @@ int main()
   glBindBufferRange(GL_UNIFORM_BUFFER, lightsIdx, uboLights, 0, sizeofLights);
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glEnable(GL_MULTISAMPLE);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  // glPointSize(2.0f);
   // glDisable(GL_CULL_FACE);
   // glCullFace(GL_FRONT);
 
@@ -288,8 +259,9 @@ int main()
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(Light) * 100, sizeof(int32_t), &lights.numLights);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    // glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(positions.size()));
+    glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
+    // glDrawElements(GL_POINTS, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
+    // glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(positions.size()));
     glBindVertexArray(0);
 
     glfwSwapBuffers(window);
@@ -455,4 +427,45 @@ void makeTriangleMeshFromOMesh(const MyMesh &oMesh, std::vector<glm::vec3> &posi
       }
     }
   }
+}
+
+uint32_t compileShaders(const char *vertexShaderSource, const char *fragmentShaderSource)
+{
+  unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertex, 1, &vertexShaderSource, NULL);
+  glCompileShader(vertex);
+  int success;
+  char infoLog[512];
+  glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
+  if (!success)
+  {
+    glGetShaderInfoLog(vertex, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+              << infoLog << std::endl;
+  }
+  unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragment, 1, &fragmentShaderSource, NULL);
+  glCompileShader(fragment);
+  glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
+  if (!success)
+  {
+    glGetShaderInfoLog(fragment, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+              << infoLog << std::endl;
+  }
+  unsigned int shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertex);
+  glAttachShader(shaderProgram, fragment);
+  glLinkProgram(shaderProgram);
+  glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+  if (!success)
+  {
+    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+              << infoLog << std::endl;
+  }
+  glDeleteShader(vertex);
+  glDeleteShader(fragment);
+
+  return shaderProgram;
 }
