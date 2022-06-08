@@ -123,6 +123,11 @@ void main()
           
       result += (ambient + diffuse + specular) * objectColor;
     }
+
+    // silly toon shading
+    // int nShades = 5;
+    // result.rgb = floor(result.rgb * nShades) / nShades;
+
     FragColor = vec4(result, 1.0);
 }
 )";
