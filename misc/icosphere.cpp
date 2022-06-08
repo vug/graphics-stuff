@@ -22,15 +22,28 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 void makeIcosahedronOMesh(MyMesh &oMesh);
 void makeIcosphereOMesh(MyMesh &oMesh, uint32_t numSubDiv);
 
+struct Light
+{
+  glm::vec3 position;
+  float padding1;
+  glm::vec3 color;
+  float padding2;
+};
+struct Lights
+{
+  std::vector<Light> lights;
+  uint32_t numLights;
+};
+
 const char *vertexShaderSource = R"(
 #version 460 core
 layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec3 vNorm;
 
 uniform mat4 WorldFromObject;
+uniform mat3 WorldNormalFromObject;
 uniform mat4 ViewFromWorld;
 uniform mat4 ProjectionFromView;
-uniform mat3 WorldNormalFromObject;
 
 out VertexData
 {
@@ -56,6 +69,20 @@ const char *fragmentShaderSource = R"(
 
 uniform vec3 cameraPos;
 
+struct Light
+{
+  vec3 position;
+  float padding1;
+  vec3 color;
+  float padding2;
+};
+
+layout (std140, binding = 0) uniform Lights
+{
+  Light light[100];
+  int numLights;
+};
+
 in VertexData
 {
   vec3 ObjectPosition;
@@ -71,30 +98,31 @@ void main()
     // FragColor = vec4((vertexData.ObjectNormal * 0.5 + 0.5), 1.0f);
     // FragColor = vec4((normalize(vertexData.WorldNormal) * 0.5 + 0.5), 1.0f);
 
-    // something feels wrong about below
-    vec3 lightColor = vec3(0.8, 0.7, 0.2);
     vec3 objectColor = vec3(0.1, 0.2, 0.8);
-    vec3 lightPos = vec3(4, 2, 0);
     float ambientStrength = 0.1;
     float diffuseStrength = 0.75;
     float specularStrength = 2.5;
 
-    // ambient
-    vec3 ambient = ambientStrength * lightColor;
-  	
-    // diffuse 
-    vec3 norm = normalize(vertexData.WorldNormal);
-    vec3 lightDir = normalize(lightPos - vertexData.WorldPosition);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diffuseStrength * diff * lightColor;
-    
-    // specular
-    vec3 viewDir = normalize(cameraPos - vertexData.WorldPosition);
-    vec3 reflectDir = reflect(-lightDir, norm);  
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;  
-        
-    vec3 result = (ambient + diffuse + specular) * objectColor;
+    vec3 result = vec3(0.0);
+    for (int i = 0; i < numLights; i++)
+    {
+      // ambient
+      vec3 ambient = ambientStrength * light[i].color;
+      
+      // diffuse 
+      vec3 norm = normalize(vertexData.WorldNormal);
+      vec3 lightDir = normalize(light[i].position - vertexData.WorldPosition);
+      float diff = max(dot(norm, lightDir), 0.0);
+      vec3 diffuse = diffuseStrength * diff * light[i].color;
+      
+      // specular
+      vec3 viewDir = normalize(cameraPos - vertexData.WorldPosition);
+      vec3 reflectDir = reflect(-lightDir, norm);  
+      float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+      vec3 specular = specularStrength * spec * light[i].color;  
+          
+      result += (ambient + diffuse + specular) * objectColor;
+    }
     FragColor = vec4(result, 1.0);
 }
 )";
@@ -160,7 +188,7 @@ int main()
   std::vector<glm::vec3> positions = {};
   std::vector<glm::vec3> normals = {};
   std::vector<unsigned int> indices = {};
-  unsigned int vboPos, vboNorm, vao, ebo;
+  unsigned int vboPos, vboNorm, vao, ebo, uboLights;
 
   for (const auto &v : oMesh.vertices())
   {
@@ -212,13 +240,32 @@ int main()
   glEnableVertexAttribArray(1);
   glBindVertexArray(0);
 
+  Lights lights;
+  lights.lights = {
+      {{4.f, 0.f, 0.f}, 0, {1.0f, 0.0f, 0.0f}, 0},
+      {{0.f, 4.f, 0.f}, 0, {0.0f, 1.0f, 0.0f}, 0},
+      {{0.f, 0.f, 4.f}, 0, {0.0f, 0.0f, 1.0f}, 0},
+  };
+  lights.numLights = static_cast<uint32_t>(lights.lights.size());
+  lights.lights.resize(100);
+
+  unsigned int lightsIdx = glGetUniformBlockIndex(shaderProgram, "Lights");
+  glUniformBlockBinding(shaderProgram, lightsIdx, 0);
+
+  glGenBuffers(1, &uboLights);
+  glBindBuffer(GL_UNIFORM_BUFFER, uboLights);
+  size_t sizeofLights = sizeof(Light) * 100 + sizeof(int);
+  glBufferData(GL_UNIFORM_BUFFER, sizeofLights, nullptr, GL_DYNAMIC_DRAW); // this allocates space for the UBO.
+  glBindBufferRange(GL_UNIFORM_BUFFER, lightsIdx, uboLights, 0, sizeofLights);
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glEnable(GL_MULTISAMPLE);
   glEnable(GL_DEPTH_TEST);
 
   while (!glfwWindowShouldClose(window))
   {
-    double t = glfwGetTime();
+    float t = static_cast<float>(glfwGetTime());
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -227,7 +274,8 @@ int main()
     const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     const float fov = 20.0f;
 
-    glm::vec3 cameraPos = glm::vec3(std::cos(t), 0.2, std::sin(t)) * 5.f;
+    // glm::vec3 cameraPos = glm::vec3(std::cos(t), 0.2, std::sin(t)) * 5.f;
+    glm::vec3 cameraPos = glm::vec3(0.f, 0.2f, 5.f);
     const int cameraPosLoc = glGetUniformLocation(shaderProgram, "cameraPos");
     glUniform3fv(cameraPosLoc, 1, glm::value_ptr(cameraPos));
 
@@ -242,13 +290,20 @@ int main()
     glUseProgram(shaderProgram);
 
     glBindVertexArray(vao);
-    glm::mat4 WorldFromObject = glm::scale(glm::mat4(1.0f), {0.1, 0.5, 0.3});
+    glm::mat4 WorldFromObject = glm::rotate(glm::mat4(1.0f), t, {0.f, 1.f, 0.f});
+    WorldFromObject = glm::scale(WorldFromObject, {0.3, 0.5, 0.1});
     const int WorldFromObjectLoc = glGetUniformLocation(shaderProgram, "WorldFromObject");
     glUniformMatrix4fv(WorldFromObjectLoc, 1, GL_FALSE, glm::value_ptr(WorldFromObject));
 
     glm::mat4 WorldNormalFromObject = glm::mat3(glm::transpose(glm::inverse(WorldFromObject)));
     const int WorldNormalFromObjectLoc = glGetUniformLocation(shaderProgram, "WorldNormalFromObject");
     glUniformMatrix3fv(WorldNormalFromObjectLoc, 1, GL_FALSE, glm::value_ptr(WorldNormalFromObject));
+
+    glBindBuffer(GL_UNIFORM_BUFFER, uboLights);
+    // glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeofLights, &lights); // crashes :-O
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Light) * 100, lights.lights.data());
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(Light) * 100, sizeof(int32_t), &lights.numLights);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
