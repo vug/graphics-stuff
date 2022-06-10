@@ -18,7 +18,7 @@ else()
     add_compile_options(-Wall -Wextra -pedantic -Werror)
 endif()
 
-add_executable(FirstWindow main.cpp App.cpp)
+add_executable(FirstWindow main.cpp App.cpp Shader.cpp)
 target_compile_features(FirstWindow PRIVATE cxx_std_20)
 target_link_libraries(
 	FirstWindow PRIVATE 
