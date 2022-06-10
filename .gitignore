@@ -1,6 +1,7 @@
 .vscode
 dependencies/glad/glad.lib
 imgui.ini
+bundle/build
 # ?
 *.ilk
 # debug symbols
