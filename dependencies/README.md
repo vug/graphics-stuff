@@ -230,3 +230,9 @@ del *.obj
 ```cmd
 cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/imgui" /I"../dependencies/imgui/backends" ../dependencies/imgui/build/imgui.lib /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib Opengl32.lib Gdi32.lib Shell32.lib /MD /EHsc imgui_test.cpp
 ```
+
+## Glad with CMake
+
+```
+git submodule add --branch glad2 https://github.com/Dav1dde/glad.git
+```
