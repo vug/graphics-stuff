@@ -22,6 +22,7 @@ namespace ws
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 8);
 
     GLFWwindow *window = glfwCreateWindow(specs.width, specs.height, specs.name.c_str(), nullptr, nullptr);
     glfwMakeContextCurrent(window);
@@ -31,6 +32,7 @@ namespace ws
     gladLoadGL(glfwGetProcAddress);
 
     glViewport(0, 0, specs.width, specs.height);
+    glEnable(GL_MULTISAMPLE);
 
     onInit();
 
