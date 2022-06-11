@@ -8,7 +8,8 @@
 
 namespace ws
 {
-  void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+  static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+  static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
   void App::run()
   {
@@ -25,6 +26,7 @@ namespace ws
     GLFWwindow *window = glfwCreateWindow(specs.width, specs.height, specs.name.c_str(), nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     gladLoadGL(glfwGetProcAddress);
 
@@ -53,5 +55,10 @@ namespace ws
   {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
       glfwSetWindowShouldClose(window, GL_TRUE);
+  }
+
+  void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height)
+  {
+    glViewport(0, 0, width, height);
   }
 }
