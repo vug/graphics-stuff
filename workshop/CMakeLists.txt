@@ -21,6 +21,32 @@ else()
     add_compile_options(-Wall -Wextra -pedantic -Werror)
 endif()
 
+add_library(
+  imgui
+  ../dependencies/imgui/imgui.cpp
+  ../dependencies/imgui/imgui_draw.cpp
+  ../dependencies/imgui/imgui_widgets.cpp
+  ../dependencies/imgui/imgui_tables.cpp
+  ../dependencies/imgui/imgui_demo.cpp # for ImGui::ShowDemoWindow()
+  ../dependencies/imgui/backends/imgui_impl_glfw.cpp
+  ../dependencies/imgui/backends/imgui_impl_opengl3.cpp
+  ../dependencies/imgui/misc/cpp/imgui_stdlib.cpp
+)
+target_compile_options(
+  imgui PRIVATE
+  -DIMGUI_IMPL_OPENGL_LOADER_GLAD # configure GLAD as the loader
+)
+target_link_libraries(
+  imgui PRIVATE 
+  glfw
+)
+target_include_directories(
+  imgui PUBLIC
+  ../dependencies/imgui/
+  ../dependencies/imgui//backends
+  ../dependencies/imgui//misc/cpp
+)
+
 add_executable(FirstWindow main.cpp App.cpp Shader.cpp Mesh.cpp)
 target_compile_features(FirstWindow PRIVATE cxx_std_20)
 target_link_libraries(
@@ -28,4 +54,5 @@ target_link_libraries(
   glad_gl_core_46
 	glfw
   glm
+  imgui
 )

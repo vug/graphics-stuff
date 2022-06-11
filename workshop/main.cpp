@@ -6,6 +6,7 @@
 #include "Mesh.h"
 
 #include <glad/gl.h>
+#include <imgui.h>
 
 #include <string>
 #include <memory>
@@ -88,6 +89,13 @@ void main()
   {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    static bool showDemo = false;
+    ImGui::Begin("Main");
+    ImGui::Checkbox("Demo", &showDemo);
+    ImGui::End();
+    if (showDemo)
+      ImGui::ShowDemoWindow();      
 
     glUseProgram(mainShader->id);
     glBindVertexArray(mesh->vao);
