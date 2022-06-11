@@ -14,6 +14,12 @@ namespace ws
   static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
   static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
+  static inline const char *glMessageSourceToString(GLenum source);
+  static inline const char *glMessageTypeToString(GLenum type);
+  static inline const char *glMessageSeverityToString(GLenum severity);
+  void GLAPIENTRY OpenGLDebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+                                             GLsizei length, const char *message, const void *userParam);
+
   void App::run()
   {
     // Tried providing specs in App constructor. But user has to write Derived constructor with matching input params
@@ -53,6 +59,11 @@ namespace ws
 
     glViewport(0, 0, specs.width, specs.height);
     glEnable(GL_MULTISAMPLE);
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(OpenGLDebugMessageCallback, nullptr);
+    // Ignore notifications
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 
     onInit();
 
@@ -61,7 +72,7 @@ namespace ws
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplGlfw_NewFrame();
       ImGui::NewFrame();
-     
+
       glfwPollEvents();
 
       onRender();
@@ -74,7 +85,7 @@ namespace ws
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
         glfwMakeContextCurrent(backup_current_context);
-      }      
+      }
 
       glfwSwapBuffers(window);
     }
@@ -86,7 +97,7 @@ namespace ws
   {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();    
+    ImGui::DestroyContext();
 
     glfwTerminate();
   }
@@ -100,5 +111,94 @@ namespace ws
   void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height)
   {
     glViewport(0, 0, width, height);
+  }
+
+  inline const char *glMessageSourceToString(GLenum source)
+  {
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API:
+      return "OpenGL API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+      return "Window System";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+      return "Shader compiler";
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+      return "Third-party app associated with OpenGL";
+    case GL_DEBUG_SOURCE_APPLICATION:
+      return "The user of this application";
+    case GL_DEBUG_SOURCE_OTHER:
+      return "Unspecified";
+    default:
+      assert(false); // unknown source
+      return "Unknown";
+    }
+  };
+
+  inline const char *glMessageTypeToString(GLenum type)
+  {
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR:
+      return "Error";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+      return "Deprecated behavior";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+      return "Undefined behavior";
+    case GL_DEBUG_TYPE_PORTABILITY:
+      return "Unportable functionality";
+    case GL_DEBUG_TYPE_PERFORMANCE:
+      return "Performance issue";
+    case GL_DEBUG_TYPE_MARKER:
+      return "Command stream annotation";
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+      return "Group pushing";
+    case GL_DEBUG_TYPE_POP_GROUP:
+      return "Group popping";
+    case GL_DEBUG_TYPE_OTHER:
+      return "Unspecified";
+    default:
+      assert(false); // unknown type
+      return "Unknown";
+    }
+  }
+
+  inline const char *glMessageSeverityToString(GLenum severity)
+  {
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+      return "High";
+    case GL_DEBUG_SEVERITY_MEDIUM:
+      return "Medium";
+    case GL_DEBUG_SEVERITY_LOW:
+      return "Low";
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+      return "Notification";
+    default:
+      return "Unknown";
+    }
+  }
+
+  void GLAPIENTRY OpenGLDebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+                                             GLsizei length, const char *message, const void *userParam)
+  {
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
+      break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
+      break;
+    case GL_DEBUG_SEVERITY_LOW:
+      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
+      break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
+      break;
+    default:
+      assert(false); // unknown severity
+    }
   }
 }
