@@ -13,24 +13,6 @@
 class MyApp : public ws::App
 {
 public:
-  const char *vertexShaderSource = R"(
-  #version 460 core
-  layout (location = 0) in vec3 aPos;
-  void main()
-  {
-      gl_Position = vec4(aPos, 1.0);
-  }
-  )";
-
-  const char *fragmentShaderSource = R"(
-  #version 460 core
-  out vec4 FragColor;
-  void main()
-  {
-      FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-  }
-  )";
-
   // Because these don't have default constructors, can't make them members in class scope
   std::unique_ptr<ws::Shader> mainShader;
   std::unique_ptr<ws::Mesh> mesh;
@@ -42,7 +24,25 @@ public:
 
   void onInit() final
   {
+    const char *vertexShaderSource = R"(
+#version 460 core
+layout (location = 0) in vec3 aPos;
+void main()
+{
+    gl_Position = vec4(aPos, 1.0);
+}
+)";
+
+    const char *fragmentShaderSource = R"(
+#version 460 core
+out vec4 FragColor;
+void main()
+{
+    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+}
+)";
     mainShader = std::make_unique<ws::Shader>(vertexShaderSource, fragmentShaderSource);
+    
     // ws::Mesh mesh{128}; // TODO: try out this one.
     std::vector<glm::vec3> positions = {
         {0.0f, 0.0f, 0.0f}, // p1
