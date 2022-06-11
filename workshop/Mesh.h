@@ -24,6 +24,7 @@ namespace ws
   public:
     Mesh(size_t capacity);
     Mesh(const std::vector<DefaultVertex> &vertices, const std::vector<uint32_t> &indices);
+    ~Mesh();
 
     std::vector<DefaultVertex> verts;
     std::vector<uint32_t> idxs;

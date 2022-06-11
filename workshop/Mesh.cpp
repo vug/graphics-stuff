@@ -25,6 +25,13 @@ namespace ws
     createBuffers();
   }
 
+  Mesh::~Mesh()
+  {
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
+    glDeleteVertexArrays(1, &vao);
+  }
+
   void Mesh::createBuffers()
   {
     glGenVertexArrays(1, &vao);
