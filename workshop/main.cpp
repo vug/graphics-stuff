@@ -42,7 +42,7 @@ void main()
 }
 )";
     mainShader = std::make_unique<ws::Shader>(vertexShaderSource, fragmentShaderSource);
-    
+
     // ws::Mesh mesh{128}; // TODO: try out this one.
     std::vector<glm::vec3> positions = {
         {0.0f, 0.0f, 0.0f}, // p1
@@ -59,6 +59,27 @@ void main()
       vertices.push_back(v);
     }
     mesh = std::make_unique<ws::Mesh>(vertices, indices);
+
+    for (int i = 0; i < 10; ++i)
+    {
+      auto v3 = mesh->verts[mesh->verts.size()-3];
+      auto v2 = mesh->verts[mesh->verts.size()-2];
+      auto v1 = mesh->verts[mesh->verts.size()-1];
+      v3.position.x += 0.01f;
+      v3.position.y += 0.01f;
+      v2.position.x += 0.01f;
+      v2.position.y += 0.01f;
+      v1.position.x += 0.01f;
+      v1.position.y += 0.01f;
+      mesh->verts.push_back(v3);
+      mesh->verts.push_back(v2);
+      mesh->verts.push_back(v1);
+
+      mesh->idxs.push_back(mesh->idxs[mesh->idxs.size() - 1] + 1);
+      mesh->idxs.push_back(mesh->idxs[mesh->idxs.size() - 1] + 1);
+      mesh->idxs.push_back(mesh->idxs[mesh->idxs.size() - 1] + 1);
+    }
+    mesh->uploadData();
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   }

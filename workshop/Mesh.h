@@ -34,7 +34,11 @@ namespace ws
     uint32_t vbo{INVALID};
     uint32_t ebo{INVALID};
 
+    // call after setting verts and idxs to upload them to GPU
+    void uploadData();
+
   private:
     void createBuffers();
+    void allocateBuffers();
   };
 }
