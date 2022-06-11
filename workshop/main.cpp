@@ -20,7 +20,7 @@ public:
 
   Specs getSpecs() final
   {
-    return {"MyApp", 800, 600};
+    return {.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true};
   }
 
   void onInit() final
@@ -63,9 +63,9 @@ void main()
 
     for (int i = 0; i < 10; ++i)
     {
-      auto v3 = mesh->verts[mesh->verts.size()-3];
-      auto v2 = mesh->verts[mesh->verts.size()-2];
-      auto v1 = mesh->verts[mesh->verts.size()-1];
+      auto v3 = mesh->verts[mesh->verts.size() - 3];
+      auto v2 = mesh->verts[mesh->verts.size() - 2];
+      auto v1 = mesh->verts[mesh->verts.size() - 1];
       v3.position.x += 0.01f;
       v3.position.y += 0.01f;
       v2.position.x += 0.01f;
@@ -95,7 +95,7 @@ void main()
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::End();
     if (showDemo)
-      ImGui::ShowDemoWindow();      
+      ImGui::ShowDemoWindow();
 
     glUseProgram(mainShader->id);
     glBindVertexArray(mesh->vao);

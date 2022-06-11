@@ -58,12 +58,15 @@ namespace ws
     ImGui_ImplOpenGL3_Init("#version 460");
 
     glViewport(0, 0, specs.width, specs.height);
-    glEnable(GL_MULTISAMPLE);
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(OpenGLDebugMessageCallback, nullptr);
-    // Ignore notifications
-    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+    if (specs.shouldDebugOpenGL)
+    {
+      glEnable(GL_MULTISAMPLE);
+      glEnable(GL_DEBUG_OUTPUT);
+      glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+      glDebugMessageCallback(OpenGLDebugMessageCallback, nullptr);
+      // Ignore notifications
+      glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+    }
 
     onInit();
 

@@ -9,9 +9,10 @@ namespace ws
   public:
     struct Specs
     {
-      std::string name;
-      uint32_t width;
-      uint32_t height;
+      std::string name = "My Workshop App";
+      uint32_t width = 800u;
+      uint32_t height = 600u;
+      bool shouldDebugOpenGL = true;
     };
 
     ~App();
