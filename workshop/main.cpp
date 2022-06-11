@@ -8,6 +8,7 @@
 #include <glad/gl.h>
 
 #include <string>
+#include <memory>
 
 class MyApp : public ws::App
 {
@@ -30,9 +31,9 @@ public:
   }
   )";
 
-  // TODO: consider better means of object members
-  ws::Shader *mainShader;
-  ws::Mesh *mesh;
+  // Because these don't have default constructors, can't make them members in class scope
+  std::unique_ptr<ws::Shader> mainShader;
+  std::unique_ptr<ws::Mesh> mesh;
 
   Specs getSpecs() final
   {
@@ -41,7 +42,7 @@ public:
 
   void onInit() final
   {
-    mainShader = new ws::Shader{vertexShaderSource, fragmentShaderSource};
+    mainShader = std::make_unique<ws::Shader>(vertexShaderSource, fragmentShaderSource);
     // ws::Mesh mesh{128}; // TODO: try out this one.
     std::vector<glm::vec3> positions = {
         {0.0f, 0.0f, 0.0f}, // p1
@@ -57,7 +58,7 @@ public:
       ws::DefaultVertex v{.position = p};
       vertices.push_back(v);
     }
-    mesh = new ws::Mesh{vertices, indices};
+    mesh = std::make_unique<ws::Mesh>(vertices, indices);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   }
@@ -72,11 +73,7 @@ public:
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
 
-  void onDeinit() final
-  {
-    delete mainShader;
-    delete mesh;
-  }
+  void onDeinit() final {}
 };
 
 int main()
