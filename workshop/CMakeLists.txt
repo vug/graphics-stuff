@@ -34,14 +34,18 @@ target_compile_options(
 target_link_libraries(
   imgui PRIVATE 
   glfw
-)
-target_include_directories(
-  imgui PUBLIC
-  ../dependencies/imgui/
-  ../dependencies/imgui//backends
-  ../dependencies/imgui//misc/cpp
-)
-
+  )
+  target_include_directories(
+    imgui PUBLIC
+    ../dependencies/imgui/
+    ../dependencies/imgui//backends
+    ../dependencies/imgui//misc/cpp
+    )
+    
+# https://github.com/Lawrencemm/openmesh
+add_subdirectory(../dependencies/openmesh openmesh_cmake)
+set(BUILD_APPS OFF) # we don't need the QT apps that comes with OpenMesh
+    
 add_executable(FirstWindow main.cpp App.cpp Shader.cpp Mesh.cpp)
 target_compile_features(FirstWindow PRIVATE cxx_std_20)
 target_link_libraries(
@@ -50,6 +54,11 @@ target_link_libraries(
 	glfw
   glm
   imgui
+  OpenMeshCore
+)
+target_compile_options(
+  FirstWindow PRIVATE
+  -D_USE_MATH_DEFINES
 )
 
 if (MSVC)
