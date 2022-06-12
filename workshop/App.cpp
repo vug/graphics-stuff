@@ -70,6 +70,8 @@ namespace ws
 
     onInit();
 
+    float time = static_cast<float>(glfwGetTime());
+
     while (!glfwWindowShouldClose(window))
     {
       ImGui_ImplOpenGL3_NewFrame();
@@ -78,7 +80,9 @@ namespace ws
 
       glfwPollEvents();
 
-      onRender();
+      const float deltaTime = static_cast<float>(glfwGetTime()) - time;
+      time += deltaTime;
+      onRender(time, deltaTime);
 
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

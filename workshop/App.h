@@ -21,7 +21,7 @@ namespace ws
 
     virtual Specs getSpecs() = 0;
     virtual void onInit() = 0;
-    virtual void onRender() = 0;
+    virtual void onRender(float time, float deltaTime) = 0;
     virtual void onDeinit() = 0;
 
     Specs specs;

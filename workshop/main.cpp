@@ -6,6 +6,7 @@
 #include <glad/gl.h>
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 #include <string>
 #include <memory>
@@ -62,24 +63,30 @@ void main()
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   }
 
-  void onRender() final
+  void onRender(float time, float deltaTime) final
   {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     static bool showDemo = false;
+    static bool shouldOrbitCamera = false;
     ImGui::Begin("Main");
+    ImGui::Checkbox("Orbit Camera", &shouldOrbitCamera);
+    ImGui::Separator();
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::End();
     if (showDemo)
       ImGui::ShowDemoWindow();
 
+    if (shouldOrbitCamera)
+      camera->position = glm::rotate(camera->position, 1.0f * deltaTime, camera->UP);
+
     glUseProgram(mainShader->id);
     mainShader->setMatrix4fv("ViewFromWorld", glm::value_ptr(camera->getViewFromWorld()));
     mainShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
 
-    mainShader->setMatrix4fv("WorldFromObject", glm::value_ptr(glm::mat4(1.f)));
     glBindVertexArray(mesh->vao);
+    mainShader->setMatrix4fv("WorldFromObject", glm::value_ptr(glm::mat4(1.f)));
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
 
