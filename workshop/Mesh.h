@@ -3,6 +3,8 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Tools/Subdivider/Uniform/LoopT.hh>
 
 #include <vector>
 
@@ -43,4 +45,9 @@ namespace ws
     void createBuffers();
     void allocateBuffers();
   };
+
+  using OMesh = OpenMesh::TriMesh_ArrayKernelT<>;
+  void makeIcosahedronOMesh(OMesh &oMesh);
+  void makeIcosphereOMesh(OMesh &oMesh, uint32_t numSubDiv);
+  void makeMeshFromOMesh(const OMesh &oMesh, std::vector<DefaultVertex> &vertices, std::vector<uint32_t> &indices);
 }
