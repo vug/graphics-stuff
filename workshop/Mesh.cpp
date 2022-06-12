@@ -9,8 +9,8 @@ namespace ws
   Mesh::Mesh(size_t capacity)
       : capacity(capacity)
   {
-    verts.reserve(capacity);
-    idxs.reserve(capacity);
+    verts.resize(capacity);
+    idxs.resize(capacity);
 
     createBuffers();
     uploadData();
@@ -67,6 +67,7 @@ namespace ws
 
   void Mesh::uploadData()
   {
+    glBindVertexArray(vao);
     if (capacity < idxs.size())
     {
       do
