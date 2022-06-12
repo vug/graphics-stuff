@@ -168,10 +168,10 @@ namespace ws
     return oMesh;
   }
 
-  void makeMeshFromOMesh(const OMesh &oMesh, std::vector<DefaultVertex> &vertices, std::vector<uint32_t> &indices)
+  Mesh *makeMeshFromOMesh(const OMesh &oMesh)
   {
-    vertices.clear();
-    indices.clear();
+    std::vector<DefaultVertex> vertices;
+    std::vector<uint32_t> indices;
 
     for (const auto &v : oMesh.vertices())
     {
@@ -201,5 +201,7 @@ namespace ws
         vertices[ix].normal = n;
       }
     }
+
+    return new Mesh{vertices, indices};
   }
 }

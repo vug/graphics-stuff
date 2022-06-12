@@ -48,9 +48,7 @@ void main()
     mainShader = std::make_unique<ws::Shader>(vertexShaderSource, fragmentShaderSource);
 
     oMesh = ws::makeIcosphereOMesh(1);
-    mesh = std::make_unique<ws::Mesh>(1);
-    ws::makeMeshFromOMesh(*oMesh, mesh->verts, mesh->idxs);
-    mesh->uploadData();
+    mesh.reset(ws::makeMeshFromOMesh(*oMesh));
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   }
