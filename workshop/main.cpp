@@ -18,7 +18,7 @@ class MyApp : public ws::App
 public:
   // Because these don't have default constructors, can't make them members in class scope
   std::unique_ptr<ws::Shader> mainShader;
-  std::unique_ptr<ws::Mesh> mesh;
+  ws::Mesh* mesh;
   ws::OMesh *oMesh;
 
   Specs getSpecs() final
@@ -48,9 +48,7 @@ void main()
     mainShader = std::make_unique<ws::Shader>(vertexShaderSource, fragmentShaderSource);
 
     oMesh = ws::makeIcosphereOMesh(1);
-    mesh = std::make_unique<ws::Mesh>(1);
-    ws::makeMeshFromOMesh(*oMesh, mesh->verts, mesh->idxs);
-    mesh->uploadData();
+    mesh = ws::makeMeshFromOMesh(*oMesh);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   }
@@ -75,6 +73,7 @@ void main()
   void onDeinit() final
   {
     delete oMesh;
+    delete mesh;
   }
 };
 
