@@ -2,6 +2,10 @@
 
 #include "Mesh.h"
 
+#include <glm/vec3.hpp>
+#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+#include <OpenMesh/Tools/Subdivider/Uniform/LoopT.hh>
+
 namespace ws
 {
   OMesh *makeIcosahedronOMesh()
@@ -120,5 +124,35 @@ namespace ws
     }
 
     return new Mesh{vertices, indices};
+  }
+
+  uint32_t getOMeshNumVertices(const OMesh &oMesh)
+  {
+    return oMesh.n_vertices();
+  }
+
+  uint32_t getOMeshNumNeighbors(const OMesh &oMesh, int32_t ix)
+  {
+    const OMesh::VertexHandle vh{ix};
+    uint32_t cnt = 0;
+    for (auto vv_it = oMesh.cvv_cwiter(vh); vv_it.is_valid(); ++vv_it)
+      cnt++;
+    return cnt;
+  }
+
+  glm::vec3 getOMeshVertexPosition(const OMesh &oMesh, int32_t ix)
+  {
+    OMesh::VertexHandle vh{ix};
+    auto p = oMesh.point(vh);
+    return {p[0], p[1], p[2]};
+  }
+
+  std::vector<int> getOMeshVertexNeighborIndices(const OMesh &oMesh, int32_t ix)
+  {
+    const OMesh::VertexHandle vh{ix};
+    std::vector<int> indices;
+    for (auto vv_it = oMesh.cvv_cwiter(vh); vv_it.is_valid(); ++vv_it)
+      indices.emplace_back(vv_it->idx());
+    return indices;
   }
 }

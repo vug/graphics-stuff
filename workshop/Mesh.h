@@ -8,14 +8,6 @@
 
 constexpr uint32_t INVALID = static_cast<uint32_t>(-1);
 
-namespace OpenMesh
-{
-  class DefaultTraits;
-
-  template <class>
-  class TriMesh_ArrayKernelT;
-}
-
 namespace ws
 {
   struct DefaultVertex

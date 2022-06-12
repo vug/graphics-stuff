@@ -74,6 +74,40 @@ void main()
     ImGui::Begin("Main");
     ImGui::Checkbox("Orbit Camera", &shouldOrbitCamera);
     ImGui::Separator();
+
+    // Get positions of a vertex and it's two neighbors
+    static int vertexNo = 0;
+    static int neighbor1Ix = 0;
+    static int neighbor2Ix = 1;
+    static int numNeighbors = ws::getOMeshNumNeighbors(*oMesh, vertexNo);
+    static glm::vec3 vPos = ws::getOMeshVertexPosition(*oMesh, vertexNo);
+    static std::vector<int> neighborIndices = ws::getOMeshVertexNeighborIndices(*oMesh, vertexNo);
+    static glm::vec3 n1Pos = ws::getOMeshVertexPosition(*oMesh, neighborIndices[neighbor1Ix]);
+    static glm::vec3 n2Pos = ws::getOMeshVertexPosition(*oMesh, neighborIndices[neighbor2Ix]);
+
+    const int numVerts = ws::getOMeshNumVertices(*oMesh);
+    bool hasVertexChanged = ImGui::DragInt("vertex no", &vertexNo, 1, 0, numVerts - 1, "%d", ImGuiSliderFlags_None);
+    if (hasVertexChanged)
+    {
+      vPos = ws::getOMeshVertexPosition(*oMesh, vertexNo);
+      neighborIndices = ws::getOMeshVertexNeighborIndices(*oMesh, vertexNo);
+      numNeighbors = ws::getOMeshNumNeighbors(*oMesh, vertexNo);
+      if (neighbor1Ix >= numNeighbors)
+        neighbor1Ix = 0;
+      if (neighbor2Ix >= numNeighbors)
+        neighbor2Ix = 1;
+    }
+    // ImGui call should be first otherwise when other condition is true widget is not drawn
+    if (ImGui::DragInt("neigh1", &neighbor1Ix, 1, 0, numNeighbors - 1, "%d", ImGuiSliderFlags_None) || hasVertexChanged)
+      n1Pos = ws::getOMeshVertexPosition(*oMesh, neighborIndices[neighbor1Ix]);
+    if (ImGui::DragInt("neigh2", &neighbor2Ix, 1, 0, numNeighbors - 1, "%d", ImGuiSliderFlags_None) || hasVertexChanged)
+      n2Pos = ws::getOMeshVertexPosition(*oMesh, neighborIndices[neighbor2Ix]);
+    ImGui::Text("v: (%+.2f, %+.2f, %+.2f), n1: (%+.2f, %+.2f, %+.2f), n2: (%+.2f, %+.2f, %+.2f)",
+                vPos.x, vPos.y, vPos.z,
+                n1Pos.x, n1Pos.y, n1Pos.z,
+                n2Pos.x, n2Pos.y, n2Pos.z);
+    ImGui::Separator();
+
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::End();
     if (showDemo)
