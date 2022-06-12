@@ -3,11 +3,18 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 
 #include <vector>
 
 constexpr uint32_t INVALID = static_cast<uint32_t>(-1);
+
+namespace OpenMesh
+{
+  class DefaultTraits;
+
+  template <class>
+  class TriMesh_ArrayKernelT;
+}
 
 namespace ws
 {
@@ -45,8 +52,8 @@ namespace ws
     void allocateBuffers();
   };
 
-  using OMesh = OpenMesh::TriMesh_ArrayKernelT<>;
+  using OMesh = OpenMesh::TriMesh_ArrayKernelT<OpenMesh::DefaultTraits>;
   void makeIcosahedronOMesh(OMesh &oMesh);
-  void makeIcosphereOMesh(OMesh &oMesh, uint32_t numSubDiv);
+  void makeIcosphereOMesh(OMesh *&oMesh, uint32_t numSubDiv);
   void makeMeshFromOMesh(const OMesh &oMesh, std::vector<DefaultVertex> &vertices, std::vector<uint32_t> &indices);
 }

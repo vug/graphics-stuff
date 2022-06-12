@@ -1,6 +1,7 @@
 #include "Mesh.h"
 
 #include <glad/gl.h>
+#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <OpenMesh/Tools/Subdivider/Uniform/LoopT.hh>
 
 #include <cmath>
@@ -139,9 +140,10 @@ namespace ws
       oMesh.add_face(f);
   }
 
-  void makeIcosphereOMesh(OMesh &oMesh, uint32_t numSubDiv)
+  void makeIcosphereOMesh(OMesh *&oMesh, uint32_t numSubDiv)
   {
-    makeIcosahedronOMesh(oMesh);
+    oMesh = new OMesh();
+    makeIcosahedronOMesh(*oMesh);
 
     if (numSubDiv == 0)
       return;
@@ -150,13 +152,13 @@ namespace ws
     for (uint32_t i = 0; i < numSubDiv; ++i)
     {
       OpenMesh::Subdivider::Uniform::LoopT<OMesh> loopSubd;
-      loopSubd.attach(oMesh);
+      loopSubd.attach(*oMesh);
       loopSubd(1);
       loopSubd.detach();
 
-      for (auto &v : oMesh.vertices())
+      for (auto &v : oMesh->vertices())
       {
-        auto &p = oMesh.point(v);
+        auto &p = oMesh->point(v);
         p.normalize();
       }
     }
