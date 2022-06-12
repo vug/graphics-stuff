@@ -71,7 +71,7 @@ out vec4 FragColor;
 
 void main()
 {
-  FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+  FragColor = gl_FrontFacing ? vec4(1.0f, 0.5f, 0.2f, 1.0f) : vec4(0.5f, 0.25f, 0.1f, 1.0f);
 }
 )";
 
@@ -109,6 +109,7 @@ void main()
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
+    // glEnable(GL_CULL_FACE);
   }
 
   void onRender(float time, float deltaTime) final
