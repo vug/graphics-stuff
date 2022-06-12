@@ -87,7 +87,7 @@ namespace ws
   }
 
   // ---------
-  void makeIcosahedronOMesh(OMesh &oMesh)
+  OMesh *makeIcosahedronOMesh()
   {
 
     float phi = (1.0f + sqrt(5.0f)) * 0.5f; // golden ratio
@@ -109,9 +109,10 @@ namespace ws
         {-b, -a, 0},
     };
 
+    OMesh *oMesh = new OMesh();
     std::vector<OMesh::VertexHandle> vertices;
     for (const auto &p : points)
-      vertices.push_back(oMesh.add_vertex(p / p.norm()));
+      vertices.push_back(oMesh->add_vertex(p / p.norm()));
 
     std::vector<std::vector<OMesh::VertexHandle>> faceTriangles = {
         {vertices[2], vertices[1], vertices[0]},   // 0
@@ -137,16 +138,17 @@ namespace ws
     };
 
     for (const auto &f : faceTriangles)
-      oMesh.add_face(f);
+      oMesh->add_face(f);
+
+    return oMesh;
   }
 
-  void makeIcosphereOMesh(OMesh *&oMesh, uint32_t numSubDiv)
+  OMesh *makeIcosphereOMesh(uint32_t numSubDiv)
   {
-    oMesh = new OMesh();
-    makeIcosahedronOMesh(*oMesh);
+    OMesh *oMesh = makeIcosahedronOMesh();
 
     if (numSubDiv == 0)
-      return;
+      return oMesh;
 
     // At each iteration first subdivide then project on sphere instead of subdividing n-times and projecting at the end
     for (uint32_t i = 0; i < numSubDiv; ++i)
@@ -162,6 +164,8 @@ namespace ws
         p.normalize();
       }
     }
+
+    return oMesh;
   }
 
   void makeMeshFromOMesh(const OMesh &oMesh, std::vector<DefaultVertex> &vertices, std::vector<uint32_t> &indices)

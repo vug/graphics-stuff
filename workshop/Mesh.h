@@ -53,7 +53,7 @@ namespace ws
   };
 
   using OMesh = OpenMesh::TriMesh_ArrayKernelT<OpenMesh::DefaultTraits>;
-  void makeIcosahedronOMesh(OMesh &oMesh);
-  void makeIcosphereOMesh(OMesh *&oMesh, uint32_t numSubDiv);
+  OMesh *makeIcosahedronOMesh();
+  OMesh *makeIcosphereOMesh(uint32_t numSubDiv);
   void makeMeshFromOMesh(const OMesh &oMesh, std::vector<DefaultVertex> &vertices, std::vector<uint32_t> &indices);
 }

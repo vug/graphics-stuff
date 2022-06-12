@@ -19,6 +19,7 @@ public:
   // Because these don't have default constructors, can't make them members in class scope
   std::unique_ptr<ws::Shader> mainShader;
   std::unique_ptr<ws::Mesh> mesh;
+  ws::OMesh *oMesh;
 
   Specs getSpecs() final
   {
@@ -46,10 +47,7 @@ void main()
 )";
     mainShader = std::make_unique<ws::Shader>(vertexShaderSource, fragmentShaderSource);
 
-    ws::OMesh *oMesh = nullptr;
-    // TODO: return a pointer instead of manipulating one
-    ws::makeIcosphereOMesh(oMesh, 1);
-
+    oMesh = ws::makeIcosphereOMesh(1);
     mesh = std::make_unique<ws::Mesh>(1);
     ws::makeMeshFromOMesh(*oMesh, mesh->verts, mesh->idxs);
     mesh->uploadData();
@@ -74,7 +72,10 @@ void main()
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
 
-  void onDeinit() final {}
+  void onDeinit() final
+  {
+    delete oMesh;
+  }
 };
 
 int main()
