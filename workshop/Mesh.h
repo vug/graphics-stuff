@@ -4,7 +4,6 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
-#include <OpenMesh/Tools/Subdivider/Uniform/LoopT.hh>
 
 #include <vector>
 

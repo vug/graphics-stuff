@@ -1,6 +1,7 @@
 #include "Mesh.h"
 
 #include <glad/gl.h>
+#include <OpenMesh/Tools/Subdivider/Uniform/LoopT.hh>
 
 #include <cmath>
 
