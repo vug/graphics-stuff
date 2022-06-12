@@ -11,10 +11,10 @@ namespace ws
     Shader(const char *vertexShaderSource, const char *fragmentShaderSource);
     ~Shader();
 
-    void setVector3fv(int32_t shaderId, const char *name, float *value);
-    void setMatrix3fv(int32_t shaderId, const char *name, float *value);
-    void setMatrix4fv(int32_t shaderId, const char *name, float *value);
-    void blockBinding(int32_t shaderId, const char *name, uint32_t binding);
+    void setVector3fv(const char *name, const float *value);
+    void setMatrix3fv(const char *name, const float *value);
+    void setMatrix4fv(const char *name, const float *value);
+    void blockBinding(const char *name, uint32_t binding);
 
   public:
     int32_t id{-1};
