@@ -18,8 +18,8 @@ class MyApp : public ws::App
 public:
   // Because these don't have default constructors, can't make them members in class scope
   std::unique_ptr<ws::Shader> mainShader;
-  std::unique_ptr<ws::Mesh> mesh;
   ws::OMesh *oMesh;
+  std::unique_ptr<ws::Mesh> mesh;
 
   Specs getSpecs() final
   {
