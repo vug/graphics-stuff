@@ -51,9 +51,4 @@ namespace ws
     void createBuffers();
     void allocateBuffers();
   };
-
-  using OMesh = OpenMesh::TriMesh_ArrayKernelT<OpenMesh::DefaultTraits>;
-  OMesh *makeIcosahedronOMesh();
-  OMesh *makeIcosphereOMesh(uint32_t numSubDiv);
-  Mesh *makeMeshFromOMesh(const OMesh &oMesh);
 }

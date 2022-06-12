@@ -1,6 +1,7 @@
 #include "App.h"
 #include "Shader.h"
 #include "Mesh.h"
+#include "OMesh.h"
 #include "Camera.h"
 
 #include <glad/gl.h>

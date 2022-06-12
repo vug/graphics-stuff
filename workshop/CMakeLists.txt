@@ -46,7 +46,7 @@ target_link_libraries(
 add_subdirectory(../dependencies/openmesh openmesh_cmake)
 set(BUILD_APPS OFF) # we don't need the QT apps that comes with OpenMesh
     
-add_executable(FirstWindow main.cpp App.cpp Shader.cpp Mesh.cpp Camera.cpp)
+add_executable(FirstWindow main.cpp App.cpp Shader.cpp Mesh.cpp OMesh.cpp Camera.cpp)
 target_compile_features(FirstWindow PRIVATE cxx_std_20)
 target_link_libraries(
 	FirstWindow PRIVATE 
