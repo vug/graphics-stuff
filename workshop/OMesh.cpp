@@ -5,6 +5,7 @@
 #include <glm/vec3.hpp>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <OpenMesh/Tools/Subdivider/Uniform/LoopT.hh>
+#include <OpenMesh/Core/IO/MeshIO.hh>
 
 namespace ws
 {
@@ -86,6 +87,18 @@ namespace ws
       }
     }
 
+    return oMesh;
+  }
+
+  OMesh *makeOMeshFromObjFile(const char *filepath)
+  {
+    OMesh *oMesh = new OMesh();
+
+    if (!OpenMesh::IO::read_mesh(*oMesh, filepath))
+    {
+      std::cerr << "error reading " << filepath << "\n ";
+      exit(1);
+    }
     return oMesh;
   }
 
