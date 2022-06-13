@@ -110,12 +110,13 @@ void main()
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
     // glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
   }
 
   void onRender(float time, float deltaTime) final
   {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     static bool showDemo = false;
     static bool shouldOrbitCamera = false;
