@@ -39,3 +39,7 @@ workshop/build
 *.exe
 *.out
 *.app
+
+# Prevent mesh files with OBJ extensions in assets folder from being ignored
+# needs to be below the *.obj above
+!assets/models/*.obj

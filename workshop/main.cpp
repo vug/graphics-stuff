@@ -96,7 +96,8 @@ void main()
     mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
-    oMesh = ws::makeIcosphereOMesh(1);
+    // oMesh = ws::makeIcosphereOMesh(1);
+    oMesh = ws::makeOMeshFromObjFile("../../assets/models/pentagon.obj");
     mesh.reset(ws::makeMeshFromOMesh(*oMesh));
 
     camera = std::make_unique<ws::Camera>(static_cast<float>(specs.width), static_cast<float>(specs.height));
