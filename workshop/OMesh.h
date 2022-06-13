@@ -25,4 +25,5 @@ namespace ws
   uint32_t getOMeshNumNeighbors(const OMesh &oMesh, int32_t ix);
   glm::vec3 getOMeshVertexPosition(const OMesh &oMesh, int32_t ix);
   std::vector<int> getOMeshVertexNeighborIndices(const OMesh &oMesh, int32_t ix);
+  void splitOMeshVertex(OMesh &oMesh, int32_t vIx, int32_t n1Ix, int32_t n2Ix);
 }

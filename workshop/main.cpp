@@ -154,6 +154,15 @@ void main()
                 vPos.x, vPos.y, vPos.z,
                 n1Pos.x, n1Pos.y, n1Pos.z,
                 n2Pos.x, n2Pos.y, n2Pos.z);
+    if (ImGui::Button("Split!"))
+    {
+      ws::splitOMeshVertex(*oMesh, vertexNo, neighbor1Ix, neighbor2Ix);
+      ws::Mesh *mesh2 = ws::makeMeshFromOMesh(*oMesh);
+      mesh->verts = mesh2->verts;
+      mesh->idxs = mesh2->idxs;
+      mesh->uploadData();
+      delete mesh2;
+    }
     ImGui::Separator();
 
     ImGui::Checkbox("Demo", &showDemo);

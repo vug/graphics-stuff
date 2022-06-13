@@ -155,4 +155,44 @@ namespace ws
       indices.emplace_back(vv_it->idx());
     return indices;
   }
+
+  void splitOMeshVertex(OMesh &oMesh, int32_t vIx, int32_t n1Ix, int32_t n2Ix)
+  {
+    std::vector<int> idxs = getOMeshVertexNeighborIndices(oMesh, vIx);
+    int n1hIx = idxs[n1Ix];
+    int n2hIx = idxs[n2Ix];
+
+    int i = 0;
+    // (a) b n1 c d n2 e f
+    while (idxs[i] != n1hIx)
+    {
+      idxs.push_back(idxs[i]);
+      ++i;
+    }
+    // a b (n1) c d n2 e f a b
+    OMesh::Point p1 = {0, 0, 0};
+    int cnt1 = 0;
+    while (idxs[i] != n2hIx)
+    {
+      const OMesh::VertexHandle vh{idxs[i]};
+      p1 += oMesh.point(vh);
+      ++i;
+      ++cnt1;
+    }
+    p1 /= cnt1; // p1 = (n1 + c + d) / 3
+    OMesh::Point p2 = {0, 0, 0};
+    int cnt2 = 0;
+    while (i < idxs.size())
+    {
+      const OMesh::VertexHandle vh{idxs[i]};
+      p2 += oMesh.point(vh);
+      ++i;
+      ++cnt2;
+    }
+    p2 /= cnt2; // p2 = (n2 + e + f + a + b) / 5
+
+    oMesh.set_point(OMesh::VertexHandle{vIx}, p2);
+    OMesh::VertexHandle newVh = oMesh.add_vertex(p1);
+    oMesh.vertex_split(newVh, OMesh::VertexHandle{vIx}, OMesh::VertexHandle{n1hIx}, OMesh::VertexHandle{n2hIx});
+  }
 }
