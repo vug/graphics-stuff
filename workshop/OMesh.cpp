@@ -115,7 +115,7 @@ namespace ws
     return oMesh;
   }
 
-  OMesh *makeOMeshFromObjFile(const char *filepath)
+  OMesh *loadOMeshFromObjFile(const char *filepath)
   {
     OMesh *oMesh = new OMesh();
 
@@ -125,6 +125,15 @@ namespace ws
       exit(1);
     }
     return oMesh;
+  }
+
+  void saveOMeshToObjFile(const OMesh &oMesh, const char *filepath)
+  {
+    if (!OpenMesh::IO::write_mesh(oMesh, filepath))
+    {
+      std::cerr << "error writing " << filepath << "\n ";
+      exit(1);
+    }
   }
 
   void updateMeshFromOMesh(Mesh &mesh, const OMesh &oMesh)

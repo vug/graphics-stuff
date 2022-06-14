@@ -20,7 +20,9 @@ namespace ws
   OMesh *makeIcosahedronOMesh();
   OMesh *makeIcosphereOMesh(uint32_t numSubDiv);
   OMesh *makeDiskOMesh(uint32_t numCorners);
-  OMesh *makeOMeshFromObjFile(const char *filepath);
+
+  OMesh *loadOMeshFromObjFile(const char *filepath);
+  void saveOMeshToObjFile(const OMesh &oMesh, const char *filepath);
 
   void updateMeshFromOMesh(Mesh &mesh, const OMesh &oMesh);
   Mesh *makeMeshFromOMesh(const OMesh &oMesh);

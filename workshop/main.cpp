@@ -101,7 +101,7 @@ void main()
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
     oMesh = ws::makeIcosphereOMesh(1);
-    // oMesh = ws::makeOMeshFromObjFile("../../assets/models/pentagon.obj");
+    // oMesh = ws::loadOMeshFromObjFile("../../assets/models/pentagon.obj");
     // oMesh = ws::makeDiskOMesh(5);
     mesh.reset(ws::makeMeshFromOMesh(*oMesh));
 
@@ -185,6 +185,8 @@ void main()
       ws::updateMeshFromOMesh(*mesh, *oMesh);
     }
     ImGui::Text("Random no: %d", rndVertNo);
+    if (ImGui::Button("Save OBJ"))
+      ws::saveOMeshToObjFile(*oMesh, "random_splits.obj");
     ImGui::Separator();
 
     static int numCorners = 5;
