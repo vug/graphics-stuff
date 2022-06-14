@@ -9,10 +9,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
-#include <string>
 #include <memory>
-
-#include <iostream>
+#include <random>
+#include <string>
 
 class MyApp : public ws::App
 {
@@ -24,6 +23,8 @@ public:
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> meshSelectionViz;
   std::unique_ptr<ws::Camera> camera;
+  std::mt19937 rng;
+  std::uniform_real_distribution<float> dist;
 
   Specs getSpecs() final
   {
@@ -32,6 +33,9 @@ public:
 
   void onInit() final
   {
+    rng = std::mt19937{std::random_device{}()};
+    dist = std::uniform_real_distribution<float>();
+
     const char *mainShaderVertex = R"(
 #version 460 core
 
@@ -162,6 +166,25 @@ void main()
       ws::splitOMeshVertex(*oMesh, vertexNo, neighbor1Ix, neighbor2Ix);
       ws::updateMeshFromOMesh(*mesh, *oMesh);
     }
+    ImGui::Separator();
+
+    // Random Split
+    static int rndVertNo = 0;
+    static int nRndSplits = 1;
+    ImGui::DragInt("Num Splits", &nRndSplits, 1, 0, 1000);
+    if (ImGui::Button("Random Split"))
+    {
+      for (int i = 0; i < nRndSplits; ++i)
+      {
+        rndVertNo = static_cast<int>(dist(rng) * numVerts);
+        int nNeigh = ws::getOMeshNumNeighbors(*oMesh, rndVertNo);
+        int n1 = static_cast<int>(dist(rng) * nNeigh);
+        int n2 = (n1 + nNeigh / 2) % nNeigh;
+        ws::splitOMeshVertex(*oMesh, rndVertNo, n1, n2);
+      }
+      ws::updateMeshFromOMesh(*mesh, *oMesh);
+    }
+    ImGui::Text("Random no: %d", rndVertNo);
     ImGui::Separator();
 
     static int numCorners = 5;
