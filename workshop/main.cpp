@@ -126,15 +126,6 @@ void main()
     ImGui::Checkbox("Orbit Camera", &shouldOrbitCamera);
     ImGui::Separator();
 
-    auto updateMesh = [&]()
-    { 
-      ws::Mesh *mesh2 = ws::makeMeshFromOMesh(*oMesh);
-      mesh->verts = mesh2->verts;
-      mesh->idxs = mesh2->idxs;
-      mesh->uploadData();
-      delete mesh2;
-    };    
-
     // Get positions of a vertex and it's two neighbors
     static int vertexNo = 0;
     static int neighbor1Ix = 0;
@@ -169,7 +160,7 @@ void main()
     if (ImGui::Button("Split!"))
     {
       ws::splitOMeshVertex(*oMesh, vertexNo, neighbor1Ix, neighbor2Ix);
-      updateMesh();
+      ws::updateMeshFromOMesh(*mesh, *oMesh);
     }
     ImGui::Separator();
 
@@ -179,7 +170,7 @@ void main()
     {
       delete oMesh;
       oMesh = ws::makeDiskOMesh(numCorners);
-      updateMesh();
+      ws::updateMeshFromOMesh(*mesh, *oMesh);
     }
     ImGui::Separator();
 
