@@ -21,6 +21,8 @@ namespace ws
   OMesh *makeIcosphereOMesh(uint32_t numSubDiv);
   OMesh *makeDiskOMesh(uint32_t numCorners);
   OMesh *makeOMeshFromObjFile(const char *filepath);
+
+  void updateMeshFromOMesh(Mesh &mesh, const OMesh &oMesh);
   Mesh *makeMeshFromOMesh(const OMesh &oMesh);
 
   uint32_t getOMeshNumVertices(const OMesh &oMesh);

@@ -98,7 +98,7 @@ namespace ws
     std::vector<OMesh::VertexHandle> corners;
     for (uint32_t i = 0; i < numCorners; ++i)
     {
-      float angle = 2 * M_PI * i / numCorners; 
+      float angle = 2 * M_PI * i / numCorners;
       corners.push_back(oMesh->add_vertex({std::cos(angle), std::sin(angle), 0}));
     }
 
@@ -112,7 +112,7 @@ namespace ws
     for (const auto &f : triangles)
       oMesh->add_face(f);
 
-    return oMesh;    
+    return oMesh;
   }
 
   OMesh *makeOMeshFromObjFile(const char *filepath)
@@ -127,16 +127,16 @@ namespace ws
     return oMesh;
   }
 
-  Mesh *makeMeshFromOMesh(const OMesh &oMesh)
+  void updateMeshFromOMesh(Mesh &mesh, const OMesh &oMesh)
   {
-    std::vector<DefaultVertex> vertices;
-    std::vector<uint32_t> indices;
+    mesh.verts.clear();
+    mesh.idxs.clear();
 
     for (const auto &v : oMesh.vertices())
     {
       const auto &p = oMesh.point(v);
-      vertices.emplace_back(DefaultVertex{{p[0], p[1], p[2]}});
-      const auto &v = vertices[vertices.size() - 1];
+      mesh.verts.emplace_back(DefaultVertex{{p[0], p[1], p[2]}});
+      const auto &v = mesh.verts[mesh.verts.size() - 1];
     }
 
     for (auto f : oMesh.faces())
@@ -145,7 +145,7 @@ namespace ws
       for (auto v : f.vertices())
       {
         const int ix = v.idx();
-        indices.push_back(v.idx());
+        mesh.idxs.push_back(v.idx());
 
         // flat shading for normals: won't work because vertices are shared among faces
         // glm::vec3 n = {fNorm[0], fNorm[1], fNorm[2]};
@@ -157,11 +157,18 @@ namespace ws
         // const auto& p = oMesh.point(v);
         // glm::vec3 n = {p[0], p[1], p[2]};
 
-        vertices[ix].normal = n;
+        mesh.verts[ix].normal = n;
       }
     }
 
-    return new Mesh{vertices, indices};
+    mesh.uploadData();
+  }
+
+  Mesh *makeMeshFromOMesh(const OMesh &oMesh)
+  {
+    Mesh *mesh = new Mesh{1};
+    updateMeshFromOMesh(*mesh, oMesh);
+    return mesh;
   }
 
   uint32_t getOMeshNumVertices(const OMesh &oMesh)
