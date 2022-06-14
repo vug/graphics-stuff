@@ -90,6 +90,31 @@ namespace ws
     return oMesh;
   }
 
+  OMesh *makeDiskOMesh(uint32_t numCorners)
+  {
+    OMesh *oMesh = new OMesh();
+    OMesh::VertexHandle center = oMesh->add_vertex({0, 0, 0});
+
+    std::vector<OMesh::VertexHandle> corners;
+    for (uint32_t i = 0; i < numCorners; ++i)
+    {
+      float angle = 2 * M_PI * i / numCorners; 
+      corners.push_back(oMesh->add_vertex({std::cos(angle), std::sin(angle), 0}));
+    }
+
+    std::vector<std::vector<OMesh::VertexHandle>> triangles;
+    for (uint32_t i = 0; i < numCorners; ++i)
+    {
+      uint32_t j = (i + 1) % numCorners;
+      triangles.push_back({center, corners[i], corners[j]});
+    }
+
+    for (const auto &f : triangles)
+      oMesh->add_face(f);
+
+    return oMesh;    
+  }
+
   OMesh *makeOMeshFromObjFile(const char *filepath)
   {
     OMesh *oMesh = new OMesh();
@@ -183,8 +208,10 @@ namespace ws
       ++i;
     }
     // a b (n1) c d n2 e f a b
-    OMesh::Point p1 = {0, 0, 0};
-    int cnt1 = 0;
+    // OMesh::Point p1 = {0, 0, 0};
+    // int cnt1 = 0;
+    OMesh::Point p1 = oMesh.point(OMesh::VertexHandle{vIx}) + oMesh.point(OMesh::VertexHandle{n2hIx});
+    int cnt1 = 2;
     while (idxs[i] != n2hIx)
     {
       const OMesh::VertexHandle vh{idxs[i]};
@@ -193,8 +220,10 @@ namespace ws
       ++cnt1;
     }
     p1 /= cnt1; // p1 = (n1 + c + d) / 3
-    OMesh::Point p2 = {0, 0, 0};
-    int cnt2 = 0;
+    // OMesh::Point p2 = {0, 0, 0};
+    // int cnt2 = 0;
+    OMesh::Point p2 = oMesh.point(OMesh::VertexHandle{vIx}) + oMesh.point(OMesh::VertexHandle{n1hIx});
+    int cnt2 = 2;
     while (i < idxs.size())
     {
       const OMesh::VertexHandle vh{idxs[i]};
@@ -204,8 +233,8 @@ namespace ws
     }
     p2 /= cnt2; // p2 = (n2 + e + f + a + b) / 5
 
-    oMesh.set_point(OMesh::VertexHandle{vIx}, p2);
-    OMesh::VertexHandle newVh = oMesh.add_vertex(p1);
+    oMesh.set_point(OMesh::VertexHandle{vIx}, p1);
+    OMesh::VertexHandle newVh = oMesh.add_vertex(p2);
     oMesh.vertex_split(newVh, OMesh::VertexHandle{vIx}, OMesh::VertexHandle{n1hIx}, OMesh::VertexHandle{n2hIx});
   }
 }

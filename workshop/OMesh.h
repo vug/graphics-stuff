@@ -19,6 +19,7 @@ namespace ws
   using OMesh = OpenMesh::TriMesh_ArrayKernelT<OpenMesh::DefaultTraits>;
   OMesh *makeIcosahedronOMesh();
   OMesh *makeIcosphereOMesh(uint32_t numSubDiv);
+  OMesh *makeDiskOMesh(uint32_t numCorners);
   OMesh *makeOMeshFromObjFile(const char *filepath);
   Mesh *makeMeshFromOMesh(const OMesh &oMesh);
 

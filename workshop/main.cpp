@@ -96,8 +96,9 @@ void main()
     mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
-    // oMesh = ws::makeIcosphereOMesh(1);
-    oMesh = ws::makeOMeshFromObjFile("../../assets/models/pentagon.obj");
+    oMesh = ws::makeIcosphereOMesh(1);
+    // oMesh = ws::makeOMeshFromObjFile("../../assets/models/pentagon.obj");
+    // oMesh = ws::makeDiskOMesh(5);
     mesh.reset(ws::makeMeshFromOMesh(*oMesh));
 
     camera = std::make_unique<ws::Camera>(static_cast<float>(specs.width), static_cast<float>(specs.height));
@@ -124,6 +125,15 @@ void main()
     ImGui::Begin("Main");
     ImGui::Checkbox("Orbit Camera", &shouldOrbitCamera);
     ImGui::Separator();
+
+    auto updateMesh = [&]()
+    { 
+      ws::Mesh *mesh2 = ws::makeMeshFromOMesh(*oMesh);
+      mesh->verts = mesh2->verts;
+      mesh->idxs = mesh2->idxs;
+      mesh->uploadData();
+      delete mesh2;
+    };    
 
     // Get positions of a vertex and it's two neighbors
     static int vertexNo = 0;
@@ -159,11 +169,17 @@ void main()
     if (ImGui::Button("Split!"))
     {
       ws::splitOMeshVertex(*oMesh, vertexNo, neighbor1Ix, neighbor2Ix);
-      ws::Mesh *mesh2 = ws::makeMeshFromOMesh(*oMesh);
-      mesh->verts = mesh2->verts;
-      mesh->idxs = mesh2->idxs;
-      mesh->uploadData();
-      delete mesh2;
+      updateMesh();
+    }
+    ImGui::Separator();
+
+    static int numCorners = 5;
+    ImGui::DragInt("Disk Corners", &numCorners, 1, 0, 8, "%d", ImGuiSliderFlags_None);
+    if (ImGui::Button("Generate"))
+    {
+      delete oMesh;
+      oMesh = ws::makeDiskOMesh(numCorners);
+      updateMesh();
     }
     ImGui::Separator();
 
