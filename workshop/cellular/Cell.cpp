@@ -13,7 +13,6 @@ namespace cellular
 
   glm::vec3 newCellPosition(ws::OMesh &oMesh, int32_t vIx)
   {
-    // oMesh.update_normals();
     const ws::OMesh::VertexHandle vh{vIx};
     const ws::OMesh::Point pp = oMesh.point(vh);
     glm::vec3 vp{pp[0], pp[1], pp[2]};
@@ -76,6 +75,9 @@ namespace cellular
     {
       const glm::vec3 v = newPositions[vh.idx()];
       oMesh.point(vh) = {v.x, v.y, v.z};
+      // oMesh.set_point(vh, {v.x, v.y, v.z});
     }
+
+    oMesh.update_normals();
   }
 }
