@@ -9,7 +9,8 @@ add_subdirectory(../dependencies/glfw glfw_cmake)
 
 # https://github.com/Dav1dde/glad/ glad2 branch
 # https://github.com/Dav1dde/glad/blob/glad2/cmake/CMakeLists.txt
-add_subdirectory(../dependencies/glad/cmake glad_cmake)
+set(GLAD_SOURCES_DIR "${PROJECT_SOURCE_DIR}/../dependencies/glad")
+add_subdirectory("${GLAD_SOURCES_DIR}/cmake" glad_cmake)
 glad_add_library(glad_gl_core_46 STATIC API gl:core=4.6)
 
 # https://github.com/g-truc/glm

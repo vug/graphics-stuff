@@ -233,6 +233,6 @@ cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/i
 
 ## Glad with CMake
 
-```
+```cmd
 git submodule add --branch glad2 https://github.com/Dav1dde/glad.git
 ```
