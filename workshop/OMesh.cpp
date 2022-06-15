@@ -69,7 +69,8 @@ namespace ws
 
     for (const auto &f : faceTriangles)
       oMesh->add_face(f);
-
+    
+    oMesh->update_normals();
     return oMesh;
   }
 
@@ -95,6 +96,7 @@ namespace ws
       }
     }
 
+    oMesh->update_normals();
     return oMesh;
   }
 
@@ -120,6 +122,7 @@ namespace ws
     for (const auto &f : triangles)
       oMesh->add_face(f);
 
+    oMesh->update_normals();
     return oMesh;
   }
 
@@ -167,7 +170,8 @@ namespace ws
         // flat shading for normals: won't work because vertices are shared among faces
         // glm::vec3 n = {fNorm[0], fNorm[1], fNorm[2]};
 
-        const auto &vNorm = oMesh.calc_normal(v);
+        //const auto &vNorm = oMesh.calc_normal(v);
+        const auto& vNorm = oMesh.normal(v);
         const glm::vec3 n = {vNorm[0], vNorm[1], vNorm[2]};
 
         // cheat for sphere
