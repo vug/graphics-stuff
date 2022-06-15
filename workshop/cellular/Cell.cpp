@@ -9,7 +9,7 @@
 
 namespace cellular
 {
-  Parameters parameters;
+  Parameters parameters{};
 
   glm::vec3 newCellPosition(ws::OMesh &oMesh, int32_t vIx)
   {

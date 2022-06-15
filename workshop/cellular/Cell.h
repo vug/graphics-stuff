@@ -13,6 +13,8 @@ namespace cellular
     float repulsionStrength = 0.26f;
   };
 
+  extern Parameters parameters;
+
   glm::vec3 newCellPosition(ws::OMesh &oMesh, int32_t vIx);
 
   void updateCellPositions(ws::OMesh &oMesh);

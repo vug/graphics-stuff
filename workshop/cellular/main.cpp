@@ -136,6 +136,15 @@ void main()
     ImGui::Checkbox("Auto-zoom Camera", &shouldAutoZoomCamera);
     ImGui::Separator();
 
+    // Simulation Parameters
+
+    ImGui::DragFloat("linkRestLength", &cellular::parameters.linkRestLength, 0.01f, 0.f, 2.0f, "%.3f");
+    ImGui::DragFloat("springFactor", &cellular::parameters.springFactor, 0.01f, 0.f, 2.0f, "%.3f");
+    ImGui::DragFloat("planarFactor", &cellular::parameters.planarFactor, 0.01f, 0.f, 2.0f, "%.3f");
+    ImGui::DragFloat("bulgeFactor", &cellular::parameters.bulgeFactor, 0.01f, 0.f, 2.0f, "%.3f");
+    ImGui::DragFloat("radiusOfInfluence", &cellular::parameters.radiusOfInfluence, 0.01f, 0.f, 2.0f, "%.3f");
+    ImGui::DragFloat("repulsionStrength", &cellular::parameters.repulsionStrength, 0.01f, 0.f, 2.0f, "%.3f");
+
     // Get positions of a vertex and it's two neighbors
     static int vertexNo = 0;
     static int neighbor1Ix = 0;
