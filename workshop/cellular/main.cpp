@@ -131,6 +131,7 @@ void main()
     static bool shouldOrbitCamera = false;
     static bool shouldAutoZoomCamera = true;
     ImGui::Begin("Main");
+    ImGui::Text("FPS: %.0f", 1.f / deltaTime);
     ImGui::Checkbox("Orbit Camera", &shouldOrbitCamera);
     ImGui::Checkbox("Auto-zoom Camera", &shouldAutoZoomCamera);
     ImGui::Separator();
@@ -162,6 +163,7 @@ void main()
       n1Pos = ws::getOMeshVertexPosition(*oMesh, neighborIndices[neighbor1Ix]);
     if (ImGui::DragInt("neigh2", &neighbor2Ix, 1, 0, numNeighbors - 1, "%d", ImGuiSliderFlags_None) || hasVertexChanged)
       n2Pos = ws::getOMeshVertexPosition(*oMesh, neighborIndices[neighbor2Ix]);
+    ImGui::Text("num cells: %d (%d)", mesh->verts.size(), numVerts);
     ImGui::Text("v: (%+.2f, %+.2f, %+.2f), n1: (%+.2f, %+.2f, %+.2f), n2: (%+.2f, %+.2f, %+.2f)",
                 vPos.x, vPos.y, vPos.z,
                 n1Pos.x, n1Pos.y, n1Pos.z,
