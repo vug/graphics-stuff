@@ -1,8 +1,10 @@
-#include "App.h"
-#include "Shader.h"
-#include "Mesh.h"
-#include "OMesh.h"
-#include "Camera.h"
+#include "Cell.h"
+
+#include "../App.h"
+#include "../Shader.h"
+#include "../Mesh.h"
+#include "../OMesh.h"
+#include "../Camera.h"
 
 #include <glad/gl.h>
 #include <imgui.h>
@@ -198,6 +200,13 @@ void main()
       ws::updateMeshFromOMesh(*mesh, *oMesh);
     }
     ImGui::Separator();
+
+    // Simulation
+    if (ImGui::Button("Update Positions!"))
+    {
+      cellular::updateCellPositions(*oMesh);
+      ws::updateMeshFromOMesh(*mesh, *oMesh);
+    }
 
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::End();
