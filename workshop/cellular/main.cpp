@@ -210,6 +210,14 @@ void main()
       cellular::updateCellPositions(*oMesh);
       ws::updateMeshFromOMesh(*mesh, *oMesh);
     }
+    static bool shouldUpdatePositionsEveryFrame = false;
+    ImGui::Checkbox("Auto-update positions", &shouldUpdatePositionsEveryFrame);
+    ImGui::Separator();
+    if (shouldUpdatePositionsEveryFrame)
+    {
+      cellular::updateCellPositions(*oMesh);
+      ws::updateMeshFromOMesh(*mesh, *oMesh);
+    }
 
     ImGui::Checkbox("Demo", &showDemo);
     ImGui::End();
