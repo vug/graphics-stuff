@@ -9,6 +9,14 @@
 
 namespace ws
 {
+
+  OMesh *makeEmptyOMesh()
+  {
+    OMesh *oMesh = new OMesh();
+    oMesh->request_face_normals();
+    oMesh->request_vertex_normals();
+    return oMesh;
+  }
   OMesh *makeIcosahedronOMesh()
   {
 
@@ -31,7 +39,7 @@ namespace ws
         {-b, -a, 0},
     };
 
-    OMesh *oMesh = new OMesh();
+    OMesh *oMesh = makeEmptyOMesh();
     std::vector<OMesh::VertexHandle> vertices;
     for (const auto &p : points)
       vertices.push_back(oMesh->add_vertex(p / p.norm()));
@@ -92,7 +100,7 @@ namespace ws
 
   OMesh *makeDiskOMesh(uint32_t numCorners)
   {
-    OMesh *oMesh = new OMesh();
+    OMesh *oMesh = makeEmptyOMesh();
     OMesh::VertexHandle center = oMesh->add_vertex({0, 0, 0});
 
     std::vector<OMesh::VertexHandle> corners;
@@ -117,7 +125,7 @@ namespace ws
 
   OMesh *loadOMeshFromObjFile(const char *filepath)
   {
-    OMesh *oMesh = new OMesh();
+    OMesh *oMesh = makeEmptyOMesh();
 
     if (!OpenMesh::IO::read_mesh(*oMesh, filepath))
     {

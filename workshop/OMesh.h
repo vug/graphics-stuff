@@ -17,6 +17,7 @@ namespace ws
   class Mesh;
 
   using OMesh = OpenMesh::TriMesh_ArrayKernelT<OpenMesh::DefaultTraits>;
+  OMesh *makeEmptyOMesh();
   OMesh *makeIcosahedronOMesh();
   OMesh *makeIcosphereOMesh(uint32_t numSubDiv);
   OMesh *makeDiskOMesh(uint32_t numCorners);
