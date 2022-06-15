@@ -11,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
+#include <limits>
 #include <memory>
 #include <random>
 #include <string>
@@ -128,8 +129,10 @@ void main()
 
     static bool showDemo = false;
     static bool shouldOrbitCamera = false;
+    static bool shouldAutoZoomCamera = true;
     ImGui::Begin("Main");
     ImGui::Checkbox("Orbit Camera", &shouldOrbitCamera);
+    ImGui::Checkbox("Auto-zoom Camera", &shouldAutoZoomCamera);
     ImGui::Separator();
 
     // Get positions of a vertex and it's two neighbors
@@ -215,6 +218,31 @@ void main()
 
     if (shouldOrbitCamera)
       camera->position = glm::rotate(camera->position, 1.0f * deltaTime, camera->UP);
+
+    // zoom-out camera to keep all cells in view
+    if (shouldAutoZoomCamera)
+    {
+      glm::vec3 minCoords{std::numeric_limits<float>::max()};
+      glm::vec3 maxCoords{std::numeric_limits<float>::min()};
+      for (const auto &v : mesh->verts)
+      {
+        if (v.position.x < minCoords.x)
+          minCoords.x = v.position.x;
+        if (v.position.y < minCoords.y)
+          minCoords.y = v.position.y;
+        if (v.position.z < minCoords.z)
+          minCoords.z = v.position.z;
+        if (v.position.x > maxCoords.x)
+          maxCoords.x = v.position.x;
+        if (v.position.y > maxCoords.y)
+          maxCoords.y = v.position.y;
+        if (v.position.z > maxCoords.z)
+          maxCoords.z = v.position.z;
+      }
+      float diag = glm::distance(minCoords, maxCoords);
+      float camDist = diag / glm::radians(camera->fov);
+      camera->position = glm::normalize(camera->position) * camDist;
+    }
 
     glUseProgram(mainShader->id);
     mainShader->setMatrix4fv("ViewFromWorld", glm::value_ptr(camera->getViewFromWorld()));
