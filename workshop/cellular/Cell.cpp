@@ -44,17 +44,27 @@ namespace cellular
     }
     float roi2 = parameters.radiusOfInfluence * parameters.radiusOfInfluence;
 
-    for (auto uh : oMesh.vertices())
+    auto p = oMesh.points();
+    const int numPoints = oMesh.n_vertices();
+    for (int i = 0; i < numPoints; ++i)
     {
-      const ws::OMesh::Point upp = oMesh.point(uh);
+
+      // for (auto uh : oMesh.vertices())
+      // {
+      const ws::OMesh::Point upp = *p;
+
+      // const ws::OMesh::Point upp = oMesh.point(uh);
       glm::vec3 up{upp[0], upp[1], upp[2]};
 
-      if (uh.idx() == vh.idx() || oMesh.find_halfedge(vh, uh).is_valid() || glm::length2(up - vp) > roi2)
+      // if (uh.idx() == vh.idx() || oMesh.find_halfedge(vh, uh).is_valid() || glm::length2(up - vp) > roi2)
+      if (glm::length(up - vp) < 0.01 || glm::length2(up - vp) > roi2)
       {
         continue;
       }
       glm::vec3 d = vp - up;
       collisionOffset += (1 - glm::length2(d) / roi2) * glm::normalize(d);
+
+      p++;
     }
     springTarget /= numNeighbors;
     planarTarget /= numNeighbors;
