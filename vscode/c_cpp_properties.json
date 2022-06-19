@@ -6,7 +6,7 @@
         "${default}",
         "${workspaceFolder}/dependencies/blend2d/src",
         "${workspaceFolder}/dependencies/ColorSpace/src",
-        "${workspaceFolder}/workshop/build/gladsources/glad_gl_core_46/include",
+        "${workspaceFolder}/build/dependencies/gladsources/glad_gl_core_46/include",
         "${workspaceFolder}/dependencies/glfw/include",
         "${workspaceFolder}/dependencies/glm/",
         "${workspaceFolder}/dependencies/imgui/",
