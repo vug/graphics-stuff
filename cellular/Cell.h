@@ -1,5 +1,5 @@
 #pragma once
-#include "../OMesh.h"
+#include <OMesh.h>
 
 namespace cellular
 {

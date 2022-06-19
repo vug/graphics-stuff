@@ -6,3 +6,4 @@ project(GraphicsEngineersWorkshop
 
 add_subdirectory(dependencies)
 add_subdirectory(workshop)
+add_subdirectory(cellular)
