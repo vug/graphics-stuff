@@ -4,6 +4,7 @@
 
 #include <glad/gl.h>
 #include <glm/vec2.hpp>
+#include <glm/geometric.hpp>
 
 #include <functional>
 #include <memory>
@@ -28,10 +29,28 @@ struct VerletObject
 
   void updatePosition(float dt)
   {
+    // calculate forces
+    const glm::vec2 acc = potentialForce(position_current) / mass;
+
+    // apply constraints
+    const glm::vec2 center = {0, 0};
+    const float border = 1.0f;
+    const glm::vec2 relPos = position_current - center;
+    const float dist = glm::length(relPos);
+    if (dist > border - 0.2f)
+    {
+      const glm::vec2 n = glm::normalize(relPos);
+      position_current = center + n * (border - 0.2f);
+
+      // might need to update position_old if change in position_current is big.
+      // const glm::vec2 acc2 = potentialForce(position_current) / mass;
+      // position_old = position_current - .5f * acc2 * dt * dt;
+    }
+
+    // update position
     const glm::vec2 velocity = position_current - position_old;
     position_old = position_current;
-    // Verlet
-    const glm::vec2 acc = potentialForce(position_current) / mass;
+    // position-Verlet
     position_current = position_current + velocity + acc * dt * dt;
   }
 };
