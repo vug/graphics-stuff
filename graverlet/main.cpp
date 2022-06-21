@@ -5,6 +5,7 @@
 #include <glad/gl.h>
 #include <glm/vec2.hpp>
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -12,54 +13,41 @@ struct VerletObject
 {
   glm::vec2 position_current{};
   glm::vec2 position_old{};
-  glm::vec2 accelaration{};
+  std::function<glm::vec2(const glm::vec2 &)> potentialForce;
   bool first = true;
+  float mass = 1.0f;
+
+  VerletObject(glm::vec2 pos, std::function<glm::vec2(const glm::vec2 &)> potentialForce)
+      : position_current(pos), potentialForce(potentialForce)
+  {
+    const float dt = 1.f / 60;
+    position_current = pos;
+    const glm::vec2 acc = potentialForce(position_current) / mass;
+    position_old = position_current - .5f * acc * dt * dt;
+  }
 
   void updatePosition(float dt)
   {
-    if (first)
-    {
-      position_old = position_current - .5f * accelaration * dt * dt;
-      first = false;
-    }
-
     const glm::vec2 velocity = position_current - position_old;
-    position_old = position_current;
     // Verlet
-    position_current = position_current + velocity + accelaration + dt * dt;
-    accelaration = {};
-  }
+    const glm::vec2 acc = potentialForce(position_current) / mass;
+    position_current = position_current + velocity + acc + dt * dt;
 
-  void accelerate(const glm::vec2 &acc)
-  {
-    accelaration += acc;
+    position_old = position_current;
   }
 };
 
 class Solver
 {
 public:
-  glm::vec2 gravity = {0.0f, -0.0010f};
   std::vector<VerletObject> &objects;
 
   Solver(std::vector<VerletObject> &objects) : objects(objects) {}
 
   void update(float dt)
   {
-    applyGravity();
-    updatePositions(dt);
-  }
-
-  void updatePositions(float dt)
-  {
     for (VerletObject &obj : objects)
       obj.updatePosition(dt);
-  }
-
-  void applyGravity()
-  {
-    for (VerletObject &obj : objects)
-      obj.accelerate(gravity);
   }
 };
 
@@ -113,17 +101,6 @@ void main()
 }
 )";
 
-    const char *mainShaderFragment = R"(
-#version 460 core
-
-out vec4 FragColor;
-
-void main()
-{
-  FragColor = gl_FrontFacing ? vec4(1.0f, 0.5f, 0.2f, 1.0f) : vec4(0.5f, 0.25f, 0.1f, 1.0f);
-}
-)";
-
     const char *pointShaderFragment = R"(
 #version 460 core
 
@@ -145,11 +122,13 @@ void main()
     // mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
-    objects.emplace_back(VerletObject{{}, {}, {}});
+    auto gravity = [](const glm::vec2 &)
+    { return glm::vec2{0.0f, -0.01f}; };
+    objects.emplace_back(VerletObject{{}, gravity});
     solver = std::make_unique<Solver>(objects);
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
-    for (size_t ix = 0; const auto &obj : objects)
+    for (uint32_t ix = 0; const auto &obj : objects)
     {
       mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}};
       mesh->idxs[ix] = ix;
@@ -171,8 +150,8 @@ void main()
     solver->update(deltaTime);
     for (size_t ix = 0; const auto &obj : objects)
       mesh->verts[ix++].position = {obj.position_current.x, obj.position_current.y, 0};
-    // mesh->verts[0].position.y += .01;
-    // mesh->verts[0].position.x += .01;
+    // mesh->verts[0].position.y = std::sin(time) * 0.5f;
+    // mesh->verts[0].position.x = std::cos(time) * 0.5f;
     mesh->uploadData();
 
     glUseProgram(pointShader->id);
