@@ -29,11 +29,10 @@ struct VerletObject
   void updatePosition(float dt)
   {
     const glm::vec2 velocity = position_current - position_old;
+    position_old = position_current;
     // Verlet
     const glm::vec2 acc = potentialForce(position_current) / mass;
-    position_current = position_current + velocity + acc + dt * dt;
-
-    position_old = position_current;
+    position_current = position_current + velocity + acc * dt * dt;
   }
 };
 
@@ -122,8 +121,8 @@ void main()
     // mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
-    auto gravity = [](const glm::vec2 &)
-    { return glm::vec2{0.0f, -0.01f}; };
+    const auto gravity = [](const glm::vec2 &)
+    { return glm::vec2{0.0f, -1.0f}; };
     objects.emplace_back(VerletObject{{}, gravity});
     solver = std::make_unique<Solver>(objects);
 
@@ -142,7 +141,7 @@ void main()
     // glEnable(GL_DEPTH_TEST);
   }
 
-  void onRender(float time, float deltaTime) final
+  void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
   {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
