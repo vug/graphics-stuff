@@ -85,7 +85,7 @@ namespace ws
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 
-  static Mesh makeQuad()
+  Mesh Mesh::makeQuad()
   {
     std::vector<DefaultVertex> vertices = {
         {{-1, 1, 0}, {0, 0, 1}, {0, 1}, {1, 1, 1, 1}},
