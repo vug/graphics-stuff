@@ -4,6 +4,7 @@
       "name": "Win32",
       "includePath": [
         "${default}",
+        "${workspaceFolder}/workshop",
         "${workspaceFolder}/dependencies/blend2d/src",
         "${workspaceFolder}/dependencies/ColorSpace/src",
         "${workspaceFolder}/build/dependencies/gladsources/glad_gl_core_46/include",
