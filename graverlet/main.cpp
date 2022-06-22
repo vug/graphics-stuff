@@ -75,7 +75,7 @@ public:
   std::vector<VerletObject> objects;
   std::unique_ptr<Solver> solver;
 
-  std::unique_ptr<ws::Shader> mainShader;
+  std::unique_ptr<ws::Shader> quadShader;
   std::unique_ptr<ws::Shader> pointShader;
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> backgroundMesh;
@@ -144,8 +144,30 @@ void main()
   FragColor = vertexData.color;
 }
 )";
-    // mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
+
+    const char *diskShaderFragment = R"(
+#version 460 core
+
+in VertexData
+{
+  vec3 position;
+  vec3 normal;
+  vec2 uv;
+  vec4 color;
+} vertexData;
+
+out vec4 FragColor;
+
+void main()
+{
+  vec2 p = 2 * vertexData.uv - 1;
+  if (dot(p, p) > 1)
+    discard;
+  FragColor = vertexData.color;
+}
+)";
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
+    quadShader = std::make_unique<ws::Shader>(mainShaderVertex, diskShaderFragment);
 
     const auto gravity = [](const glm::vec2 &)
     { return glm::vec2{0.0f, -1.0f}; };
@@ -164,9 +186,13 @@ void main()
     }
     mesh->uploadData();
 
-    backgroundMesh = std::make_unique<ws::Mesh>(1);
-    backgroundMesh->verts[0] = ws::DefaultVertex{{0, 0, .1}, {}, {}, {1.0f, 0.5f, 0.2f, 1}, {1.0f, 0, 0, 0}};
-    backgroundMesh->idxs[0] = 0;
+    backgroundMesh.reset(new ws::Mesh(ws::Mesh::makeQuad())); // does not call Mesh destructor
+    // backgroundMesh = std::make_unique<ws::Mesh>(ws::Mesh::makeQuad()); // calls Mesh destructor -> glDeletes buffers
+    for (auto &v : backgroundMesh->verts)
+    {
+      v.color = {0.1, 0.1, 0.1, 1.};
+      v.position.z = 0.1f;
+    }
     backgroundMesh->uploadData();
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -187,12 +213,16 @@ void main()
     // mesh->verts[0].position.x = std::cos(time) * 0.5f;
     mesh->uploadData();
 
-    glUseProgram(pointShader->id);
     float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
-    pointShader->setVector2fv("RenderTargetSize", rts);
-    glBindVertexArray(backgroundMesh->vao);
-    glDrawElements(GL_POINTS, static_cast<GLsizei>(backgroundMesh->idxs.size()), GL_UNSIGNED_INT, 0);
 
+    glUseProgram(quadShader->id);
+    quadShader->setVector2fv("RenderTargetSize", rts);
+    backgroundMesh->uploadData();
+    glBindVertexArray(backgroundMesh->vao);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(backgroundMesh->idxs.size()), GL_UNSIGNED_INT, 0);
+
+    glUseProgram(pointShader->id);
+    pointShader->setVector2fv("RenderTargetSize", rts);
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
