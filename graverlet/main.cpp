@@ -15,8 +15,8 @@ struct VerletObject
   glm::vec2 position_current{};
   glm::vec2 position_old{};
   std::function<glm::vec2(const glm::vec2 &)> potentialForce;
-  bool first = true;
   float mass = 1.0f;
+  float radius = 0.1f;
 
   VerletObject(glm::vec2 pos, std::function<glm::vec2(const glm::vec2 &)> potentialForce)
       : position_current(pos), potentialForce(potentialForce)
@@ -37,10 +37,10 @@ struct VerletObject
     const float border = 1.0f;
     const glm::vec2 relPos = position_current - center;
     const float dist = glm::length(relPos);
-    if (dist > border - 0.2f)
+    if (dist > border - radius)
     {
       const glm::vec2 n = glm::normalize(relPos);
-      position_current = center + n * (border - 0.2f);
+      position_current = center + n * (border - radius);
 
       // might need to update position_old if change in position_current is big.
       // const glm::vec2 acc2 = potentialForce(position_current) / mass;
@@ -93,10 +93,12 @@ layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec3 vNorm;
 layout (location = 2) in vec2 vUV;
 layout (location = 3) in vec4 vColor;
+layout (location = 4) in vec4 vCustom;
 
 uniform mat4 WorldFromObject;
 uniform mat4 ViewFromWorld;
 uniform mat4 ProjectionFromView;
+uniform vec2 RenderTargetSize;
 
 out VertexData
 {
@@ -109,8 +111,9 @@ out VertexData
 void main()
 {
   //gl_Position = ProjectionFromView * ViewFromWorld * WorldFromObject * vec4(vPos, 1.0);
+  float radius = vCustom.x;
   gl_Position = vec4(vPos, 1.0);
-  gl_PointSize = 20.0f;
+  gl_PointSize = radius * RenderTargetSize.y;
 
   vertexData.position = vPos;
   vertexData.normal = vNorm;
@@ -134,6 +137,9 @@ out vec4 FragColor;
 
 void main()
 {
+  vec2 p = 2 * gl_PointCoord - 1;
+  if (dot(p, p) > 1)
+    discard;
   FragColor = vertexData.color;
 }
 )";
@@ -142,13 +148,16 @@ void main()
 
     const auto gravity = [](const glm::vec2 &)
     { return glm::vec2{0.0f, -1.0f}; };
-    objects.emplace_back(VerletObject{{}, gravity});
+    objects.emplace_back(VerletObject{{0.5, 0.0}, gravity});
+    objects[0].radius = 0.2f;
+    objects.emplace_back(VerletObject{{-0.25, 0.0}, gravity});
+    objects[1].radius = 0.1f;
     solver = std::make_unique<Solver>(objects);
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
     for (uint32_t ix = 0; const auto &obj : objects)
     {
-      mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}};
+      mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
       mesh->idxs[ix] = ix;
       ix++;
     }
@@ -173,6 +182,8 @@ void main()
     mesh->uploadData();
 
     glUseProgram(pointShader->id);
+    float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
+    pointShader->setVector2fv("RenderTargetSize", rts);
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
