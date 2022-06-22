@@ -32,7 +32,7 @@ struct VerletObject
     // calculate forces
     const glm::vec2 acc = potentialForce(position_current) / mass;
 
-    // apply constraints
+    // apply boundry constraint
     const glm::vec2 center = {0, 0};
     const float border = 1.0f;
     const glm::vec2 relPos = position_current - center;
@@ -64,6 +64,20 @@ public:
 
   void update(float dt)
   {
+    for (size_t i = 0; i < objects.size(); ++i)
+    {
+      for (size_t j = i + 1; j < objects.size(); ++j)
+      {
+        const VerletObject &o1 = objects[i];
+        const VerletObject &o2 = objects[j];
+        const glm::vec2 disp = o1.position_current - o2.position_current;
+        const float dist = glm::length(disp);
+        if (dist > o1.radius + o2.radius)
+        {
+          // collision
+        }
+      }
+    }
     for (VerletObject &obj : objects)
       obj.updatePosition(dt);
   }
