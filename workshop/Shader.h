@@ -11,6 +11,7 @@ namespace ws
     Shader(const char *vertexShaderSource, const char *fragmentShaderSource);
     ~Shader();
 
+    void setVector2fv(const char *name, const float *value);
     void setVector3fv(const char *name, const float *value);
     void setMatrix3fv(const char *name, const float *value);
     void setMatrix4fv(const char *name, const float *value);

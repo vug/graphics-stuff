@@ -52,6 +52,11 @@ namespace ws
     glDeleteProgram(id);
   }
 
+  void Shader::setVector2fv(const char *name, const float *value)
+  {
+    const int location = glGetUniformLocation(id, name);
+    glUniform2fv(location, 1, value);
+  }
   void Shader::setVector3fv(const char *name, const float *value)
   {
     const int location = glGetUniformLocation(id, name);
