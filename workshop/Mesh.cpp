@@ -84,4 +84,19 @@ namespace ws
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t) * idxs.size(), idxs.data());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
+
+  static Mesh makeQuad()
+  {
+    std::vector<DefaultVertex> vertices = {
+        {{-1, 1, 0}, {0, 0, 1}, {0, 1}, {1, 1, 1, 1}},
+        {{-1, -1, 0}, {0, 0, 1}, {0, 0}, {1, 1, 1, 1}},
+        {{1, -1, 0}, {0, 0, 1}, {1, 0}, {1, 1, 1, 1}},
+        {{1, 1, 0}, {0, 0, 1}, {1, 1}, {1, 1, 1, 1}},
+    };
+    std::vector<uint32_t> indices = {
+        0, 1, 2, // t1
+        0, 2, 3, // t2
+    };
+    return Mesh(vertices, indices);
+  }
 }

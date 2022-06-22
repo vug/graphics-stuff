@@ -39,6 +39,8 @@ namespace ws
     // call after setting verts and idxs to upload them to GPU
     void uploadData();
 
+    static Mesh makeQuad();
+
   private:
     void createBuffers();
     void allocateBuffers();
