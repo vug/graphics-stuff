@@ -64,20 +64,24 @@ public:
 
   void update(float dt)
   {
+    // collision constraint
     for (size_t i = 0; i < objects.size(); ++i)
     {
       for (size_t j = i + 1; j < objects.size(); ++j)
       {
-        const VerletObject &o1 = objects[i];
-        const VerletObject &o2 = objects[j];
+        VerletObject &o1 = objects[i];
+        VerletObject &o2 = objects[j];
         const glm::vec2 disp = o1.position_current - o2.position_current;
         const float dist = glm::length(disp);
-        if (dist > o1.radius + o2.radius)
+        if (const float delta = dist - (o1.radius + o2.radius); delta < 0)
         {
-          // collision
+          const glm::vec2 n = glm::normalize(disp);
+          o1.position_current -= 0.5f * delta * n;
+          o2.position_current += 0.5f * delta * n;
         }
       }
     }
+
     for (VerletObject &obj : objects)
       obj.updatePosition(dt);
   }
