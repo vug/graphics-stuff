@@ -37,5 +37,7 @@ target_include_directories(
 )
 
 # https://github.com/Lawrencemm/openmesh
-set(BUILD_APPS OFF) # we don't need the QT apps that comes with OpenMesh
+# INTERNAL hides the value. Could have been BOOL, then parameter appears in "cmake .. -L"
+set(BUILD_APPS false CACHE INTERNAL "" FORCE) # we don't need the QT apps that comes with OpenMesh
+set(OPENMESH_DOCS false CACHE INTERNAL "" FORCE)
 add_subdirectory(openmesh)
