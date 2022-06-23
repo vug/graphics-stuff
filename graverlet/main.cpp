@@ -98,6 +98,9 @@ public:
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> backgroundMesh;
 
+  std::function<glm::vec2(const glm::vec2 &)> gravity = [](const glm::vec2 &)
+  { return glm::vec2{0.0f, -1.0f}; };
+
   Specs getSpecs() final
   {
     return {.name = "MyApp", .width = 800u, .height = 800u, .shouldDebugOpenGL = true};
@@ -187,12 +190,11 @@ void main()
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
     quadShader = std::make_unique<ws::Shader>(mainShaderVertex, diskShaderFragment);
 
-    const auto gravity = [](const glm::vec2 &)
-    { return glm::vec2{0.0f, -1.0f}; };
-    objects.emplace_back(VerletObject{{0.5, 0.0}, gravity});
-    objects[0].radius = 0.2f;
-    objects.emplace_back(VerletObject{{-0.25, 0.0}, gravity});
-    objects[1].radius = 0.1f;
+    // objects with which to start
+    // objects.emplace_back(VerletObject{{0.5, 0.0}, gravity});
+    // objects[0].radius = 0.2f;
+    // objects.emplace_back(VerletObject{{-0.25, 0.0}, gravity});
+    // objects[1].radius = 0.1f;
     solver = std::make_unique<Solver>(objects);
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
@@ -224,9 +226,34 @@ void main()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // generate a new object at every period
+    const float period = 0.1f;
+    static float remaining = period;
+    remaining -= deltaTime;
+    if (remaining < 0)
+    {
+      objects.emplace_back(VerletObject{{0.0, 0.9}, gravity});
+      auto &obj = objects[objects.size() - 1];
+      obj.radius = 0.05f;
+      obj.position_old = obj.position_current + glm::vec2{std::sin(time) * 0.02, 0.02};
+      remaining = period;
+
+      mesh->verts.resize(objects.size());
+      mesh->idxs.resize(objects.size());
+    }
+
     solver->update(deltaTime);
-    for (size_t ix = 0; const auto &obj : objects)
-      mesh->verts[ix++].position = {obj.position_current.x, obj.position_current.y, 0};
+    for (uint32_t ix = 0; const auto &obj : objects)
+    {
+      mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
+      mesh->idxs[ix] = ix;
+      ix++;
+    }
+
+    // when the number of objects is constant
+    // for (size_t ix = 0; const auto &obj : objects)
+    //   mesh->verts[ix++].position = {obj.position_current.x, obj.position_current.y, 0};
+
     // mesh->verts[0].position.y = std::sin(time) * 0.5f;
     // mesh->verts[0].position.x = std::cos(time) * 0.5f;
     mesh->uploadData();
