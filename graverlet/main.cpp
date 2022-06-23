@@ -5,9 +5,11 @@
 #include <glad/gl.h>
 #include <glm/vec2.hpp>
 #include <glm/geometric.hpp>
+#include <imgui.h>
 
 #include <functional>
 #include <memory>
+#include <random>
 #include <vector>
 
 struct VerletObject
@@ -100,6 +102,9 @@ public:
 
   std::function<glm::vec2(const glm::vec2 &)> gravity = [](const glm::vec2 &)
   { return glm::vec2{0.0f, -1.0f}; };
+
+  std::mt19937 rndGen;
+  std::uniform_real_distribution<float> rndDist;
 
   Specs getSpecs() final
   {
@@ -234,7 +239,7 @@ void main()
     {
       objects.emplace_back(VerletObject{{0.0, 0.9}, gravity});
       auto &obj = objects[objects.size() - 1];
-      obj.radius = 0.05f;
+      obj.radius = 0.04f * rndDist(rndGen) + 0.01f;
       obj.position_old = obj.position_current + glm::vec2{std::sin(time) * 0.02, 0.02};
       remaining = period;
 
@@ -245,11 +250,10 @@ void main()
     solver->update(deltaTime);
     for (uint32_t ix = 0; const auto &obj : objects)
     {
-      mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
+      mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}, {}, {}, {(ix % 256) / 256., (ix + 128) % 256 / 256., 1, 1}, {obj.radius, 0, 0, 0}};
       mesh->idxs[ix] = ix;
       ix++;
     }
-
     // when the number of objects is constant
     // for (size_t ix = 0; const auto &obj : objects)
     //   mesh->verts[ix++].position = {obj.position_current.x, obj.position_current.y, 0};
@@ -257,6 +261,8 @@ void main()
     // mesh->verts[0].position.y = std::sin(time) * 0.5f;
     // mesh->verts[0].position.x = std::cos(time) * 0.5f;
     mesh->uploadData();
+
+    ImGui::Text("num balls: %d", mesh->verts.size());
 
     float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
 
