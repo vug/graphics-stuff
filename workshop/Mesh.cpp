@@ -72,7 +72,10 @@ namespace ws
     {
       do
       {
-        capacity *= 2;
+        if (capacity == 0)
+          capacity = 1;
+        else
+          capacity *= 2;
       } while (capacity <= idxs.size());
 
       allocateBuffers();
