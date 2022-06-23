@@ -232,14 +232,17 @@ void main()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // generate a new object at every period
-    const float period = 0.1f;
+    float period = 0.05f;
     static float remaining = period;
+    static int maxBalls = 100;
+    static float minRadius = 0.01f;
+    static float maxRadius = 0.05f;
     remaining -= deltaTime;
-    if (remaining < 0)
+    if (remaining < 0 && mesh->verts.size() < maxBalls)
     {
       objects.emplace_back(VerletObject{{0.0, 0.9}, gravity});
       auto &obj = objects[objects.size() - 1];
-      obj.radius = 0.04f * rndDist(rndGen) + 0.01f;
+      obj.radius = (maxRadius - minRadius) * rndDist(rndGen) + minRadius;
       obj.position_old = obj.position_current + glm::vec2{std::sin(time) * 0.02, 0.02};
       remaining = period;
 
@@ -262,7 +265,18 @@ void main()
     // mesh->verts[0].position.x = std::cos(time) * 0.5f;
     mesh->uploadData();
 
+    ImGui::Begin("Verlet Simulation");
     ImGui::Text("num balls: %d", mesh->verts.size());
+    ImGui::Text("FPS: %.1f", 1.0f / deltaTime);
+    ImGui::SliderFloat("gen period", &period, 0.01f, 0.5f, "%.2f");
+    ImGui::SliderInt("max balls", &maxBalls, 100, 1000);
+    ImGui::SliderFloat("max radius", &maxRadius, 0.001f, 0.20f, "%.3f");
+    if (maxRadius < minRadius)
+      minRadius = maxRadius;
+    ImGui::SliderFloat("min radius", &minRadius, 0.001f, 0.20f, "%.3f");
+    if (minRadius > maxRadius)
+      maxRadius = minRadius;
+    ImGui::End();
 
     float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
 
