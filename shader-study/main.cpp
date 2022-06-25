@@ -6,22 +6,14 @@
 #include <imgui.h>
 
 #include <memory>
+#include <iostream>
 
 class MyApp : public ws::App
 {
 public:
   std::unique_ptr<ws::Shader> mainShader;
   std::unique_ptr<ws::Mesh> fullscreenQuad;
-
-public:
-  Specs getSpecs() final
-  {
-    return {.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true};
-  }
-
-  void onInit() final
-  {
-    const char *mainShaderVertex = R"(
+  const char *mainShaderVertex = R"(
 #version 460 core
 
 layout (location = 0) in vec3 vPos;
@@ -56,7 +48,7 @@ void main()
 }
 )";
 
-    const char *mainShaderFragment = R"(
+  const char *mainShaderFragment = R"(
 #version 460 core
 
 in VertexData
@@ -77,7 +69,7 @@ void main()
 }
 )";
 
-    const char *mainShaderFragment2 = R"(
+  const char *mainShaderFragment2 = R"(
 #version 460 core
 
 in VertexData
@@ -98,6 +90,14 @@ void main()
 }
 )";
 
+public:
+  Specs getSpecs() final
+  {
+    return {.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true};
+  }
+
+  void onInit() final
+  {
     mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
     fullscreenQuad.reset(new ws::Mesh(ws::Mesh::makeQuad())); // does not call Mesh destructor
 
@@ -120,6 +120,44 @@ void main()
     ImGui::Begin("Shader Study");
     if (ImGui::Button("Recompile"))
     {
+      int count{};
+      uint32_t shaders[2];
+      glGetAttachedShaders(mainShader->id, 2, &count, shaders);
+      printf("Shader program %d attached shader count: %d\n", mainShader->id, count);
+      for (size_t i = 0; i < count; ++i)
+      {
+        printf("Detaching shader: %d\n", shaders[i]);
+        glDetachShader(mainShader->id, shaders[i]);
+      }
+
+      int success;
+      char infoLog[512];
+
+      unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
+      glShaderSource(vertex, 1, &mainShaderVertex, NULL);
+      glCompileShader(vertex);
+      glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
+
+      unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);
+      glShaderSource(fragment, 1, &mainShaderFragment2, NULL);
+      glCompileShader(fragment);
+      glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
+
+      // unsigned int shaderProgram = glCreateProgram();
+      glAttachShader(mainShader->id, vertex);
+      glAttachShader(mainShader->id, fragment);
+      glLinkProgram(mainShader->id);
+      glGetProgramiv(mainShader->id, GL_LINK_STATUS, &success);
+      if (!success)
+      {
+        glGetProgramInfoLog(mainShader->id, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+                  << infoLog << std::endl;
+      }
+      glDeleteShader(vertex);
+      glDeleteShader(fragment);
+
+      // id = shaderProgram;
     }
     ImGui::End();
   }
