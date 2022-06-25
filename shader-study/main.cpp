@@ -118,19 +118,21 @@ public:
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(fullscreenQuad->idxs.size()), GL_UNSIGNED_INT, 0);
 
     ImGui::Begin("Shader Study");
-    if (ImGui::Button("Recompile"))
+    if (ImGui::Button("Recompile - Fragment1"))
     {
-      int count{};
-      uint32_t shaders[2];
-      glGetAttachedShaders(mainShader->getId(), 2, &count, shaders);
-      printf("Shader program %d attached shader count: %d\n", mainShader->getId(), count);
-      for (size_t i = 0; i < count; ++i)
-      {
-        printf("Detaching shader: %d\n", shaders[i]);
-        glDetachShader(mainShader->getId(), shaders[i]);
-      }
-
+      mainShader->compile(mainShaderVertex, mainShaderFragment);
+      printf("shader program %d shaders: ", mainShader->getId());
+      for (const auto &id : mainShader->getShaderIds())
+        printf("%d ", id);
+      printf("\n");
+    }
+    if (ImGui::Button("Recompile - Fragment2"))
+    {
       mainShader->compile(mainShaderVertex, mainShaderFragment2);
+      printf("shader program %d shaders: ", mainShader->getId());
+      for (const auto &id : mainShader->getShaderIds())
+        printf("%d ", id);
+      printf("\n");
     }
     ImGui::End();
   }

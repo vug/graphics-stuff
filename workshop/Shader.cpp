@@ -1,13 +1,21 @@
-#include <glad/gl.h>
 
 #include "Shader.h"
 
+#include <glad/gl.h>
+
+#include <cassert>
 #include <iostream>
 
 namespace ws
 {
   Shader::Shader()
       : id(glCreateProgram()) {}
+
+  Shader::Shader(const char *vertexShaderSource, const char *fragmentShaderSource)
+      : id(glCreateProgram())
+  {
+    compile(vertexShaderSource, fragmentShaderSource);
+  }
 
   bool Shader::compile(const char *vertexShaderSource, const char *fragmentShaderSource)
   {
@@ -23,7 +31,7 @@ namespace ws
       glGetShaderInfoLog(vertex, 512, NULL, infoLog);
       std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
                 << infoLog << std::endl;
-      return false;
+      return success;
     }
 
     unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -37,8 +45,11 @@ namespace ws
                 << infoLog << std::endl;
 
       glDeleteShader(vertex);
-      return false;
+      return success;
     }
+
+    if (isValid())
+      detachShaders();
 
     glAttachShader(id, vertex);
     glAttachShader(id, fragment);
@@ -52,28 +63,56 @@ namespace ws
 
       glDeleteShader(vertex);
       glDeleteShader(fragment);
-      return false;
+      return success;
     }
 
     glDeleteShader(vertex);
     glDeleteShader(fragment);
-    valid = true;
-    return true;
-  }
-
-  Shader::Shader(const char *vertexShaderSource, const char *fragmentShaderSource)
-      : id(glCreateProgram())
-  {
-    if (!compile(vertexShaderSource, fragmentShaderSource))
-    {
-      glDeleteProgram(id);
-      return;
-    }
+    return success;
   }
 
   Shader::~Shader()
   {
+    if (isValid())
+      detachShaders();
     glDeleteProgram(id);
+  }
+
+  bool Shader::isValid() const
+  {
+    int valid{};
+    glGetProgramiv(id, GL_LINK_STATUS, &valid);
+    return valid;
+  }
+
+  void Shader::bind() const
+  {
+    assert(isValid());
+    glUseProgram(id);
+  }
+
+  void Shader::unbind() const
+  {
+    glUseProgram(0);
+  }
+
+  std::vector<uint32_t> Shader::getShaderIds() const
+  {
+    const int maxShaders = 2;
+    std::vector<uint32_t> shaderIds(maxShaders);
+
+    int count{};
+    glGetAttachedShaders(id, 2, &count, shaderIds.data());
+    shaderIds.resize(count);
+
+    return shaderIds;
+  }
+
+  void Shader::detachShaders()
+  {
+    auto shaderIds = getShaderIds();
+    for (auto shaderId : shaderIds)
+      glDetachShader(id, shaderId);
   }
 
   void Shader::setVector2fv(const char *name, const float *value)
