@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <cassert>
 
 namespace ws
 {
@@ -31,6 +32,8 @@ namespace ws
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    if (specs.shouldDebugOpenGL)
+      glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
     glfwWindowHint(GLFW_SAMPLES, 8);
 
     GLFWwindow *window = glfwCreateWindow(specs.width, specs.height, specs.name.c_str(), nullptr, nullptr);
@@ -58,9 +61,9 @@ namespace ws
     ImGui_ImplOpenGL3_Init("#version 460");
 
     glViewport(0, 0, specs.width, specs.height);
+    glEnable(GL_MULTISAMPLE);
     if (specs.shouldDebugOpenGL)
     {
-      glEnable(GL_MULTISAMPLE);
       glEnable(GL_DEBUG_OUTPUT);
       glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
       glDebugMessageCallback(OpenGLDebugMessageCallback, nullptr);
@@ -183,6 +186,7 @@ namespace ws
     case GL_DEBUG_SEVERITY_NOTIFICATION:
       return "Notification";
     default:
+      assert(false); // unknown type
       return "Unknown";
     }
   }
@@ -190,22 +194,21 @@ namespace ws
   void GLAPIENTRY OpenGLDebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                                              GLsizei length, const char *message, const void *userParam)
   {
-    switch (severity)
-    {
-    case GL_DEBUG_SEVERITY_HIGH:
-      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
-      break;
-    case GL_DEBUG_SEVERITY_MEDIUM:
-      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
-      break;
-    case GL_DEBUG_SEVERITY_LOW:
-      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
-      break;
-    case GL_DEBUG_SEVERITY_NOTIFICATION:
-      std::cout << "OpenGL Debug Message [" << id << "]. Severity: " << glMessageSeverityToString(severity) << ". Source: " << glMessageSourceToString(source) << ". Type: " << glMessageTypeToString(type) << ". Message: " << message << ".\n";
-      break;
-    default:
-      assert(false); // unknown severity
-    }
+    // filter out non-significant error/warning codes
+    if (
+        false
+        // id == 131169    //
+        // || id == 131185 // Buffer object 2 (bound to GL_ELEMENT_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) will use VIDEO memory as the source for buffer object operations
+        // || id == 131218 // Program/shader state performance warning: Vertex shader in program 9 is being recompiled based on GL state.
+        // || id == 131204 //
+        // || id == 2      // INFO: API_ID_RECOMPILE_FRAGMENT_SHADER performance warning has been generated. Fragment shader recompiled due to state change. [ID: 2]
+    )
+      return;
+
+    std::cout << "OpenGL Debug Message [" << id << "]"
+              << ". Severity : " << glMessageSeverityToString(severity)
+              << ". Source: " << glMessageSourceToString(source)
+              << ". Type: " << glMessageTypeToString(type)
+              << ". Message: " << message << ".\n";
   }
 }
