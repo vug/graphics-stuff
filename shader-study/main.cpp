@@ -111,7 +111,7 @@ public:
 
     float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
 
-    glUseProgram(mainShader->getId());
+    mainShader->bind();
     mainShader->setVector2fv("RenderTargetSize", rts);
     fullscreenQuad->uploadData();
     glBindVertexArray(fullscreenQuad->vao);
