@@ -130,34 +130,7 @@ public:
         glDetachShader(mainShader->getId(), shaders[i]);
       }
 
-      int success;
-      char infoLog[512];
-
-      unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
-      glShaderSource(vertex, 1, &mainShaderVertex, NULL);
-      glCompileShader(vertex);
-      glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-
-      unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);
-      glShaderSource(fragment, 1, &mainShaderFragment2, NULL);
-      glCompileShader(fragment);
-      glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-
-      // unsigned int shaderProgram = glCreateProgram();
-      glAttachShader(mainShader->getId(), vertex);
-      glAttachShader(mainShader->getId(), fragment);
-      glLinkProgram(mainShader->getId());
-      glGetProgramiv(mainShader->getId(), GL_LINK_STATUS, &success);
-      if (!success)
-      {
-        glGetProgramInfoLog(mainShader->getId(), 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-                  << infoLog << std::endl;
-      }
-      glDeleteShader(vertex);
-      glDeleteShader(fragment);
-
-      // id = shaderProgram;
+      mainShader->compile(mainShaderVertex, mainShaderFragment2);
     }
     ImGui::End();
   }

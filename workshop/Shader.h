@@ -47,5 +47,6 @@ namespace ws
     std::filesystem::path vertexShader;
     std::filesystem::path fragmentShader;
     int32_t id{-1};
+    bool valid{};
   };
 }
