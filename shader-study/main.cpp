@@ -111,7 +111,7 @@ public:
 
     float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
 
-    glUseProgram(mainShader->id);
+    glUseProgram(mainShader->getId());
     mainShader->setVector2fv("RenderTargetSize", rts);
     fullscreenQuad->uploadData();
     glBindVertexArray(fullscreenQuad->vao);
@@ -122,12 +122,12 @@ public:
     {
       int count{};
       uint32_t shaders[2];
-      glGetAttachedShaders(mainShader->id, 2, &count, shaders);
-      printf("Shader program %d attached shader count: %d\n", mainShader->id, count);
+      glGetAttachedShaders(mainShader->getId(), 2, &count, shaders);
+      printf("Shader program %d attached shader count: %d\n", mainShader->getId(), count);
       for (size_t i = 0; i < count; ++i)
       {
         printf("Detaching shader: %d\n", shaders[i]);
-        glDetachShader(mainShader->id, shaders[i]);
+        glDetachShader(mainShader->getId(), shaders[i]);
       }
 
       int success;
@@ -144,13 +144,13 @@ public:
       glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
 
       // unsigned int shaderProgram = glCreateProgram();
-      glAttachShader(mainShader->id, vertex);
-      glAttachShader(mainShader->id, fragment);
-      glLinkProgram(mainShader->id);
-      glGetProgramiv(mainShader->id, GL_LINK_STATUS, &success);
+      glAttachShader(mainShader->getId(), vertex);
+      glAttachShader(mainShader->getId(), fragment);
+      glLinkProgram(mainShader->getId());
+      glGetProgramiv(mainShader->getId(), GL_LINK_STATUS, &success);
       if (!success)
       {
-        glGetProgramInfoLog(mainShader->id, 512, NULL, infoLog);
+        glGetProgramInfoLog(mainShader->getId(), 512, NULL, infoLog);
         std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
                   << infoLog << std::endl;
       }

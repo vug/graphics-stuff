@@ -263,7 +263,7 @@ void main()
       camera->position = glm::normalize(camera->position) * camDist;
     }
 
-    glUseProgram(mainShader->id);
+    glUseProgram(mainShader->getId());
     mainShader->setMatrix4fv("ViewFromWorld", glm::value_ptr(camera->getViewFromWorld()));
     mainShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
 
@@ -271,7 +271,7 @@ void main()
     mainShader->setMatrix4fv("WorldFromObject", glm::value_ptr(glm::mat4(1.f)));
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
 
-    glUseProgram(pointShader->id);
+    glUseProgram(pointShader->getId());
     mainShader->setMatrix4fv("ViewFromWorld", glm::value_ptr(camera->getViewFromWorld()));
     mainShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
     mainShader->setMatrix4fv("WorldFromObject", glm::value_ptr(glm::mat4(1.f)));

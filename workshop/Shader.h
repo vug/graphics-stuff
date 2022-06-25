@@ -32,6 +32,10 @@ namespace ws
     // needs shader files to be reloaded first. otherwise fails.
     bool reload();
 
+    inline int32_t getId() const
+    {
+      return id;
+    }
     // Whether a functioning shader program was created or not
     // i.e. shaders compiled and linked successfully, not "id != -1"
     bool isValid();
@@ -39,10 +43,9 @@ namespace ws
     void bind();
 
   public:
-    int32_t id{-1};
-
   private:
     std::filesystem::path vertexShader;
     std::filesystem::path fragmentShader;
+    int32_t id{-1};
   };
 }

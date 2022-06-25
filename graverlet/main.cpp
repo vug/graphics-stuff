@@ -280,13 +280,13 @@ void main()
 
     float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
 
-    glUseProgram(quadShader->id);
+    glUseProgram(quadShader->getId());
     quadShader->setVector2fv("RenderTargetSize", rts);
     backgroundMesh->uploadData();
     glBindVertexArray(backgroundMesh->vao);
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(backgroundMesh->idxs.size()), GL_UNSIGNED_INT, 0);
 
-    glUseProgram(pointShader->id);
+    glUseProgram(pointShader->getId());
     pointShader->setVector2fv("RenderTargetSize", rts);
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
