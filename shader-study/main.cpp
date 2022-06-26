@@ -5,8 +5,9 @@
 #include <glad/gl.h>
 #include <imgui.h>
 
-#include <memory>
+#include <filesystem>
 #include <iostream>
+#include <memory>
 
 class MyApp : public ws::App
 {
@@ -99,6 +100,9 @@ public:
   void onInit() final
   {
     mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
+    // mainShader = std::make_unique<ws::Shader>(
+    //     std::filesystem::path{"../../../shader-study/mainVertex.glsl"},
+    //     std::filesystem::path{"../../../shader-study/mainFragment.glsl"});
     fullscreenQuad.reset(new ws::Mesh(ws::Mesh::makeQuad())); // does not call Mesh destructor
 
     glEnable(GL_DEPTH_TEST);
@@ -118,17 +122,31 @@ public:
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(fullscreenQuad->idxs.size()), GL_UNSIGNED_INT, 0);
 
     ImGui::Begin("Shader Study");
+    bool buttonPressed = false;
     if (ImGui::Button("Recompile - Fragment1"))
     {
       mainShader->compile(mainShaderVertex, mainShaderFragment);
-      printf("shader program %d shaders: ", mainShader->getId());
-      for (const auto &id : mainShader->getShaderIds())
-        printf("%d ", id);
-      printf("\n");
+      buttonPressed = true;
     }
     if (ImGui::Button("Recompile - Fragment2"))
     {
       mainShader->compile(mainShaderVertex, mainShaderFragment2);
+      buttonPressed = true;
+    }
+    if (ImGui::Button("Load Shader files"))
+    {
+      mainShader->load(
+          "../../../shader-study/mainVertex.glsl",
+          "../../../shader-study/mainFragment.glsl");
+      buttonPressed = true;
+    }
+    if (ImGui::Button("Reload"))
+    {
+      mainShader->reload();
+      buttonPressed = true;
+    }
+    if (buttonPressed)
+    {
       printf("shader program %d shaders: ", mainShader->getId());
       for (const auto &id : mainShader->getShaderIds())
         printf("%d ", id);
