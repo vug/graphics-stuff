@@ -115,7 +115,7 @@ public:
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
+    float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
 
     mainShader->bind();
     mainShader->setVector2fv("RenderTargetSize", rts);

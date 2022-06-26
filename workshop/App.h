@@ -25,5 +25,7 @@ namespace ws
     virtual void onDeinit() = 0;
 
     Specs specs;
+    uint32_t width{};
+    uint32_t height{};
   };
 }

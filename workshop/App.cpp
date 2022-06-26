@@ -36,8 +36,11 @@ namespace ws
       glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
     glfwWindowHint(GLFW_SAMPLES, 8);
 
-    GLFWwindow *window = glfwCreateWindow(specs.width, specs.height, specs.name.c_str(), nullptr, nullptr);
+    width = specs.width;
+    height = specs.height;
+    GLFWwindow *window = glfwCreateWindow(width, height, specs.name.c_str(), nullptr, nullptr);
     glfwMakeContextCurrent(window);
+    glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, key_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -60,7 +63,7 @@ namespace ws
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    glViewport(0, 0, specs.width, specs.height);
+    glViewport(0, 0, width, height);
     glEnable(GL_MULTISAMPLE);
     if (specs.shouldDebugOpenGL)
     {
@@ -121,6 +124,13 @@ namespace ws
   void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, int width, int height)
   {
     glViewport(0, 0, width, height);
+    void *ptr = glfwGetWindowUserPointer(window);
+    if (ptr)
+    {
+      App *app = static_cast<App *>(ptr);
+      app->width = width;
+      app->height = height;
+    }
   }
 
   inline const char *glMessageSourceToString(GLenum source)
