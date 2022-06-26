@@ -1,3 +1,5 @@
+#include "ShaderStudyAssets.h"
+
 #include <App.h>
 #include <Shader.h>
 #include <Mesh.h>
@@ -136,8 +138,8 @@ public:
     if (ImGui::Button("Load Shader files"))
     {
       mainShader->load(
-          "../../../shader-study/mainVertex.glsl",
-          "../../../shader-study/mainFragment.glsl");
+          ASSETS_FOLDER / "mainVertex.glsl",
+          ASSETS_FOLDER / "mainFragment.glsl");
       buttonPressed = true;
     }
     if (ImGui::Button("Reload"))

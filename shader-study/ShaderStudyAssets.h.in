@@ -1,0 +1,2 @@
+#include <filesystem>
+std::filesystem::path ASSETS_FOLDER = "@SHADER_STUDY_ASSETS_FOLDER@";

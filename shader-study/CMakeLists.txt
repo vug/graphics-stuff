@@ -4,6 +4,10 @@ else()
   add_compile_options(-Wall -Wextra -pedantic -Werror)
 endif()
 
+set(SHADER_STUDY_ASSETS_FOLDER ${CMAKE_CURRENT_SOURCE_DIR})
+configure_file(ShaderStudyAssets.h.in ShaderStudyAssets.h @ONLY)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 add_executable(ShaderStudy
   main.cpp)
 
