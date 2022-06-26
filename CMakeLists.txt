@@ -7,5 +7,6 @@ project(GraphicsEngineersWorkshop
 add_subdirectory(dependencies)
 add_subdirectory(workshop)
 add_subdirectory(workshop-apps/cellular)
-add_subdirectory(workshop-apps/graverlet)
+add_subdirectory(workshop-apps/collision-verlet)
 add_subdirectory(workshop-apps/shader-study)
+add_subdirectory(workshop-apps/graverlet)
