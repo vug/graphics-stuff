@@ -29,10 +29,7 @@ public:
   std::mt19937 rng;
   std::uniform_real_distribution<float> dist;
 
-  Specs getSpecs() final
-  {
-    return {.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true};
-  }
+  MyApp() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
 
   void onInit() final
   {

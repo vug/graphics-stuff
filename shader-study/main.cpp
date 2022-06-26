@@ -14,7 +14,6 @@
 class MyApp : public ws::App
 {
 public:
-  std::unique_ptr<ws::Shader> mainShader;
   std::unique_ptr<ws::Mesh> fullscreenQuad;
   const char *mainShaderVertex = R"(
 #version 460 core
@@ -93,19 +92,21 @@ void main()
 }
 )";
 
+  ws::Shader mainShader;
+
 public:
-  Specs getSpecs() final
+  MyApp()
+      : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}),
+        mainShader{mainShaderVertex, mainShaderFragment},
+        fullscreenQuad(new ws::Mesh(ws::Mesh::makeQuad())) // does not call Mesh destructor
   {
-    return {.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true};
   }
 
   void onInit() final
   {
-    mainShader = std::make_unique<ws::Shader>(mainShaderVertex, mainShaderFragment);
     // mainShader = std::make_unique<ws::Shader>(
     //     std::filesystem::path{"../../../shader-study/mainVertex.glsl"},
     //     std::filesystem::path{"../../../shader-study/mainFragment.glsl"});
-    fullscreenQuad.reset(new ws::Mesh(ws::Mesh::makeQuad())); // does not call Mesh destructor
 
     glEnable(GL_DEPTH_TEST);
   }
@@ -117,8 +118,8 @@ public:
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
 
-    mainShader->bind();
-    mainShader->setVector2fv("RenderTargetSize", rts);
+    mainShader.bind();
+    mainShader.setVector2fv("RenderTargetSize", rts);
     fullscreenQuad->uploadData();
     glBindVertexArray(fullscreenQuad->vao);
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(fullscreenQuad->idxs.size()), GL_UNSIGNED_INT, 0);
@@ -127,30 +128,30 @@ public:
     bool buttonPressed = false;
     if (ImGui::Button("Recompile - Fragment1"))
     {
-      mainShader->compile(mainShaderVertex, mainShaderFragment);
+      mainShader.compile(mainShaderVertex, mainShaderFragment);
       buttonPressed = true;
     }
     if (ImGui::Button("Recompile - Fragment2"))
     {
-      mainShader->compile(mainShaderVertex, mainShaderFragment2);
+      mainShader.compile(mainShaderVertex, mainShaderFragment2);
       buttonPressed = true;
     }
     if (ImGui::Button("Load Shader files"))
     {
-      mainShader->load(
+      mainShader.load(
           ASSETS_FOLDER / "mainVertex.glsl",
           ASSETS_FOLDER / "mainFragment.glsl");
       buttonPressed = true;
     }
     if (ImGui::Button("Reload"))
     {
-      mainShader->reload();
+      mainShader.reload();
       buttonPressed = true;
     }
     if (buttonPressed)
     {
-      printf("shader program %d shaders: ", mainShader->getId());
-      for (const auto &id : mainShader->getShaderIds())
+      printf("shader program %d shaders: ", mainShader.getId());
+      for (const auto &id : mainShader.getShaderIds())
         printf("%d ", id);
       printf("\n");
     }

@@ -21,13 +21,8 @@ namespace ws
   void GLAPIENTRY OpenGLDebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                                              GLsizei length, const char *message, const void *userParam);
 
-  void App::run()
+  App::App(const Specs &specs)
   {
-    // Tried providing specs in App constructor. But user has to write Derived constructor with matching input params
-    // Tried settings specs in App constructor list via this method, but cannot use virtual methods in ctor, dtor
-    // Therefore putting it to this weird place. In Walnut, App is not derived, but Layers with virtual methods are given
-    specs = getSpecs();
-
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -73,10 +68,15 @@ namespace ws
       // Ignore notifications
       glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
     }
+  }
 
+  void App::run()
+  {
     onInit();
 
     float time = static_cast<float>(glfwGetTime());
+    ImGuiIO &io = ImGui::GetIO();
+    GLFWwindow *window = glfwGetCurrentContext();
 
     while (!glfwWindowShouldClose(window))
     {

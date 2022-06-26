@@ -106,10 +106,7 @@ public:
   std::mt19937 rndGen;
   std::uniform_real_distribution<float> rndDist;
 
-  Specs getSpecs() final
-  {
-    return {.name = "MyApp", .width = 800u, .height = 800u, .shouldDebugOpenGL = true};
-  }
+  MyApp() : App({.name = "MyApp", .width = 800u, .height = 800u, .shouldDebugOpenGL = true}) {}
 
   void onInit() final
   {
@@ -278,7 +275,7 @@ void main()
       maxRadius = minRadius;
     ImGui::End();
 
-    float rts[2] = {static_cast<float>(getSpecs().width), static_cast<float>(getSpecs().height)};
+    float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
 
     glUseProgram(quadShader->getId());
     quadShader->setVector2fv("RenderTargetSize", rts);

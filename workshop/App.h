@@ -15,11 +15,11 @@ namespace ws
       bool shouldDebugOpenGL = true;
     };
 
+    App(const Specs &specs);
     ~App();
 
     void run();
 
-    virtual Specs getSpecs() = 0;
     virtual void onInit() = 0;
     virtual void onRender(float time, float deltaTime) = 0;
     virtual void onDeinit() = 0;
