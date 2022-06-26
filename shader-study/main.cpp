@@ -14,7 +14,6 @@
 class MyApp : public ws::App
 {
 public:
-  std::unique_ptr<ws::Mesh> fullscreenQuad;
   const char *mainShaderVertex = R"(
 #version 460 core
 
@@ -93,12 +92,13 @@ void main()
 )";
 
   ws::Shader mainShader;
+  ws::Mesh fullscreenQuad;
 
 public:
   MyApp()
       : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}),
         mainShader{mainShaderVertex, mainShaderFragment},
-        fullscreenQuad(new ws::Mesh(ws::Mesh::makeQuad())) // does not call Mesh destructor
+        fullscreenQuad(ws::Mesh::makeQuad()) // does not call Mesh destructor
   {
   }
 
@@ -120,9 +120,9 @@ public:
 
     mainShader.bind();
     mainShader.setVector2fv("RenderTargetSize", rts);
-    fullscreenQuad->uploadData();
-    glBindVertexArray(fullscreenQuad->vao);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(fullscreenQuad->idxs.size()), GL_UNSIGNED_INT, 0);
+    fullscreenQuad.uploadData();
+    glBindVertexArray(fullscreenQuad.vao);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(fullscreenQuad.idxs.size()), GL_UNSIGNED_INT, 0);
 
     ImGui::Begin("Shader Study");
     bool buttonPressed = false;
