@@ -5,14 +5,59 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "run active file",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "run Cellular",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "Cellular.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/cellular/Debug/",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "run Gravlet",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "Graverlet.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/graverlet/Debug/",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "run ShaderStudy",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "ShaderStudy.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/shader-study/Debug/",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Compile and run active file",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
             "args": [],
             "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
             "environment": [],
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "preLaunchTask": "cl.exe build active file",
         },
         {
@@ -27,9 +72,25 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bitmaps",
             "environment": [],
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "preLaunchTask": "cl build lines.exe",
             "postDebugTask": "ImageMagick convert PPM to PNG (lines)",
+        },
+        {
+            "name": "OpenMeshGenViz",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/geoproc/omeshgenviz.exe",
+            "args": [
+                ">",
+                "lines.ppm"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/geoproc",
+            "environment": [],
+            "console": "integratedTerminal"
+            // "preLaunchTask": "cl build lines.exe",
+            // "postDebugTask": "ImageMagick convert PPM to PNG (lines)",
         }
     ]
 }
