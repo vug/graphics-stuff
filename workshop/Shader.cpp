@@ -4,10 +4,21 @@
 #include <glad/gl.h>
 
 #include <cassert>
+#include <fstream>
 #include <iostream>
+#include <string>
 
 namespace ws
 {
+  std::string readFile(std::filesystem::path fp)
+  {
+    std::ifstream stream(fp, std::ios::in | std::ios::binary);
+    const auto size = std::filesystem::file_size(fp);
+    std::string content(size, '\0');
+    stream.read(content.data(), size);
+    return content;
+  }
+
   Shader::Shader()
       : id(glCreateProgram()) {}
 
@@ -15,6 +26,12 @@ namespace ws
       : id(glCreateProgram())
   {
     compile(vertexShaderSource, fragmentShaderSource);
+  }
+
+  Shader::Shader(std::filesystem::path vertexShader, std::filesystem::path fragmentShader)
+      : vertexShader(vertexShader), fragmentShader(fragmentShader), id(glCreateProgram())
+  {
+    load(vertexShader, fragmentShader);
   }
 
   bool Shader::compile(const char *vertexShaderSource, const char *fragmentShaderSource)
@@ -69,6 +86,33 @@ namespace ws
     glDeleteShader(vertex);
     glDeleteShader(fragment);
     return success;
+  }
+
+  bool Shader::load(std::filesystem::path vertexShader, std::filesystem::path fragmentShader)
+  {
+    this->vertexShader = vertexShader;
+    this->fragmentShader = fragmentShader;
+
+    if (vertexShader.empty() || fragmentShader.empty())
+    {
+      std::cerr << "shader object " << id << " is not associated with a shader file\n";
+      return false;
+    }
+    else if (!std::filesystem::exists(vertexShader) || !std::filesystem::exists(fragmentShader))
+    {
+      std::cerr << "no shader file: " << vertexShader.string() << " or: " << fragmentShader.string() << "\n";
+      return false;
+    }
+
+    const std::string vertexCode = readFile(vertexShader);
+    const std::string fragmentCode = readFile(fragmentShader);
+
+    return compile(vertexCode.c_str(), fragmentCode.c_str());
+  }
+
+  bool Shader::reload()
+  {
+    return load(vertexShader, fragmentShader);
   }
 
   Shader::~Shader()
