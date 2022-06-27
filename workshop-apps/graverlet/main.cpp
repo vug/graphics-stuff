@@ -14,46 +14,23 @@
 
 struct VerletObject
 {
-  glm::vec2 position_current{};
+  glm::vec2 pos{};
   glm::vec2 position_old{};
-  std::function<glm::vec2(const glm::vec2 &)> potentialForce;
+  glm::vec2 totalForce{};
   float mass = 1.0f;
   float radius = 0.1f;
 
-  VerletObject(glm::vec2 pos, std::function<glm::vec2(const glm::vec2 &)> potentialForce)
-      : position_current(pos), potentialForce(potentialForce)
-  {
-    const float dt = 1.f / 60;
-    position_current = pos;
-    const glm::vec2 acc = potentialForce(position_current) / mass;
-    position_old = position_current - .5f * acc * dt * dt;
-  }
-
   void updatePosition(float dt)
   {
-    // calculate forces
-    const glm::vec2 acc = potentialForce(position_current) / mass;
-
-    // apply boundry constraint
-    const glm::vec2 center = {0, 0};
-    const float border = 1.0f;
-    const glm::vec2 relPos = position_current - center;
-    const float dist = glm::length(relPos);
-    if (dist > border - radius)
-    {
-      const glm::vec2 n = glm::normalize(relPos);
-      position_current = center + n * (border - radius);
-
-      // might need to update position_old if change in position_current is big.
-      // const glm::vec2 acc2 = potentialForce(position_current) / mass;
-      // position_old = position_current - .5f * acc2 * dt * dt;
-    }
+    const glm::vec2 acc = totalForce / mass;
 
     // update position
-    const glm::vec2 velocity = position_current - position_old;
-    position_old = position_current;
+    const glm::vec2 velocity = pos - position_old;
+    position_old = pos;
     // position-Verlet
-    position_current = position_current + velocity + acc * dt * dt;
+    pos = pos + velocity + acc * dt * dt;
+
+    totalForce = {};
   }
 };
 
@@ -61,26 +38,23 @@ class Solver
 {
 public:
   std::vector<VerletObject> &objects;
+  std::function<glm::vec2(const VerletObject &, const VerletObject &)> interObjectForce;
 
-  Solver(std::vector<VerletObject> &objects) : objects(objects) {}
+  Solver(std::vector<VerletObject> &objects, std::function<glm::vec2(const VerletObject &, const VerletObject &)> interObjectForce)
+      : objects(objects), interObjectForce(interObjectForce) {}
 
   void update(float dt)
   {
-    // collision constraint
+    // calculate forces
     for (size_t i = 0; i < objects.size(); ++i)
     {
       for (size_t j = i + 1; j < objects.size(); ++j)
       {
         VerletObject &o1 = objects[i];
         VerletObject &o2 = objects[j];
-        const glm::vec2 disp = o1.position_current - o2.position_current;
-        const float dist = glm::length(disp);
-        if (const float delta = dist - (o1.radius + o2.radius); delta < 0)
-        {
-          const glm::vec2 n = glm::normalize(disp);
-          o1.position_current -= 0.5f * delta * n;
-          o2.position_current += 0.5f * delta * n;
-        }
+        const glm::vec2 f = interObjectForce(o1, o2);
+        o1.totalForce -= f;
+        o2.totalForce += f;
       }
     }
 
@@ -100,8 +74,8 @@ public:
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> backgroundMesh;
 
-  std::function<glm::vec2(const glm::vec2 &)> gravity = [](const glm::vec2 &)
-  { return glm::vec2{0.0f, -1.0f}; };
+  std::function<glm::vec2(const VerletObject &, const VerletObject &)> gravity = [](const VerletObject &obj1, const VerletObject &obj2)
+  { glm::vec2 r = obj1.pos - obj2.pos; return obj1.mass * obj2.mass * glm::normalize(r) / glm::dot(r, r); };
 
   std::mt19937 rndGen;
   std::uniform_real_distribution<float> rndDist;
@@ -192,17 +166,33 @@ void main()
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
     quadShader = std::make_unique<ws::Shader>(mainShaderVertex, diskShaderFragment);
 
-    // objects with which to start
-    // objects.emplace_back(VerletObject{{0.5, 0.0}, gravity});
-    // objects[0].radius = 0.2f;
-    // objects.emplace_back(VerletObject{{-0.25, 0.0}, gravity});
-    // objects[1].radius = 0.1f;
-    solver = std::make_unique<Solver>(objects);
+    objects.emplace_back(VerletObject{{0, 0}, {0, 0}});
+    objects[0].mass = 10.0f;
+    for (int n = 0; n < 40; n++)
+    {
+      float x = 2.0f * rndDist(rndGen) - 1.0f;
+      float y = 2.0f * rndDist(rndGen) - 1.0f;
+      x *= 0.5f;
+      y *= 0.5f;
+      x + 0.25;
+      y + 0.25;
+      objects.emplace_back(VerletObject{{x, y}, {x - 0.01f * y, y + 0.01f * x}, {}, 0.1f, 0.02f});
+      // const float nx = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
+      // const float ny = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
+      // objects.emplace_back(VerletObject{{x, y}, {x + nx, y + ny}, {}, 0.01f, 0.02f});
+    }
+
+    // // objects with which to start
+    // objects.emplace_back(VerletObject{{0.5, 0.0}, {0.5, 0.005}});
+    // // objects[0].radius = 0.2f;
+    // objects.emplace_back(VerletObject{{-0.5, -0.1}, {-0.5, -0.105}});
+    // // objects[1].radius = 0.1f;
+    solver = std::make_unique<Solver>(objects, gravity);
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
     for (uint32_t ix = 0; const auto &obj : objects)
     {
-      mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
+      mesh->verts[ix] = ws::DefaultVertex{{obj.pos.x, obj.pos.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
       mesh->idxs[ix] = ix;
       ix++;
     }
@@ -228,51 +218,17 @@ void main()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // generate a new object at every period
-    float period = 0.05f;
-    static float remaining = period;
-    static int maxBalls = 100;
-    static float minRadius = 0.01f;
-    static float maxRadius = 0.05f;
-    remaining -= deltaTime;
-    if (remaining < 0 && mesh->verts.size() < maxBalls)
-    {
-      objects.emplace_back(VerletObject{{0.0, 0.9}, gravity});
-      auto &obj = objects[objects.size() - 1];
-      obj.radius = (maxRadius - minRadius) * rndDist(rndGen) + minRadius;
-      obj.position_old = obj.position_current + glm::vec2{std::sin(time) * 0.02, 0.02};
-      remaining = period;
-
-      mesh->verts.resize(objects.size());
-      mesh->idxs.resize(objects.size());
-    }
-
-    solver->update(deltaTime);
-    for (uint32_t ix = 0; const auto &obj : objects)
-    {
-      mesh->verts[ix] = ws::DefaultVertex{{obj.position_current.x, obj.position_current.y, 0}, {}, {}, {(ix % 256) / 256., (ix + 128) % 256 / 256., 1, 1}, {obj.radius, 0, 0, 0}};
-      mesh->idxs[ix] = ix;
-      ix++;
-    }
+    solver->update(deltaTime * 0.1f);
+    objects[0].pos = objects[0].position_old = {0, 0};
     // when the number of objects is constant
-    // for (size_t ix = 0; const auto &obj : objects)
-    //   mesh->verts[ix++].position = {obj.position_current.x, obj.position_current.y, 0};
+    for (size_t ix = 0; const auto &obj : objects)
+      mesh->verts[ix++].position = {obj.pos.x, obj.pos.y, 0};
 
     // mesh->verts[0].position.y = std::sin(time) * 0.5f;
     // mesh->verts[0].position.x = std::cos(time) * 0.5f;
     mesh->uploadData();
 
     ImGui::Begin("Verlet Simulation");
-    ImGui::Text("num balls: %d", mesh->verts.size());
-    ImGui::Text("FPS: %.1f", 1.0f / deltaTime);
-    ImGui::SliderFloat("gen period", &period, 0.01f, 0.5f, "%.2f");
-    ImGui::SliderInt("max balls", &maxBalls, 100, 1000);
-    ImGui::SliderFloat("max radius", &maxRadius, 0.001f, 0.20f, "%.3f");
-    if (maxRadius < minRadius)
-      minRadius = maxRadius;
-    ImGui::SliderFloat("min radius", &minRadius, 0.001f, 0.20f, "%.3f");
-    if (minRadius > maxRadius)
-      maxRadius = minRadius;
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
