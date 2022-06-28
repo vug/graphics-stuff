@@ -283,7 +283,7 @@ void main()
     ImGui::Begin("Verlet Simulation");
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
     ImGui::InputFloat("Solver period", &solver->period, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::Text("Potential: %g, Kinetic: %g, Total: %g", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
+    ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     static float areaSize = 1.0f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
     ImGui::End();
