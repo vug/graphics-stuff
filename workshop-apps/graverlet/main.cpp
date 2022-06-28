@@ -19,10 +19,6 @@ struct VerletObject
   float mass = 1.0f;
   float radius = 0.1f;
   glm::vec2 acc{};
-
-  glm::vec2 newPos{};
-  glm::vec2 newVel{};
-  glm::vec2 newAcc{};
 };
 
 using InterForce = std::function<glm::vec2(const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)>;
@@ -32,7 +28,7 @@ class Solver
 public:
   std::vector<VerletObject> &objects;
   InterForce interObjectForce;
-  float period = 0.00016f; // .5 msec
+  float period = 0.000016f; // .5 msec
   float potential{};
   float kinetic{};
 
@@ -62,36 +58,33 @@ public:
     remaining += dt;
     while (remaining > period)
     {
-      // p[t + dt] = p[t] + v[t] * dt + 1/2 * a * dt^2
+      // p[t + dt] = p[t] + v[t] dt + 1/2 a dt^2
       for (VerletObject &obj : objects)
-        obj.newPos = obj.pos + obj.vel * period + obj.acc * (period * period * 0.5f);
+        obj.pos = obj.pos + obj.vel * period + obj.acc * (period * period * 0.5f);
 
-      // a[t + dt] = f(p[t + dt])
+      // v[t + dt / 2] = v[t] + 1/2 a[t] dt
+      for (VerletObject &obj : objects)
+      {
+        obj.vel = obj.vel + 0.5f * obj.acc * period;
+        obj.acc = {};
+      }
+
+      // a[t + dt] = 1/m f(p[t + dt])
       for (size_t i = 0; i < objects.size(); ++i)
       {
         for (size_t j = i + 1; j < objects.size(); ++j)
         {
           VerletObject &o1 = objects[i];
           VerletObject &o2 = objects[j];
-          const glm::vec2 f = interObjectForce(o1.newPos, o1.mass, o2.newPos, o2.mass);
-          o1.newAcc -= f / o1.mass;
-          o2.newAcc += f / o2.mass;
+          const glm::vec2 f = interObjectForce(o1.pos, o1.mass, o2.pos, o2.mass);
+          o1.acc -= f / o1.mass;
+          o2.acc += f / o2.mass;
         }
       }
 
-      // v[t + dt] = v[t] + 1/2 * (a[t] + a[t + dt]) * dt
+      // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt
       for (VerletObject &obj : objects)
-        obj.newVel = obj.vel + (obj.acc + obj.newAcc) * 0.5f * period;
-
-      for (VerletObject &obj : objects)
-      {
-        obj.pos = obj.newPos;
-        obj.vel = obj.newVel;
-        obj.acc = obj.newAcc;
-        obj.newPos = {};
-        obj.newVel = {};
-        obj.newAcc = {};
-      }
+        obj.vel = obj.vel + 0.5f * obj.acc * period;
 
       remaining -= period;
 
@@ -123,7 +116,11 @@ public:
   std::unique_ptr<ws::Mesh> backgroundMesh;
 
   InterForce gravity = [](const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)
-  { glm::vec2 r = p1 - p2; return 0.01f * m1 * m2 * glm::normalize(r) / glm::dot(r, r); };
+  {
+    const float tolarence = 0.00001f;
+    glm::vec2 r = p1 - p2;
+    return 0.01f * m1 * m2 * glm::normalize(r) / std::max(glm::dot(r, r), tolarence);
+  };
 
   std::mt19937 rndGen;
   std::uniform_real_distribution<float> rndDist;
@@ -221,7 +218,7 @@ void main()
       float x = 2.0f * rndDist(rndGen) - 1.0f;
       float y = 2.0f * rndDist(rndGen) - 1.0f;
       glm::vec2 p = {x, y};
-      p = (p * 0.60f) + (glm::normalize(p) * 0.05f);
+      p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
 
       // const float nx = (2.0f * rndDist(rndGen) - 1.0f) * 0.0000000001f;
       // const float ny = (2.0f * rndDist(rndGen) - 1.0f) * 0.0000000001f;
@@ -230,7 +227,7 @@ void main()
       // glm::vec2 v = {0, 0};
 
       glm::vec2 v = glm::vec2{-y, x} * 0.5f;
-      objects.emplace_back(VerletObject{p, v, 0.5f, 0.02f});
+      objects.emplace_back(VerletObject{p, v, 1.5f, 0.01f});
       // objects.emplace_back(VerletObject{{x, y}, {x + nx, y + ny}, {}, 0.01f, 0.02f});
     }
 
