@@ -15,60 +15,98 @@
 struct VerletObject
 {
   glm::vec2 pos{};
-  glm::vec2 position_old{};
-  glm::vec2 totalForce{};
+  glm::vec2 vel{};
   float mass = 1.0f;
   float radius = 0.1f;
+  glm::vec2 acc{};
 
-  void updatePosition(float dt)
-  {
-    const glm::vec2 acc = totalForce / mass;
-
-    // update position
-    const glm::vec2 velocity = pos - position_old;
-    position_old = pos;
-    // position-Verlet
-    pos = pos + velocity + acc * dt * dt;
-
-    totalForce = {};
-  }
+  glm::vec2 newPos{};
+  glm::vec2 newVel{};
+  glm::vec2 newAcc{};
 };
+
+using InterForce = std::function<glm::vec2(const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)>;
 
 class Solver
 {
 public:
   std::vector<VerletObject> &objects;
-  std::function<glm::vec2(const VerletObject &, const VerletObject &)> interObjectForce;
-  float period = 0.0005f; // .5 msec
+  InterForce interObjectForce;
+  float period = 0.00016f; // .5 msec
+  float potential{};
+  float kinetic{};
+
 private:
   float remaining{};
 
 public:
-  Solver(std::vector<VerletObject> &objects, std::function<glm::vec2(const VerletObject &, const VerletObject &)> interObjectForce)
-      : objects(objects), interObjectForce(interObjectForce) {}
+  Solver(std::vector<VerletObject> &objects, InterForce interObjectForce)
+      : objects(objects), interObjectForce(interObjectForce)
+  {
+    // calculate initial acc
+    for (size_t i = 0; i < objects.size(); ++i)
+    {
+      for (size_t j = i + 1; j < objects.size(); ++j)
+      {
+        VerletObject &o1 = objects[i];
+        VerletObject &o2 = objects[j];
+        const glm::vec2 f = interObjectForce(o1.pos, o1.mass, o2.pos, o2.mass);
+        o1.acc -= f / o1.mass;
+        o2.acc += f / o2.mass;
+      }
+    }
+  }
 
   void update(float dt)
   {
     remaining += dt;
     while (remaining > period)
     {
-      // calculate forces
+      // p[t + dt] = p[t] + v[t] * dt + 1/2 * a * dt^2
+      for (VerletObject &obj : objects)
+        obj.newPos = obj.pos + obj.vel * period + obj.acc * (period * period * 0.5f);
+
+      // a[t + dt] = f(p[t + dt])
       for (size_t i = 0; i < objects.size(); ++i)
       {
         for (size_t j = i + 1; j < objects.size(); ++j)
         {
           VerletObject &o1 = objects[i];
           VerletObject &o2 = objects[j];
-          const glm::vec2 f = interObjectForce(o1, o2);
-          o1.totalForce -= f;
-          o2.totalForce += f;
+          const glm::vec2 f = interObjectForce(o1.newPos, o1.mass, o2.newPos, o2.mass);
+          o1.newAcc -= f / o1.mass;
+          o2.newAcc += f / o2.mass;
         }
       }
 
+      // v[t + dt] = v[t] + 1/2 * (a[t] + a[t + dt]) * dt
       for (VerletObject &obj : objects)
-        obj.updatePosition(period);
+        obj.newVel = obj.vel + (obj.acc + obj.newAcc) * 0.5f * period;
+
+      for (VerletObject &obj : objects)
+      {
+        obj.pos = obj.newPos;
+        obj.vel = obj.newVel;
+        obj.acc = obj.newAcc;
+        obj.newPos = {};
+        obj.newVel = {};
+        obj.newAcc = {};
+      }
 
       remaining -= period;
+
+      potential = 0.0f;
+      kinetic = 0.0f;
+      for (size_t i = 0; i < objects.size(); ++i)
+      {
+        VerletObject &o1 = objects[i];
+        for (size_t j = i + 1; j < objects.size(); ++j)
+        {
+          VerletObject &o2 = objects[j];
+          potential += -o1.mass * o2.mass / glm::length(o1.pos - o2.pos);
+        }
+        kinetic += 0.5f * o1.mass * glm::dot(o1.vel, o1.vel);
+      }
     }
   }
 };
@@ -84,8 +122,8 @@ public:
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> backgroundMesh;
 
-  std::function<glm::vec2(const VerletObject &, const VerletObject &)> gravity = [](const VerletObject &obj1, const VerletObject &obj2)
-  { glm::vec2 r = obj1.pos - obj2.pos; return obj1.mass * obj2.mass * glm::normalize(r) / glm::dot(r, r); };
+  InterForce gravity = [](const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)
+  { glm::vec2 r = p1 - p2; return 0.01f * m1 * m2 * glm::normalize(r) / glm::dot(r, r); };
 
   std::mt19937 rndGen;
   std::uniform_real_distribution<float> rndDist;
@@ -176,18 +214,23 @@ void main()
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
     quadShader = std::make_unique<ws::Shader>(mainShaderVertex, diskShaderFragment);
 
-    objects.emplace_back(VerletObject{{0, 0}, {0, 0}});
-    objects[0].mass = 10.0f;
+    // objects.emplace_back(VerletObject{{0, 0}, {0, 0}});
+    // objects[0].mass = 10.0f;
     for (int n = 0; n < 40; n++)
     {
       float x = 2.0f * rndDist(rndGen) - 1.0f;
       float y = 2.0f * rndDist(rndGen) - 1.0f;
-      glm::vec2 v = {x, y};
-      v = (v * 0.40f) + (glm::normalize(v) * 0.15f);
-      const glm::vec2 v0 = {v.x - 0.005f * v.y, v.y + 0.005f * v.x};
-      objects.emplace_back(VerletObject{v, v0, {}, 0.015f, 0.02f});
-      // const float nx = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
-      // const float ny = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
+      glm::vec2 p = {x, y};
+      p = (p * 0.60f) + (glm::normalize(p) * 0.05f);
+
+      // const float nx = (2.0f * rndDist(rndGen) - 1.0f) * 0.0000000001f;
+      // const float ny = (2.0f * rndDist(rndGen) - 1.0f) * 0.0000000001f;
+      // glm::vec2 v = {nx, ny};
+
+      // glm::vec2 v = {0, 0};
+
+      glm::vec2 v = glm::vec2{-y, x} * 0.5f;
+      objects.emplace_back(VerletObject{p, v, 0.5f, 0.02f});
       // objects.emplace_back(VerletObject{{x, y}, {x + nx, y + ny}, {}, 0.01f, 0.02f});
     }
 
@@ -229,18 +272,17 @@ void main()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     solver->update(deltaTime);
-    objects[0].pos = objects[0].position_old = {0, 0};
+    // objects[0].pos = {0, 0};
     // when the number of objects is constant
     for (size_t ix = 0; const auto &obj : objects)
       mesh->verts[ix++].position = {obj.pos.x, obj.pos.y, 0};
 
-    // mesh->verts[0].position.y = std::sin(time) * 0.5f;
-    // mesh->verts[0].position.x = std::cos(time) * 0.5f;
     mesh->uploadData();
 
     ImGui::Begin("Verlet Simulation");
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
     ImGui::InputFloat("Solver period", &solver->period, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::Text("Potential: %g, Kinetic: %g, Total: %g", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
