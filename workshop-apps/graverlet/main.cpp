@@ -5,6 +5,8 @@
 #include <glad/gl.h>
 #include <glm/vec2.hpp>
 #include <glm/geometric.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
 #include <functional>
@@ -66,6 +68,7 @@ public:
       for (VerletObject &obj : objects)
       {
         obj.vel = obj.vel + 0.5f * obj.acc * period;
+        // after using acc reset it for the next computation/accumulation
         obj.acc = {};
       }
 
@@ -154,8 +157,9 @@ out VertexData
 void main()
 {
   //gl_Position = ProjectionFromView * ViewFromWorld * WorldFromObject * vec4(vPos, 1.0);
+  gl_Position = ProjectionFromView * vec4(vPos, 1.0);
+  // gl_Position = vec4(vPos, 1.0);
   float radius = vCustom.x;
-  gl_Position = vec4(vPos, 1.0);
   gl_PointSize = radius * RenderTargetSize.y;
 
   vertexData.position = vPos;
@@ -280,9 +284,12 @@ void main()
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
     ImGui::InputFloat("Solver period", &solver->period, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::Text("Potential: %g, Kinetic: %g, Total: %g", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
+    static float areaSize = 1.0f;
+    ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
+    const glm::mat4 projOrtho = glm::ortho(-areaSize, areaSize, -areaSize, areaSize, -1.f, 1.f);
 
     glUseProgram(quadShader->getId());
     quadShader->setVector2fv("RenderTargetSize", rts);
@@ -292,6 +299,7 @@ void main()
 
     glUseProgram(pointShader->getId());
     pointShader->setVector2fv("RenderTargetSize", rts);
+    pointShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(projOrtho));
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
