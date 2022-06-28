@@ -172,11 +172,10 @@ void main()
     {
       float x = 2.0f * rndDist(rndGen) - 1.0f;
       float y = 2.0f * rndDist(rndGen) - 1.0f;
-      x *= 0.5f;
-      y *= 0.5f;
-      x + 0.25;
-      y + 0.25;
-      objects.emplace_back(VerletObject{{x, y}, {x - 0.01f * y, y + 0.01f * x}, {}, 0.1f, 0.02f});
+      glm::vec2 v = {x, y};
+      v = (v * 0.40f) + (glm::normalize(v) * 0.15f);
+      const glm::vec2 v0 = {v.x - 0.015f * v.y, v.y + 0.015f * v.x};
+      objects.emplace_back(VerletObject{v, v0, {}, 0.015f, 0.02f});
       // const float nx = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
       // const float ny = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
       // objects.emplace_back(VerletObject{{x, y}, {x + nx, y + ny}, {}, 0.01f, 0.02f});
@@ -229,6 +228,7 @@ void main()
     mesh->uploadData();
 
     ImGui::Begin("Verlet Simulation");
+    ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
