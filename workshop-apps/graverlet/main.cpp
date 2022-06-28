@@ -39,27 +39,37 @@ class Solver
 public:
   std::vector<VerletObject> &objects;
   std::function<glm::vec2(const VerletObject &, const VerletObject &)> interObjectForce;
+  float period = 0.0005f; // .5 msec
+private:
+  float remaining{};
 
+public:
   Solver(std::vector<VerletObject> &objects, std::function<glm::vec2(const VerletObject &, const VerletObject &)> interObjectForce)
       : objects(objects), interObjectForce(interObjectForce) {}
 
   void update(float dt)
   {
-    // calculate forces
-    for (size_t i = 0; i < objects.size(); ++i)
+    remaining += dt;
+    while (remaining > period)
     {
-      for (size_t j = i + 1; j < objects.size(); ++j)
+      // calculate forces
+      for (size_t i = 0; i < objects.size(); ++i)
       {
-        VerletObject &o1 = objects[i];
-        VerletObject &o2 = objects[j];
-        const glm::vec2 f = interObjectForce(o1, o2);
-        o1.totalForce -= f;
-        o2.totalForce += f;
+        for (size_t j = i + 1; j < objects.size(); ++j)
+        {
+          VerletObject &o1 = objects[i];
+          VerletObject &o2 = objects[j];
+          const glm::vec2 f = interObjectForce(o1, o2);
+          o1.totalForce -= f;
+          o2.totalForce += f;
+        }
       }
-    }
 
-    for (VerletObject &obj : objects)
-      obj.updatePosition(dt);
+      for (VerletObject &obj : objects)
+        obj.updatePosition(period);
+
+      remaining -= period;
+    }
   }
 };
 
@@ -174,7 +184,7 @@ void main()
       float y = 2.0f * rndDist(rndGen) - 1.0f;
       glm::vec2 v = {x, y};
       v = (v * 0.40f) + (glm::normalize(v) * 0.15f);
-      const glm::vec2 v0 = {v.x - 0.015f * v.y, v.y + 0.015f * v.x};
+      const glm::vec2 v0 = {v.x - 0.005f * v.y, v.y + 0.005f * v.x};
       objects.emplace_back(VerletObject{v, v0, {}, 0.015f, 0.02f});
       // const float nx = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
       // const float ny = (2.0f * rndDist(rndGen) - 1.0f) * 0.01f;
@@ -214,10 +224,11 @@ void main()
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
   {
+    deltaTime *= 0.1f;
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    solver->update(deltaTime * 0.1f);
+    solver->update(deltaTime);
     objects[0].pos = objects[0].position_old = {0, 0};
     // when the number of objects is constant
     for (size_t ix = 0; const auto &obj : objects)
@@ -229,6 +240,7 @@ void main()
 
     ImGui::Begin("Verlet Simulation");
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
+    ImGui::InputFloat("Solver period", &solver->period, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
