@@ -122,7 +122,7 @@ public:
   {
     const float tolarence = 0.00001f;
     glm::vec2 r = p1 - p2;
-    return 0.01f * m1 * m2 * glm::normalize(r) / std::max(glm::dot(r, r), tolarence);
+    return 0.05f * m1 * m2 * glm::normalize(r) / std::max(glm::dot(r, r), tolarence);
   };
 
   std::mt19937 rndGen;
@@ -217,29 +217,19 @@ void main()
 
     // objects.emplace_back(VerletObject{{0, 0}, {0, 0}});
     // objects[0].mass = 10.0f;
-    for (int n = 0; n < 40; n++)
+    for (int n = 0; n < 150; n++)
     {
-      float x = 2.0f * rndDist(rndGen) - 1.0f;
-      float y = 2.0f * rndDist(rndGen) - 1.0f;
+      const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
+      const float r = 20.0f * rndDist(rndGen);
+
+      const float x = r * std::cos(theta);
+      const float y = r * std::sin(theta);
       glm::vec2 p = {x, y};
       p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
 
-      // const float nx = (2.0f * rndDist(rndGen) - 1.0f) * 0.0000000001f;
-      // const float ny = (2.0f * rndDist(rndGen) - 1.0f) * 0.0000000001f;
-      // glm::vec2 v = {nx, ny};
-
-      // glm::vec2 v = {0, 0};
-
-      glm::vec2 v = glm::vec2{-y, x} * 0.5f;
+      glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * 0.25f;
       objects.emplace_back(VerletObject{p, v, 1.5f, 0.01f});
-      // objects.emplace_back(VerletObject{{x, y}, {x + nx, y + ny}, {}, 0.01f, 0.02f});
     }
-
-    // // objects with which to start
-    // objects.emplace_back(VerletObject{{0.5, 0.0}, {0.5, 0.005}});
-    // // objects[0].radius = 0.2f;
-    // objects.emplace_back(VerletObject{{-0.5, -0.1}, {-0.5, -0.105}});
-    // // objects[1].radius = 0.1f;
     solver = std::make_unique<Solver>(objects, gravity);
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
@@ -284,7 +274,7 @@ void main()
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
     ImGui::InputFloat("Solver period", &solver->period, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
-    static float areaSize = 1.0f;
+    static float areaSize = 10.0f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
     ImGui::End();
 
