@@ -14,8 +14,11 @@ public:
   Wrapper(std::string name);
   ~Wrapper();
 
-  Wrapper(const Wrapper &other);
-  Wrapper &operator=(const Wrapper &other);
+  // Wrapper(const Wrapper &other);
+  // Wrapper &operator=(const Wrapper &other);
+
+  Wrapper(const Wrapper &other) = delete;
+  Wrapper &operator=(const Wrapper &other) = delete;
 
   Wrapper(Wrapper &&other);
   Wrapper &operator=(Wrapper &&other);
