@@ -12,23 +12,29 @@ Wrapper makeWrapper_1()
 {
   Wrapper w;
   w.handle = 1;
-  w.name = "made with makeW_1";
+  w.name = "made with makeWrapper_1()";
   return w;
 }
 
 Wrapper makeWrapper_2()
 {
-  return Wrapper{std::string("made with makeC_2")};
+  return Wrapper{std::string("made with makeWrapper_2()")};
 }
 
 int main()
 {
-  Wrapper c1;
-  Wrapper c2{"abidin"};
-  Wrapper c3{c1};
-  Wrapper c4{Wrapper{"osman"}};
-  Wrapper c5{std::move(Wrapper{"haydar"})};
-  c1 = c5;
-  Wrapper c6;
-  c6 = Wrapper{"riza"};
+  // Wrapper w1;
+  // Wrapper w2{"abidin"};
+  // Wrapper w3{c1};
+  // Wrapper w4{Wrapper{"osman"}};
+  // Wrapper w5{std::move(Wrapper{"haydar"})};
+  // w1 = w5;
+  // Wrapper w6;
+  // w6 = Wrapper{"riza"};
+
+  // Wrapper w7 = makeWrapper_1();
+  // w7.use();
+
+  Wrapper w8 = makeWrapper_2();
+  w8.use();
 }

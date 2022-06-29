@@ -20,6 +20,5 @@ public:
   Wrapper(Wrapper &&other);
   Wrapper &operator=(Wrapper &&other);
 
-private:
-  static int counter;
+  void use() const;
 };
