@@ -28,8 +28,8 @@ void ResourceHandler::deleteResource(int handle)
   auto search = availableResources.find(handle);
   if (search == availableResources.end())
   {
-    std::cerr << "[Exception] Attempting to delete non-existing Resource[" << std::to_string(handle) << "]\n";
-    std::terminate();
+    std::cerr << "[Exception] Attempting to delete non-existing Resource[" << std::to_string(handle) << "] (might terminate IRL)\n";
+    return;
   }
   availableResources.erase(search);
   std::cout << "Deleted Resource[" << handle << "] via ResourceHandler\n";

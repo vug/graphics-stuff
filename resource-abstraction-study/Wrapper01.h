@@ -5,7 +5,7 @@
 class Wrapper
 {
 public:
-  int handle = -1; // -1 means uninitialized, -2 means deleted, -3 means moved
+  int handle = -1; // -1 means, uninitialized
   std::string state;
 
   Wrapper(const std::string &state);
