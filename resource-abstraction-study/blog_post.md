@@ -733,7 +733,140 @@ Deleted Resource[1] via ResourceHandler
 
 If we go over this output, and compare it with our notes above we'll see that they match.
 
-Discuss named and unnamed return value optimization in factory methods. Factory method that returns `shared_ptr` instead.
+Now, we have a functioning resource wrapping abstraction that can be allocated on stack, resources will be acquired at initialization/construction and will be automatically deleted when the object goes out of its scope. Wrapper cannot be copied because we deleted copy operations, but can only be moved. This API is for allocating objects on stack.
+
+Also all these constraints on being "non-copiable but movable" sounds very similar to `std::unique_ptr`. Basically, we've implemented the functionality provided by unique pointers with scope allocations.
+
+We can improve our stack-based implementation by allowing copies, where all copies share the same handle value, and keep track of number of copies, and only delete the resource when the number of copies becomes 0. That'll be very similar to `std::shared_ptr` and we'd be rediscovering reference counting feature of shared pointers.
+
+Instead of reinventing the wheel, we can just use shared pointers for our wrappers. This last idea is to constrain the creation of wrapper objects only to heap, i.e. only dynamic object allocation. Once the object is created we can as many shared pointer as we want. And when the last shared pointer goes out of scope the deallocation happens. We don't have to deal with implementation of copy/move operations, on the contrary we should delete them.
+
+Let's see the final Wrapper design for dynamic-only allocations
+
+```cpp
+// Wrapper04.h
+class Wrapper
+{
+private:
+  int handle = -1; // [1]
+  Wrapper(const std::string &state); // [2]
+
+public:
+  std::string state;
+  ~Wrapper();
+
+  static std::shared_ptr<Wrapper> makeWrapper(const std::string &state); // [3]
+
+  Wrapper(const Wrapper &other) = delete; // [4]
+  Wrapper &operator=(const Wrapper &other) = delete;
+  Wrapper(Wrapper &&other) = delete;
+  Wrapper &operator=(Wrapper &&other) = delete;
+
+  void use() const;
+};
+```
+
+1. Should have made the handle private for previous cases too
+2. Making the constructor privte. This prevents any stack allocation. :-O
+3. Let give this class a static factory function. It'll return a shared pointer.
+4. Delete all copy/move operations, to prevent dereferencing the pointer and start making copies on stack.
+
+Potential implementation
+
+```cpp
+// Wrapper04.cpp
+Wrapper::Wrapper(const std::string &state)
+    : handle(ResourceHandler::createResource()), state(state) {}
+
+Wrapper::~Wrapper()
+{
+  ResourceHandler::deleteResource(handle);
+}
+
+std::shared_ptr<Wrapper> Wrapper::makeWrapper(const std::string &state)
+{
+  // can't use make_shared because it reference counting mechanism cannot access to private member Wrapper constructor
+  // return std::make_shared<Wrapper>(state); // [2]
+  return std::shared_ptr<Wrapper>(new Wrapper(state)); // [1]
+}
+
+void Wrapper::use() const
+{
+  ResourceHandler::useResource(handle);
+}
+```
+
+Only novelty here is the factory function. Note that the constructor is not accessible from outside of the class.
+
+1. First we create a raw pointer using the private constructor, then give that to shared pointer constructor to turn it into a shared pointer.
+2. Unfortunately, by making the constructor private, we lost our ability to use `make_shared` for creation of the shared pointer. `make_shared` is more performant because it does fewer allocations, and forwards construction parameters. Whereas what we are doing here is more than one allocations. :-(
+      * AFAIU the reason is that the reference counting mechanism that make_shared uses is separate system that requires access to constructor of to-be-dynamically-created-class.
+      * I saw hacks that re-enables `make_shared` by making the references counting entity a `friend` of `Wrapper`. But reference counting is implementation/compiler dependent and one hack that works on Visual Studio 2022 (that I'm using for this study) won't work for another version of VS or for another compiles (gcc, clang etc)
+      * Therefore this solution is not ideal, but it's much less complicated than the alternatives I've found on the internet that enables `make_shared`. I'm not expecting calls to resource wrapper factory functions to be frequent enough to make this a significant performance issue.
+
+Here is a test program for dynamic wrapper design:
+
+```cpp
+// TestWrapper04.cpp
+int main()
+{
+  PRINT_EXPR(auto w1 = Wrapper::makeWrapper("MyMesh")); // [1]
+  PRINT_EXPR(w1->use());
+  std::cout << w1->state << " reference count: " << w1.use_count() << "\n"; // [2]
+  {
+    std::cout << "--Begin inner scope--\n";
+    PRINT_EXPR(std::shared_ptr<Wrapper> w2 = w1); // [2]
+    PRINT_EXPR(w2->use());
+    std::cout << w2->state << " reference count: " << w2.use_count() << "\n"; // [2]
+    std::cout << "--End inner scope--\n";
+  }
+  PRINT_EXPR(w1->use()); // [3]
+  std::cout << w1->state << " reference count: " << w1.use_count() << "\n"; // [2]
+
+  // Wrapper w4{"cant-create-this"}; // inaccessible function / constructor -> can't compile // [4]
+  // PRINT_EXPR(Wrapper w4 = *w3); // deleted function / copy constructor -> can't compile // [5]
+  // PRINT_EXPR(Wrapper w5 = std::move(*w3)); // deleted function / move constructor -> can't compile // [5]
+  PRINT_EXPR(const Wrapper &w6 = *w3); // [6]
+
+  std::cout << "--End main scope--\n";
+}
+```
+
+1. We could have chosen to make the destructor `~Wrapper()` to be private instead of the constructor. That'll let us use `auto w1 = std::make_shared<Wrapper>("MyMesh")`. But this probably will provide a neater API.
+2. When we copy the pointer in inner scope, we are not allocating a new resource, we are just adding another pointer that references to the same resource wrapper, which can be seen by the increase in reference count (`use_count()`), which decreases when the copied shared pointer dies at the end of inner scope.
+3. We can still use the wrapper becase shared pointer `w1` is still alive.
+4. Constructor is private, can't access
+5. copy/move ops are deleted, can't call
+6. getting a references to dereferenced wrapper object is OK because it's neither a copy nor a move.
+
+Here is the output:
+
+```txt
+[expr] auto w1 = Wrapper::makeWrapper("MyMesh")
+Acquired Resource[1] from ResourceHandler
+[expr] w1->use()
+Used Resource[1]
+MyMesh reference count: 1
+--Begin inner scope--
+[expr] std::shared_ptr<Wrapper> w2 = w1
+[expr] w2->use()
+Used Resource[1]
+MyMesh reference count: 2
+--End inner scope--
+[expr] w1->use()
+Used Resource[1]
+MyMesh reference count: 1
+[expr] auto w3 = Wrapper::makeWrapper("made-via-factory-function")
+Acquired Resource[2] from ResourceHandler
+[expr] w3->use()
+Used Resource[2]
+[expr] const Wrapper &w6 = *w3
+--End main scope--
+Deleted Resource[2] via ResourceHandler
+Deleted Resource[1] via ResourceHandler
+```
+
+Observe that there are no exceptions and the implementation of the Wrapper was much simpler.
 
 4b) also, this is a simple theoretical study. In real-life, usually it's not the best to allocate one resource per object, we usually bundle multiple objects into single resource. For example, allocate a big vertex buffer and fill it with mesh data of multiple meshes, or, have texture atlases that contain multiple textures etc.
 
@@ -741,9 +874,6 @@ Also, discuss factor functions/methods. We don't want to inherit from `Mesh` to 
 
 ---
 
-* next: `Mesh& mesh` as input to manipulate it
-* next: creating/allocating objects on stack vs. on heap (aka dynamic objects)
-* next: without copy-constructor our class looks like a `unique_ptr`. We could have tracked the number living copies of the object, which'd make it look like a `shared_ptr`. Instead of reinventing the wheel, just use them.
 * next: this Mesh abstraction by itself is not enough. It can be good for simple applications where each mesh is hard-coded etc., for a generative art project. We let the main scope to own the mesh. However, in a more realistic project, we want to have another abstraction to manage all of our assets including Mesh, such as Textures, Materials etc. We should be able to load and unload a mesh, put it into a scene or remove from a scene, have means of accessing it later etc. (say for mouse picking).
   * can have a `std::unordered_map<std::string, Mesh> where string is the "name"/"id" of the Mesh in our asset manager. Or even a simple mechanism could be to have a vector of assets.
 
