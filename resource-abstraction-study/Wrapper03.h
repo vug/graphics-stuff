@@ -8,14 +8,11 @@ class Wrapper
 {
 public:
   int handle = -1; // -1 means uninitialized, -2 means deleted, -3 means moved
-  std::string name;
+  std::string state;
 
   Wrapper();
-  Wrapper(std::string name);
+  Wrapper(std::string state);
   ~Wrapper();
-
-  // Wrapper(const Wrapper &other);
-  // Wrapper &operator=(const Wrapper &other);
 
   Wrapper(const Wrapper &other) = delete;
   Wrapper &operator=(const Wrapper &other) = delete;

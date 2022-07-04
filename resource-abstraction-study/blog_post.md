@@ -434,23 +434,313 @@ Deleted Resource[2] via ResourceHandler
 [Exception] Attempting to delete non-existing Resource[1] (might terminate IRL)
 ```
 
-What can we do about this?
+The moral of the story is, when a resources is taken care of / abstracted away in a RAII manner, we have to consider copy and move operations too. What should we do about copies and moves?
 
-2) Options: A) implement copy constructor with creating a new handle B) Delete copy constructor, implement move constructor.
+About copies two potential options we've are as following:
 
-3) say this is similar to `unique_ptr`.
+* A) When copying, create a new handle using ResourceHandler and update the state.
+* B) Delete copy constructor, i.e. don't allow copies.
 
-4) say, better to use `shared_ptr`, so we don't have to write the move constructor ourselves. downside is to allocate on heap, which is not that bad.
+```cpp
+// Option A (cpp)
+Wrapper::Wrapper(const Wrapper &other)
+    : handle(ResourceHandler::createResource()), state(other.state) { ... } // [1]
+
+Wrapper &Wrapper::operator=(const Wrapper &other)
+{
+  handle = ResourceHandler::createResource(); // [1]
+  state = other.state;
+  ...
+}
+
+// Option B (header)
+Wrapper(const Wrapper &other) = delete; // [2]
+Wrapper &operator=(const Wrapper &other) = delete; // [2]
+```
+
+1. after copies dst and src will have the same state / same "rendering object", with different, unique resource handles.
+    * they can be manipulated (processed or deleted) separately.
+2. `Wrapper w2 = w1;` is not a valid code anymore. Compiler will throw an error at compilation time.
+
+Which is the right choice depends on the project. If it's a creative coding project, where we need copies of the same mesh (say it's a genetic algorithm where we create N copies of a mesh and process each differently and chose best fits and repeat) then a copy makes sense. However, for a rendering library, this make it too easy to misuse and accidentally create thousands of allocations of the same resource type and that many copies.
+
+For moves, we should "empty-out" the moved-out object. This can be done by setting the handle of `src` to `-1` again. `dst` will own the handle and `src` will own nothing.
+
+```cpp
+Wrapper::Wrapper(Wrapper &&other)
+    : handle(std::move(other.handle)), state(std::move(other.state) + "(moved)") // [1]
+{
+  other.handle = -3; // [2]
+}
+
+Wrapper &Wrapper::operator=(Wrapper &&other) // [3]
+{
+  handle = std::move(other.handle);
+  state = std::move(other.state) + "(moved)";
+  other.handle = -3;
+  return *this;
+}
+```
+
+1. We are `std::move`ing other members into newly constructed class. With one tweak to append `"(moved)"` to the state to keep historical record of the move.
+2. since handle is an integer, a primitive/fundamental data type, the variable is not "moved-out" by the move operation. Again for book-keeping purposes setting it to `-3` manually. (Without bookkeeping just set it to `-1`.)
+3. Move assignment does the same, but instead of creating a new object, sets the members of an existing object via moves.
+
+Let's see this form of the wrapper
+
+```cpp
+// Wrapper03.h
+class Wrapper
+{
+public:
+  int handle = -1; // [1] -1 means uninitialized, -2 means deleted, -3 means moved
+  std::string state;
+
+  Wrapper();
+  Wrapper(std::string state);
+  ~Wrapper();
+
+  Wrapper(const Wrapper &other) = delete; // [2]
+  Wrapper &operator=(const Wrapper &other) = delete;
+
+  Wrapper(Wrapper &&other);
+  Wrapper &operator=(Wrapper &&other);
+
+  void use() const;
+};
+```
+
+1. For keeping historical records, we'll set uninitialized/not-yet-allocated handle to -1, after deleting in a destructor we'll set the handle to `-2` (which won't be observable later, since the object will be dead), and after a `move`, moved-out handle value will be `-1`. We could have used `-1` for all of these cases.
+2. Observe that we explicitly delete copy ops.
+
+```cpp
+Wrapper::Wrapper() // [1]
+    : handle(ResourceHandler::createResource()), state("<0-state>")
+{
+  printf("Constructing... (handle, state) (%d, %s)\n", handle, state.c_str());
+}
+
+Wrapper::Wrapper(std::string state)
+    : handle(ResourceHandler::createResource()), state(state)
+{
+  printf("Constructing... (handle, state) (%d, %s)\n", handle, state.c_str());
+}
+
+Wrapper::~Wrapper()
+{
+  printf("Destructing... (handle, state) (%d, %s) -> (-2, %s(destructed))\n", // [2]
+    handle, state.c_str(), state.c_str());
+  if (handle > 0) // [3]
+  {
+    ResourceHandler::deleteResource(handle);
+    handle = -2; // [4]
+  }
+  state += "(destructed)"; // [4]
+}
+
+Wrapper::Wrapper(Wrapper &&other)
+    : handle(std::move(other.handle)), state(std::move(other.state) + "(moved)") // [5]
+{
+  other.handle = -3; // [5]
+  printf("Move constructing... (handle, state) dst: (%d, %s), src: (%d, %s)\n", 
+    handle, state.c_str(), other.handle, other.state.c_str());
+}
+
+Wrapper &Wrapper::operator=(Wrapper &&other)
+{
+  handle = std::move(other.handle);
+  state = std::move(other.state) + "(moved)";
+  other.handle = -3; // [5]
+  printf("Move constructing... (handle, state) dst: (%d, %s), src: (%d, %s)\n", 
+    handle, state.c_str(), other.handle, other.state.c_str());
+  return *this;
+}
+
+void Wrapper::use() const
+{
+  printf("Wrapper [%s] using Resource[%d]\n", state.c_str(), handle);
+  ResourceHandler::useResource(handle);
+}
+```
+
+1. default constructor without any arguments. Could be useful for creating empty objects that'll be manipulated later via factory methods of format `makeSomething(Wrapper& w)`.
+2. Debug prints indicate the change from src to dst, where dst being the deleted object
+3. One trick we need to pay attention is that, after move operations moved-out object does not own any resources.
+    * We set the handle to `-3` (or `-1`) indicating that this handle does not refer to any GPU resources anymore. Therefor, we should not call the `ResourceHandler::deleteResource()` over this handle.
+    * If we don't do this, object might be used, or even if we don't use it, when it's being destructed it'll attempt to delete the resource, which will already be deleted.
+4. `-2` is to just indicate the deleted-ness of this object, similarly appending `"(destructed)"` to its state.
+5. Move constructor appends to new state `"(moved)"` and sets old handle to `-3` for book-keeping. The latter is essential, and prevents the resource from being deleted while moved-out object is destructed.
+
+Let's run a comprehensive test to see our RAII class in its full glory:
+
+```cpp
+Wrapper makeWrapper_1() // [6]
+{
+  Wrapper w;
+  w.state = "made with makeWrapper_1()";
+  return w;
+}
+
+Wrapper makeWrapper_2()
+{
+  return Wrapper{std::string("made with makeWrapper_2()")};
+}
+
+void separator() { std::cout << "***************************\n"; }
+
+int main()
+{
+  PRINT_EXPR(Wrapper w1);
+  PRINT_EXPR(Wrapper w2{"MyMesh"});
+  separator();
+
+  // w1 = w2; // copy assignment not allowed // [1]
+
+  // PRINT_EXPR(Wrapper w3{w2}); // copy-construction not allowed // [1]
+
+  PRINT_EXPR(Wrapper w3{std::move(w2)}); // [2]
+  EXCEPTION(w2.use());
+  PRINT_EXPR(w3.use());
+  separator();
+
+  PRINT_EXPR(Wrapper w4{Wrapper{"YourMesh"}}); // [3]
+  PRINT_EXPR(w4.use());
+  separator();
+
+  PRINT_EXPR(Wrapper w5{std::move(Wrapper{"HerMesh"})}); // [4]
+  PRINT_EXPR(w5.use());
+  separator();
+
+  PRINT_EXPR(Wrapper w6); // [5]
+  PRINT_EXPR(w6.use());
+  PRINT_EXPR(w6 = Wrapper{"HisMesh"}); // [5]
+  PRINT_EXPR(w6.use());
+  separator();
+
+  PRINT_EXPR(Wrapper w7 = makeWrapper_1()); // [6]
+  PRINT_EXPR(w7.use());
+  separator();
+
+  PRINT_EXPR(Wrapper w8 = makeWrapper_2()); // [7]
+  PRINT_EXPR(w8.use());
+  separator();
+
+  std::cout << "--End of scope--\n";
+}
+```
+
+1. Since copy construction/assignment ops are deleted, uncommenting these lines prevents the code form compilation
+2. We trigger a move of the wrapper object explicitly. `w2` is moved-out hence unusable, whereas `w3` now owns its resource and can be used.
+3. This is neither copy-construction, nor move-construction. Compiler does a neat trick and the object `w4` is allocated directly in the main scope using `Wrapper(std::string state)` constructor. :-O
+4. is basically the same as [2] however, this time, we move a temporary (rvalue?), instead of a variable (lvalue?)
+5. This case demonstrates a move assignment. How the temporary object is "moved-out" and `w6` has the "moved-in" object.
+6. Demonstrates a factory function. It starts with an empty wrapper and updates/constructs its state.
+    * When returning no copying will happen, just a move. So, it should still be efficient if state is not too cumbersome.
+7. This demonstrates a special kind of factory function which does the magic called "Return Value Optimization" (RVO).
+    * According to the code a Wrapper is constructed in the scope/stack of `makeWrapper_2()` function. However, in execution, that object is allocated in the main functions scope :-O
+    * There is a more advanced optimization called "named return value optimization", where the object can even be assigned to a variable first. However, [6] cannot do that, because we are changing the variable's state arbitrarily before returning it.
+
+Output
+
+```txt
+[expr] Wrapper w1
+Acquired Resource[1] from ResourceHandler
+Constructing... (handle, state) (1, <0-state>)
+[expr] w1.use()
+Wrapper [<0-state>] using Resource[1]
+Used Resource[1]
+***************************
+[expr] Wrapper w2{"MyMesh"}
+Acquired Resource[2] from ResourceHandler
+Constructing... (handle, state) (2, MyMesh)
+[expr] w2.use()
+Wrapper [MyMesh] using Resource[2]
+Used Resource[2]
+***************************
+[expr] Wrapper w3{std::move(w2)}
+Move constructing... (handle, state) dst: (2, MyMesh(moved)), src: (-3, )
+[expr] w2.use()
+Wrapper [] using Resource[-3]
+[Exception] Attempting to use non-existing Resource[-3]
+[expr] w3.use()
+Wrapper [MyMesh(moved)] using Resource[2]
+Used Resource[2]
+***************************
+[expr] Wrapper w4{Wrapper{"YourMesh"}}
+Acquired Resource[3] from ResourceHandler
+Constructing... (handle, state) (3, YourMesh)
+[expr] w4.use()
+Wrapper [YourMesh] using Resource[3]
+Used Resource[3]
+***************************
+[expr] Wrapper w5{std::move(Wrapper{"HerMesh"})}
+Acquired Resource[4] from ResourceHandler
+Constructing... (handle, state) (4, HerMesh)
+Move constructing... (handle, state) dst: (4, HerMesh(moved)), src: (-3, )
+Destructing... (handle, state) (-3, ) -> (-2, (destructed))
+[expr] w5.use()
+Wrapper [HerMesh(moved)] using Resource[4]
+Used Resource[4]
+***************************
+[expr] Wrapper w6
+Acquired Resource[5] from ResourceHandler
+Constructing... (handle, state) (5, <0-state>)
+[expr] w6.use()
+Wrapper [<0-state>] using Resource[5]
+Used Resource[5]
+[expr] w6 = Wrapper{"HisMesh"}
+Acquired Resource[6] from ResourceHandler
+Constructing... (handle, state) (6, HisMesh)
+Move constructing... (handle, state) dst: (6, HisMesh(moved)), src: (-3, )
+Destructing... (handle, state) (-3, ) -> (-2, (destructed))
+[expr] w6.use()
+Wrapper [HisMesh(moved)] using Resource[6]
+Used Resource[6]
+***************************
+[expr] Wrapper w7 = makeWrapper_1()
+Acquired Resource[7] from ResourceHandler
+Constructing... (handle, state) (7, <0-state>)
+Move constructing... (handle, state) dst: (7, made with makeWrapper_1()(moved)), src: (-3, )
+Destructing... (handle, state) (-3, ) -> (-2, (destructed))
+[expr] w7.use()
+Wrapper [made with makeWrapper_1()(moved)] using Resource[7]
+Used Resource[7]
+***************************
+[expr] Wrapper w8 = makeWrapper_2()
+Acquired Resource[8] from ResourceHandler
+Constructing... (handle, state) (8, made with makeWrapper_2())
+[expr] w8.use()
+Wrapper [made with makeWrapper_2()] using Resource[8]
+Used Resource[8]
+***************************
+End of scope
+Destructing... (handle, state) (8, made with makeWrapper_2()) -> (-2, made with makeWrapper_2()(destructed))
+Deleted Resource[8] via ResourceHandler
+Destructing... (handle, state) (7, made with makeWrapper_1()(moved)) -> (-2, made with makeWrapper_1()(moved)(destructed))
+Deleted Resource[7] via ResourceHandler
+Destructing... (handle, state) (6, HisMesh(moved)) -> (-2, HisMesh(moved)(destructed))
+Deleted Resource[6] via ResourceHandler
+Destructing... (handle, state) (4, HerMesh(moved)) -> (-2, HerMesh(moved)(destructed))
+Deleted Resource[4] via ResourceHandler
+Destructing... (handle, state) (3, YourMesh) -> (-2, YourMesh(destructed))
+Deleted Resource[3] via ResourceHandler
+Destructing... (handle, state) (2, MyMesh(moved)) -> (-2, MyMesh(moved)(destructed))
+Deleted Resource[2] via ResourceHandler
+Destructing... (handle, state) (-3, ) -> (-2, (destructed))
+Destructing... (handle, state) (1, <0-state>) -> (-2, <0-state>(destructed))
+Deleted Resource[1] via ResourceHandler
+```
+
+If we go over this output, and compare it with our notes above we'll see that they match.
+
+Discuss named and unnamed return value optimization in factory methods. Factory method that returns `shared_ptr` instead.
 
 4b) also, this is a simple theoretical study. In real-life, usually it's not the best to allocate one resource per object, we usually bundle multiple objects into single resource. For example, allocate a big vertex buffer and fill it with mesh data of multiple meshes, or, have texture atlases that contain multiple textures etc.
 
 Also, discuss factor functions/methods. We don't want to inherit from `Mesh` to be able to generate specific geometries such as `Quad`, `Cube`, `UVSphere`, `IcoSphere`...
 
-Discuss named and unnamed return value optimization in factory methods. Factory method that returns `shared_ptr` instead.
-
 ---
 
-* next: delete copy constructor
 * next: `Mesh& mesh` as input to manipulate it
 * next: creating/allocating objects on stack vs. on heap (aka dynamic objects)
 * next: without copy-constructor our class looks like a `unique_ptr`. We could have tracked the number living copies of the object, which'd make it look like a `shared_ptr`. Instead of reinventing the wheel, just use them.
