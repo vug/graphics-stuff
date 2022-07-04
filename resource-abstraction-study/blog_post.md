@@ -1,3 +1,16 @@
+## TL;DR
+
+Beginner level C++ RAII pattern for rendering systems.
+
+* Implementing constructor, destructor, copy and move operations to manage resource automatically for objects created on stack.
+* Why it's better to use `shared_ptr` for wrapper classes. A factory function for creating wrapper objects.
+* Hints on extending into a proper asset management system.
+* Tricks for mocking a resource API,
+* writing tests with extensive debug prints,
+* detecting when copy/move assignments/constructors are called.
+
+## Introduction
+
 Currently I'm at parental leave. I had started working as a graphics engineer professionally last year, and worked for a solid 9 months. :-) And more than half of that time I started writing C++ for work. So, I'm at the beginning of my graphics programming journey. Slowly grasping concepts and design patterns common to rendering and why and how C++ is used commonly in this domain.
 
 When writing software one usually borrows certain functionalities from external libraries, or from the operating system etc. And frequently occurring usages of functionalities, or, domain specific concepts that rely on those functionalities are wrapped into abstractions, i.e. to classes that correspond to a specific concept.
@@ -54,6 +67,8 @@ class Mesh
   void uploadData(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
 }
 ```
+
+## Mock Resource Manager
 
 To study this for a more general case, let's forget about the specific graphics API (OpenGL) and specific graphics object (Mesh) and specific resources (buffers and array) for the moment. Instead have a generic, mock resource.
 
@@ -210,6 +225,8 @@ Deleted Resource[1] via ResourceHandler
 [Exception] Attempting to delete non-existing Resource[1]
 ```
 
+## The problem with only implementing the constructor and destructor
+
 Our mock functions properly. Now let's write some wrappers over this resource.
 
 First wrapper is a simple, obvious one:
@@ -298,6 +315,8 @@ Deleted Resource[1] via ResourceHandler
 --End of main scope--
 [Exception] Attempting to delete non-existing Resource[1]
 ```
+
+## Methodology for studying Copy/Move Operations
 
 Now, I'm going to introduce a methodology that I've seen on many StackOverflow posts to make the copy and move constructor/assignments explicit. It's a great way to study these operations in C++. I wish there were some debugging mechanism embedded in compilers / IDEs that can be triggered when constructor/destructers are called.
 
@@ -433,6 +452,8 @@ Deleted Resource[2] via ResourceHandler
 [Exception] Attempting to delete non-existing Resource[2] (might terminate IRL)
 [Exception] Attempting to delete non-existing Resource[1] (might terminate IRL)
 ```
+
+## Stack-allocation for resource wrappers
 
 The moral of the story is, when a resources is taken care of / abstracted away in a RAII manner, we have to consider copy and move operations too. What should we do about copies and moves?
 
@@ -735,6 +756,8 @@ If we go over this output, and compare it with our notes above we'll see that th
 
 Now, we have a functioning resource wrapping abstraction that can be allocated on stack, resources will be acquired at initialization/construction and will be automatically deleted when the object goes out of its scope. Wrapper cannot be copied because we deleted copy operations, but can only be moved. This API is for allocating objects on stack.
 
+## Dynamic/Heap-only allocation for resource wrappers
+
 Also all these constraints on being "non-copiable but movable" sounds very similar to `std::unique_ptr`. Basically, we've implemented the functionality provided by unique pointers with scope allocations.
 
 We can improve our stack-based implementation by allowing copies, where all copies share the same handle value, and keep track of number of copies, and only delete the resource when the number of copies becomes 0. That'll be very similar to `std::shared_ptr` and we'd be rediscovering reference counting feature of shared pointers.
@@ -783,7 +806,7 @@ Wrapper::~Wrapper()
   ResourceHandler::deleteResource(handle);
 }
 
-std::shared_ptr<Wrapper> Wrapper::makeWrapper(const std::string &state)
+std::shared_ptr<Wrapper> Wrapper::makeWrapper(const std::string &state) // [3]
 {
   // can't use make_shared because it reference counting mechanism cannot access to private member Wrapper constructor
   // return std::make_shared<Wrapper>(state); // [2]
@@ -803,6 +826,8 @@ Only novelty here is the factory function. Note that the constructor is not acce
       * AFAIU the reason is that the reference counting mechanism that make_shared uses is separate system that requires access to constructor of to-be-dynamically-created-class.
       * I saw hacks that re-enables `make_shared` by making the references counting entity a `friend` of `Wrapper`. But reference counting is implementation/compiler dependent and one hack that works on Visual Studio 2022 (that I'm using for this study) won't work for another version of VS or for another compiles (gcc, clang etc)
       * Therefore this solution is not ideal, but it's much less complicated than the alternatives I've found on the internet that enables `make_shared`. I'm not expecting calls to resource wrapper factory functions to be frequent enough to make this a significant performance issue.
+3. This make wrapper factory function can have multiple versions. For example, for a `Mesh` class to generate specific geometries such as `Quad`, `Cube`, `UVSphere`, `IcoSphere` we can have `makeQuad()`, `makeCube()` functions each with different set of parameters, each returning a basic `std::shared_ptr<Mesh>` pointer.
+    * This way we don't have to inherit a new class type from `Mesh` class for each geometry type.
 
 Here is a test program for dynamic wrapper design:
 
@@ -868,22 +893,27 @@ Deleted Resource[1] via ResourceHandler
 
 Observe that there are no exceptions and the implementation of the Wrapper was much simpler.
 
-4b) also, this is a simple theoretical study. In real-life, usually it's not the best to allocate one resource per object, we usually bundle multiple objects into single resource. For example, allocate a big vertex buffer and fill it with mesh data of multiple meshes, or, have texture atlases that contain multiple textures etc.
+## Better API for asset creation
 
-Also, discuss factor functions/methods. We don't want to inherit from `Mesh` to be able to generate specific geometries such as `Quad`, `Cube`, `UVSphere`, `IcoSphere`...
+This study was for simple systems. In real-life, usually it's not the best to allocate one resource per object, we usually bundle multiple objects into a single resource. For example, we allocate a big vertex buffer and fill it with mesh data of multiple meshes, or, have texture atlases that contain multiple textures etc. For example, each wrapper for a mesh resource use the same vertex buffer, they just hold the offset from the beginning of that buffer, and the size from the offset.
 
----
+This simple API where the user creates each wrapper object manually can be good for simple applications where each asset is hard-coded etc., for a generative art project. We let the main scope to own the assets. However, in a more realistic project, we want to have another, higher-level abstraction to manage all of our assets including Mesh, such as Textures, Materials etc. We should be able to load and unload a mesh, put it into a scene or remove it from a scene (which themselves needs to be serialized/deserialized), have means of accessing it later etc. (say for mouse picking geometries).
 
-* next: this Mesh abstraction by itself is not enough. It can be good for simple applications where each mesh is hard-coded etc., for a generative art project. We let the main scope to own the mesh. However, in a more realistic project, we want to have another abstraction to manage all of our assets including Mesh, such as Textures, Materials etc. We should be able to load and unload a mesh, put it into a scene or remove from a scene, have means of accessing it later etc. (say for mouse picking).
-  * can have a `std::unordered_map<std::string, Mesh> where string is the "name"/"id" of the Mesh in our asset manager. Or even a simple mechanism could be to have a vector of assets.
+One simple option is to have an Assets class where each type of asset is refered from a container. Container can be `std::unordered_map<std::string, Mesh>` where string is the "name"/"id" of the Mesh in our asset manager. Or even a simple mechanism could be to have one vector for each asset type.
 
 ```cpp
-struct Assets 
+class Assets 
 { 
+public:
+  // methods to create/delete/load/unload assets into containers
+  // methods for searching them, getting them by index etc.
+private:
   std::vector<std::shared_ptr<Mesh>> meshes;
   std::vector<std::shared_ptr<Texture>> textures;
   // etc
 };
 ```
 
-Of course, better to have further methods to manage these assets (load, delete, access by id, search). But that's a topic for another day.
+Of course, better to have further methods to manage these assets (load, delete, access by id, search). But these are topic for another day.
+
+Code examples used in this post can be found at here: <https://github.com/vug/graphics-stuff/tree/main/resource-abstraction-study>
