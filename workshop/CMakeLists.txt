@@ -9,6 +9,7 @@ target_link_libraries(
   glfw
   glm
   imgui
+  implot
   OpenMeshCore
 )
 

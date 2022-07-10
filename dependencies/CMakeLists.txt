@@ -36,6 +36,22 @@ target_include_directories(
   imgui/misc/cpp
 )
 
+# https://github.com/epezent/implot
+add_library(
+  implot
+  implot/implot.cpp
+  implot/implot_items.cpp
+  implot/implot_demo.cpp
+)
+target_link_libraries(
+  implot PRIVATE
+  imgui
+)
+target_include_directories(
+  implot PUBLIC
+  implot/
+)
+
 # https://github.com/Lawrencemm/openmesh
 # INTERNAL hides the value. Could have been BOOL, then parameter appears in "cmake .. -L"
 set(BUILD_APPS false CACHE INTERNAL "" FORCE) # we don't need the QT apps that comes with OpenMesh
