@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/vec2.hpp>
+#include <glm/geometric.hpp>
 
 #include <functional>
 #include <vector>
@@ -15,18 +16,20 @@ struct VerletObject
 };
 
 using InterForce = std::function<glm::vec2(const VerletObject &obj1, const VerletObject &obj2)>;
+using InterPotential = std::function<float(const VerletObject &obj1, const VerletObject &obj2)>;
 
 class Solver
 {
 public:
   std::vector<VerletObject> &objects;
   InterForce interObjectForce;
+  InterPotential interObjectPotential;
   float potential{};
   float kinetic{};
 
 public:
-  Solver(std::vector<VerletObject> &objects, InterForce interObjectForce)
-      : objects(objects), interObjectForce(interObjectForce)
+  Solver(std::vector<VerletObject> &objects, InterForce interObjectForce, InterPotential interObjectPotential = nullptr)
+      : objects(objects), interObjectForce(interObjectForce), interObjectPotential(interObjectPotential)
   {
     // calculate initial acc
     for (size_t i = 0; i < objects.size(); ++i)
@@ -44,7 +47,8 @@ public:
 
   void update(float period, int numIter)
   {
-
+    potential = 0.0f;
+    kinetic = 0.0f;
     for (int n = 0; n < numIter; ++n)
     {
       // p[t + dt] = p[t] + v[t] dt + 1/2 a dt^2
@@ -66,13 +70,18 @@ public:
         {
           VerletObject &o1 = objects[i];
           VerletObject &o2 = objects[j];
-          o1.acc -= interObjectForce(o1, o2) / o1.mass; // acc
+          o1.acc -= interObjectForce(o1, o2) / o1.mass;
+          if (interObjectPotential)
+            potential += interObjectPotential(o1, o2);
         }
       }
 
       // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt
       for (VerletObject &obj : objects)
+      {
         obj.vel += 0.5f * obj.acc * period;
+        kinetic += 0.5f * obj.mass * glm::dot(obj.vel, obj.vel);
+      }
     }
   }
 };

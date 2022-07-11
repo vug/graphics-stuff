@@ -157,11 +157,18 @@ public:
   std::unique_ptr<ws::Shader> pointShader;
   std::unique_ptr<ws::Mesh> mesh;
 
-  InterForce gravity = [](const VerletObject &obj1, const VerletObject &obj2)
+  InterForce gravitationalForce = [](const VerletObject &obj1, const VerletObject &obj2)
   {
     glm::vec2 r = obj1.pos - obj2.pos;
     const float r2 = glm::dot(r, r);
     return G * obj1.mass * obj2.mass * r / glm::pow(r2 + softening, 1.5f);
+  };
+
+  InterPotential gravitationalPotential = [](const VerletObject &obj1, const VerletObject &obj2)
+  {
+    glm::vec2 r = obj1.pos - obj2.pos;
+    const float r2 = glm::dot(r, r);
+    return -G * obj1.mass * obj2.mass / glm::pow(r2 + softening, 0.5f);
   };
 
   std::mt19937 rndGen;
@@ -243,7 +250,7 @@ void main()
       glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * 1.0f;
       objects.emplace_back(VerletObject{p, v, 1.5f, 0.04f});
     }
-    solver = std::make_unique<Solver>(objects, gravity);
+    solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
     for (uint32_t ix = 0; const auto &obj : objects)
@@ -273,21 +280,6 @@ void main()
     static int numIter = 1;
     float period = deltaTime * speed;
     solver->update(period, numIter);
-    // TODO: move into interObjectPotential
-    solver->potential = 0.0f;
-    solver->kinetic = 0.0f;
-    for (size_t i = 0; i < objects.size(); ++i)
-    {
-      VerletObject &o1 = objects[i];
-      for (size_t j = i + 1; j < objects.size(); ++j)
-      {
-        VerletObject &o2 = objects[j];
-        glm::vec2 r = o1.pos - o2.pos;
-        const float r2 = glm::dot(r, r);
-        solver->potential -= G * o1.mass * o2.mass / glm::pow(r2 + softening, 0.5f);
-      }
-      solver->kinetic += 0.5f * o1.mass * glm::dot(o1.vel, o1.vel);
-    }
 
     for (size_t ix = 0; const auto &obj : objects)
       mesh->verts[ix++].position = {obj.pos.x, obj.pos.y, 0};
