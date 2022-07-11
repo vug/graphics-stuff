@@ -27,7 +27,7 @@ struct VerletObject
 
 const float G = 0.2f;
 const float softening = 1.0f;
-using InterForce = std::function<glm::vec2(const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)>;
+using InterForce = std::function<glm::vec2(const VerletObject &obj1, const VerletObject &obj2)>;
 
 class Solver
 {
@@ -48,7 +48,7 @@ public:
       {
         VerletObject &o1 = objects[i];
         VerletObject &o2 = objects[j];
-        const glm::vec2 f = interObjectForce(o1.pos, o1.mass, o2.pos, o2.mass);
+        const glm::vec2 f = interObjectForce(o1, o2);
         o1.acc -= f / o1.mass;
         o2.acc += f / o2.mass;
       }
@@ -79,7 +79,7 @@ public:
         {
           VerletObject &o1 = objects[i];
           VerletObject &o2 = objects[j];
-          o1.acc -= interObjectForce(o1.pos, o1.mass, o2.pos, o2.mass); // acc
+          o1.acc -= interObjectForce(o1, o2) / o1.mass; // acc
         }
       }
 
@@ -241,11 +241,11 @@ public:
   std::unique_ptr<ws::Shader> pointShader;
   std::unique_ptr<ws::Mesh> mesh;
 
-  InterForce gravity = [](const glm::vec2 &p1, [[maybe_unused]] float m1, const glm::vec2 &p2, float m2)
+  InterForce gravity = [](const VerletObject &obj1, const VerletObject &obj2)
   {
-    glm::vec2 r = p1 - p2;
+    glm::vec2 r = obj1.pos - obj2.pos;
     const float r2 = glm::dot(r, r);
-    return G * m2 * r / glm::pow(r2 + softening, 1.5f);
+    return G * obj1.mass * obj2.mass * r / glm::pow(r2 + softening, 1.5f);
   };
 
   std::mt19937 rndGen;
