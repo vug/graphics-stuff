@@ -18,8 +18,8 @@
 #include <random>
 #include <vector>
 
-const float G = 0.2f;
-const float softening = 1.0f;
+float G = 0.2f;
+float softening = 1.0f;
 
 class PlotBuffer
 {
@@ -336,6 +336,10 @@ void main()
     ImGui::SliderFloat("Speed Factor", &speedFactor, 0.1f, 2.0f);
     if (ImGui::Button("Restart"))
       setupScene(numObjects, speedFactor);
+
+    ImGui::Separator();
+
+    ImGui::SliderFloat("Softening", &softening, 0.01f, 1.0f);
 
     ImGui::Separator();
     ImGui::InputFloat("Speed", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
