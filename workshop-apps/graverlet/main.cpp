@@ -238,10 +238,8 @@ public:
   std::vector<VerletObject> objects;
   std::unique_ptr<Solver> solver;
 
-  std::unique_ptr<ws::Shader> quadShader;
   std::unique_ptr<ws::Shader> pointShader;
   std::unique_ptr<ws::Mesh> mesh;
-  std::unique_ptr<ws::Mesh> backgroundMesh;
 
   InterForce gravity = [](const glm::vec2 &p1, [[maybe_unused]] float m1, const glm::vec2 &p2, float m2)
   {
@@ -283,7 +281,6 @@ void main()
 {
   //gl_Position = ProjectionFromView * ViewFromWorld * WorldFromObject * vec4(vPos, 1.0);
   gl_Position = ProjectionFromView * vec4(vPos, 1.0);
-  // gl_Position = vec4(vPos, 1.0);
   float radius = vCustom.x;
   gl_PointSize = radius * RenderTargetSize.y;
 
@@ -315,32 +312,8 @@ void main()
 }
 )";
 
-    const char *diskShaderFragment = R"(
-#version 460 core
-
-in VertexData
-{
-  vec3 position;
-  vec3 normal;
-  vec2 uv;
-  vec4 color;
-} vertexData;
-
-out vec4 FragColor;
-
-void main()
-{
-  vec2 p = 2 * vertexData.uv - 1;
-  if (dot(p, p) > 1)
-    discard;
-  FragColor = vertexData.color;
-}
-)";
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
-    quadShader = std::make_unique<ws::Shader>(mainShaderVertex, diskShaderFragment);
 
-    // objects.emplace_back(VerletObject{{0, 0}, {0, 0}});
-    // objects[0].mass = 10.0f;
     for (int n = 0; n < 500; n++)
     {
       const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
@@ -367,15 +340,6 @@ void main()
     }
     mesh->uploadData();
 
-    backgroundMesh.reset(new ws::Mesh(ws::Mesh::makeQuad())); // does not call Mesh destructor
-    // backgroundMesh = std::make_unique<ws::Mesh>(ws::Mesh::makeQuad()); // calls Mesh destructor -> glDeletes buffers
-    for (auto &v : backgroundMesh->verts)
-    {
-      v.color = {0.1, 0.1, 0.1, 1.};
-      v.position.z = 0.1f;
-    }
-    backgroundMesh->uploadData();
-
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
     // glEnable(GL_CULL_FACE);
@@ -393,8 +357,7 @@ void main()
     static int numIter = 1;
     float period = deltaTime * speed;
     solver->update(period, numIter);
-    // objects[0].pos = {0, 0};
-    // when the number of objects is constant
+
     for (size_t ix = 0; const auto &obj : objects)
       mesh->verts[ix++].position = {obj.pos.x, obj.pos.y, 0};
 
@@ -422,13 +385,7 @@ void main()
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
     const glm::mat4 projOrtho = glm::ortho(-areaSize, areaSize, -areaSize, areaSize, -1.f, 1.f);
 
-    glUseProgram(quadShader->getId());
-    quadShader->setVector2fv("RenderTargetSize", rts);
-    backgroundMesh->uploadData();
-    glBindVertexArray(backgroundMesh->vao);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(backgroundMesh->idxs.size()), GL_UNSIGNED_INT, 0);
-
-    glUseProgram(pointShader->getId());
+    pointShader->bind();
     pointShader->setVector2fv("RenderTargetSize", rts);
     pointShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(projOrtho));
     glBindVertexArray(mesh->vao);
