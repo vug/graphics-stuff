@@ -211,6 +211,27 @@ public:
   }
 };
 
+// clang-format off
+// https://stackoverflow.com/questions/21977786/star-b-v-color-index-to-apparent-rgb-color
+glm::vec4 bv2rgb(double bv)    // RGB <0,1> <- BV <-0.4,+2.0> [-]
+{
+  double t; double r=0.0, g=0.0, b=0.0; 
+  if       (bv< -0.40) bv=-0.4; 
+  if       (bv>  2.00) bv= 2.0;
+  if      ((bv>=-0.40)&&(bv<0.00)) { t=(bv+0.40)/(0.00+0.40); r=0.61+(0.11*t)+(0.1*t*t); }
+  else if ((bv>= 0.00)&&(bv<0.40)) { t=(bv-0.00)/(0.40-0.00); r=0.83+(0.17*t)          ; }
+  else if ((bv>= 0.40)&&(bv<2.10)) { t=(bv-0.40)/(2.10-0.40); r=1.00                   ; }
+       if ((bv>=-0.40)&&(bv<0.00)) { t=(bv+0.40)/(0.00+0.40); g=0.70+(0.07*t)+(0.1*t*t); }
+  else if ((bv>= 0.00)&&(bv<0.40)) { t=(bv-0.00)/(0.40-0.00); g=0.87+(0.11*t)          ; }
+  else if ((bv>= 0.40)&&(bv<1.60)) { t=(bv-0.40)/(1.60-0.40); g=0.98-(0.16*t)          ; }
+  else if ((bv>= 1.60)&&(bv<2.00)) { t=(bv-1.60)/(2.00-1.60); g=0.82         -(0.5*t*t); }
+       if ((bv>=-0.40)&&(bv<0.40)) { t=(bv+0.40)/(0.40+0.40); b=1.00                   ; }
+  else if ((bv>= 0.40)&&(bv<1.50)) { t=(bv-0.40)/(1.50-0.40); b=1.00-(0.47*t)+(0.1*t*t); }
+  else if ((bv>= 1.50)&&(bv<1.94)) { t=(bv-1.50)/(1.94-1.50); b=0.63         -(0.6*t*t); }
+  return {r, g, b, 1};
+}
+// clang-format on
+
 class MyApp : public ws::App
 {
 public:
@@ -289,9 +310,8 @@ out vec4 FragColor;
 void main()
 {
   vec2 p = 2 * gl_PointCoord - 1;
-  if (dot(p, p) > 1)
-    discard;
-  FragColor = vertexData.color;
+  float alpha = (1.0 - smoothstep(0.25, 1.0, length(p))) * 0.1;
+  FragColor = vec4(vertexData.color.rgb, alpha);
 }
 )";
 
@@ -332,14 +352,16 @@ void main()
       p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
 
       glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * 1.0f;
-      objects.emplace_back(VerletObject{p, v, 1.5f, 0.01f});
+      objects.emplace_back(VerletObject{p, v, 1.5f, 0.04f});
     }
     solver = std::make_unique<Solver>(objects, gravity);
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
     for (uint32_t ix = 0; const auto &obj : objects)
     {
-      mesh->verts[ix] = ws::DefaultVertex{{obj.pos.x, obj.pos.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
+      // TODO: learn and use actual star bv distribution instead of uniform dist
+      const glm::vec4 color = bv2rgb(rndDist(rndGen) * 2.4f - 0.4f);
+      mesh->verts[ix] = ws::DefaultVertex{{obj.pos.x, obj.pos.y, 0}, {}, {}, color, {obj.radius, 0, 0, 0}};
       mesh->idxs[ix] = ix;
       ix++;
     }
@@ -357,7 +379,9 @@ void main()
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
     // glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
+    // glEnable(GL_DEPTH_TEST); // render all star fragments -> no depth test
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   }
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
