@@ -8,7 +8,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
+#include <implot.h>
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <random>
@@ -103,6 +105,112 @@ public:
         }
         kinetic += 0.5f * o1.mass * glm::dot(o1.vel, o1.vel);
       }
+    }
+  }
+};
+
+class PlotBuffer
+{
+private:
+  size_t maxSize = 1024;
+  size_t offset = 0;
+  std::vector<glm::vec2> data;
+
+public:
+  PlotBuffer()
+  {
+    data.reserve(maxSize);
+  }
+
+  PlotBuffer(size_t maxSize) : maxSize(maxSize)
+  {
+    data.reserve(maxSize);
+  }
+
+  void addPoint(const glm::vec2 &p)
+  {
+    if (data.size() < maxSize)
+      data.push_back(p);
+    else
+    {
+      data[offset] = p;
+      offset = (offset + 1) % maxSize;
+    }
+  }
+
+  const std::vector<glm::vec2> &getData() const
+  {
+    return data;
+  }
+
+  const size_t &getOffset() const
+  {
+    return offset;
+  }
+};
+
+class EnergiesPlot
+{
+private:
+  PlotBuffer potentials;
+  PlotBuffer kinetics;
+  PlotBuffer totals;
+  float yMin{}, yMax{};
+  float tMin{}, tMax{};
+
+public:
+  EnergiesPlot(size_t numPoints)
+      : potentials(numPoints), kinetics(numPoints), totals(numPoints) {}
+  void
+  addEnergyPoints(float time, float potential, float kinetic, float total)
+  {
+    potentials.addPoint({time, potential});
+    kinetics.addPoint({time, kinetic});
+    totals.addPoint({time, total});
+
+    const bool allTime = false;
+    if (allTime)
+    {
+      yMin = std::min(std::min(std::min(yMin, potential), kinetic), total);
+      yMax = std::max(std::max(std::max(yMax, potential), kinetic), total);
+    }
+    else
+    {
+      static const auto comp = [](const glm::vec2 &a, const glm::vec2 &b)
+      { return a.y < b.y; };
+      const auto [potMin, potMax] = std::minmax_element(potentials.getData().begin(), potentials.getData().end(), comp);
+      const auto [kinMin, kinMax] = std::minmax_element(kinetics.getData().begin(), kinetics.getData().end(), comp);
+      const auto [totMin, totMax] = std::minmax_element(totals.getData().begin(), totals.getData().end(), comp);
+      yMin = std::min(std::min(potMin->y, kinMin->y), totMin->y);
+      yMax = std::max(std::max(potMax->y, kinMax->y), totMax->y);
+    }
+
+    {
+      static const auto comp = [](const glm::vec2 &a, const glm::vec2 &b)
+      { return a.x < b.x; };
+      const auto [mn, mx] = std::minmax_element(potentials.getData().begin(), potentials.getData().end(), comp);
+      tMin = mn->x;
+      tMax = mx->x;
+    }
+  }
+
+  void plot(const ImVec2 &size)
+  {
+    if (ImPlot::BeginPlot("Energies", size))
+    {
+      const auto &pData = potentials.getData();
+      const auto &kData = kinetics.getData();
+      const auto &tData = totals.getData();
+      ImPlot::SetupAxes("time", "energy", ImPlotAxisFlags_None, ImPlotAxisFlags_None);
+
+      ImPlot::SetupAxis(ImAxis_X1, "time", ImPlotAxisFlags_AuxDefault);
+      ImPlot::SetupAxisLimits(ImAxis_X1, tMin, tMax, ImGuiCond_Always);
+      ImPlot::SetupAxisLimits(ImAxis_Y1, yMin, yMax, ImGuiCond_Always);
+
+      ImPlot::PlotLine("Potential", &pData[0].x, &pData[0].y, static_cast<int>(pData.size()), 0, static_cast<int>(potentials.getOffset()), 2 * sizeof(float));
+      ImPlot::PlotLine("Kinetic", &kData[0].x, &kData[0].y, static_cast<int>(kData.size()), 0, static_cast<int>(kinetics.getOffset()), 2 * sizeof(float));
+      ImPlot::PlotLine("Total", &tData[0].x, &tData[0].y, static_cast<int>(tData.size()), 0, static_cast<int>(totals.getOffset()), 2 * sizeof(float));
+      ImPlot::EndPlot();
     }
   }
 };
@@ -217,7 +325,7 @@ void main()
 
     // objects.emplace_back(VerletObject{{0, 0}, {0, 0}});
     // objects[0].mass = 10.0f;
-    for (int n = 0; n < 150; n++)
+    for (int n = 0; n < 25; n++)
     {
       const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
       const float r = 20.0f * rndDist(rndGen);
@@ -276,6 +384,16 @@ void main()
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     static float areaSize = 10.0f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
+
+    ImGui::Separator();
+    static bool showImPlotDemo = false;
+    ImGui::Checkbox("ImPlot Demo", &showImPlotDemo);
+    if (showImPlotDemo)
+      ImPlot::ShowDemoWindow();
+
+    static EnergiesPlot eplt{5 * 60}; // approx N sec in 60 FPS
+    eplt.addEnergyPoints(time, solver->potential, solver->kinetic, solver->potential + solver->kinetic);
+    eplt.plot({-1, 600});
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
