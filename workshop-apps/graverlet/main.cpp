@@ -148,6 +148,33 @@ glm::vec4 bv2rgb(double bv)    // RGB <0,1> <- BV <-0.4,+2.0> [-]
 }
 // clang-format on
 
+void plotOriginalAndSoftenedGravitationalForces(InterPotential original, InterPotential softened, float xMax = 5.0f, float yMin = -5.0f)
+{
+  const size_t numPoints = 1024;
+  static std::vector<float> xs(numPoints);
+  static std::vector<float> ysOriginal(numPoints);
+  static std::vector<float> ysSoftened(numPoints);
+
+  if (ImPlot::BeginPlot("Original & Softened", {-1, 150}))
+  {
+    ImPlot::SetupAxes("distance", "potential", ImPlotAxisFlags_None, ImPlotAxisFlags_None);
+    ImPlot::SetupAxisLimits(ImAxis_X1, 0.001f, xMax, ImGuiCond_Always);
+    ImPlot::SetupAxisLimits(ImAxis_Y1, yMin, 0.0f, ImGuiCond_Always);
+    VerletObject o1, o2;
+    o1.pos = {};
+    for (size_t i = 0; i < numPoints; ++i)
+    {
+      xs[i] = static_cast<float>(i) / numPoints * 5.0f + 0.001f;
+      o2.pos = {0, xs[i]};
+      ysOriginal[i] = original(o1, o2);
+      ysSoftened[i] = softened(o1, o2);
+    }
+    ImPlot::PlotLine("Original", xs.data(), ysOriginal.data(), static_cast<int>(ysOriginal.size()), 0, 0, sizeof(float));
+    ImPlot::PlotLine("Softened", xs.data(), ysSoftened.data(), static_cast<int>(ysSoftened.size()), 0, 0, sizeof(float));
+    ImPlot::EndPlot();
+  }
+}
+
 class MyApp : public ws::App
 {
 public:
@@ -169,6 +196,13 @@ public:
     glm::vec2 r = obj1.pos - obj2.pos;
     const float r2 = glm::dot(r, r);
     return -G * obj1.mass * obj2.mass / glm::pow(r2 + softening, 0.5f);
+  };
+
+  InterPotential gravitationalPotentialOriginal = [](const VerletObject &obj1, const VerletObject &obj2)
+  {
+    glm::vec2 r = obj1.pos - obj2.pos;
+    const float r2 = glm::dot(r, r);
+    return -G * obj1.mass * obj2.mass / glm::pow(r2, 0.5f);
   };
 
   std::mt19937 rndGen;
@@ -303,6 +337,7 @@ void main()
     static EnergiesPlot eplt{5 * 60}; // approx N sec in 60 FPS
     eplt.addEnergyPoints(time, solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     eplt.plot({-1, 600});
+    plotOriginalAndSoftenedGravitationalForces(gravitationalPotentialOriginal, gravitationalPotential);
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
