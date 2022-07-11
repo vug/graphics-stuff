@@ -34,12 +34,8 @@ class Solver
 public:
   std::vector<VerletObject> &objects;
   InterForce interObjectForce;
-  float period = 0.000016f; // .5 msec
   float potential{};
   float kinetic{};
-
-private:
-  float remaining{};
 
 public:
   Solver(std::vector<VerletObject> &objects, InterForce interObjectForce)
@@ -59,10 +55,10 @@ public:
     }
   }
 
-  void update(float dt)
+  void update(float period, int numIter)
   {
-    remaining += dt;
-    while (remaining > period)
+
+    for (int n = 0; n < numIter; ++n)
     {
       // p[t + dt] = p[t] + v[t] dt + 1/2 a dt^2
       for (VerletObject &obj : objects)
@@ -90,8 +86,6 @@ public:
       // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt
       for (VerletObject &obj : objects)
         obj.vel += 0.5f * obj.acc * period;
-
-      remaining -= period;
 
       potential = 0.0f;
       kinetic = 0.0f;
@@ -327,7 +321,7 @@ void main()
 
     // objects.emplace_back(VerletObject{{0, 0}, {0, 0}});
     // objects[0].mass = 10.0f;
-    for (int n = 0; n < 25; n++)
+    for (int n = 0; n < 500; n++)
     {
       const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
       const float r = 20.0f * rndDist(rndGen);
@@ -368,11 +362,13 @@ void main()
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
   {
-    deltaTime *= 0.1f;
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    solver->update(deltaTime);
+    static float speed = 0.1f;
+    static int numIter = 1;
+    float period = deltaTime * speed;
+    solver->update(period, numIter);
     // objects[0].pos = {0, 0};
     // when the number of objects is constant
     for (size_t ix = 0; const auto &obj : objects)
@@ -382,7 +378,8 @@ void main()
 
     ImGui::Begin("Verlet Simulation");
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
-    ImGui::InputFloat("Solver period", &solver->period, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::InputFloat("Speed", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::SliderInt("NumIter", &numIter, 1, 5);
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     static float areaSize = 10.0f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
