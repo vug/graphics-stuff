@@ -210,6 +210,35 @@ public:
 
   MyApp() : App({.name = "MyApp", .width = 800u, .height = 800u, .shouldDebugOpenGL = true}) {}
 
+  void setupScene(int numObjects, float speed)
+  {
+    objects.clear();
+    for (int n = 0; n < numObjects; n++)
+    {
+      const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
+      const float r = 20.0f * rndDist(rndGen);
+
+      const float x = r * std::cos(theta);
+      const float y = r * std::sin(theta);
+      glm::vec2 p = {x, y};
+      p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
+
+      glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * speed;
+      objects.emplace_back(VerletObject{p, v, 1.5f, 0.04f});
+    }
+
+    mesh = std::make_unique<ws::Mesh>(objects.size());
+    for (uint32_t ix = 0; const auto &obj : objects)
+    {
+      // TODO: learn and use actual star bv distribution instead of uniform dist
+      const glm::vec4 color = bv2rgb(rndDist(rndGen) * 2.4f - 0.4f);
+      mesh->verts[ix] = ws::DefaultVertex{{obj.pos.x, obj.pos.y, 0}, {}, {}, color, {obj.radius, 0, 0, 0}};
+      mesh->idxs[ix] = ix;
+      ix++;
+    }
+    mesh->uploadData();
+  }
+
   void onInit() final
   {
     const char *mainShaderVertex = R"(
@@ -271,31 +300,8 @@ void main()
 
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
-    for (int n = 0; n < 500; n++)
-    {
-      const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
-      const float r = 20.0f * rndDist(rndGen);
-
-      const float x = r * std::cos(theta);
-      const float y = r * std::sin(theta);
-      glm::vec2 p = {x, y};
-      p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
-
-      glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * 1.0f;
-      objects.emplace_back(VerletObject{p, v, 1.5f, 0.04f});
-    }
+    setupScene(500, 1.0f);
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
-
-    mesh = std::make_unique<ws::Mesh>(objects.size());
-    for (uint32_t ix = 0; const auto &obj : objects)
-    {
-      // TODO: learn and use actual star bv distribution instead of uniform dist
-      const glm::vec4 color = bv2rgb(rndDist(rndGen) * 2.4f - 0.4f);
-      mesh->verts[ix] = ws::DefaultVertex{{obj.pos.x, obj.pos.y, 0}, {}, {}, color, {obj.radius, 0, 0, 0}};
-      mesh->idxs[ix] = ix;
-      ix++;
-    }
-    mesh->uploadData();
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -322,6 +328,16 @@ void main()
 
     ImGui::Begin("Verlet Simulation");
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
+
+    ImGui::Separator();
+    static int numObjects = 500;
+    static float speedFactor = 1.0f;
+    ImGui::InputInt("Num Objects", &numObjects, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.1f, 2.0f);
+    if (ImGui::Button("Restart"))
+      setupScene(numObjects, speedFactor);
+
+    ImGui::Separator();
     ImGui::InputFloat("Speed", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::SliderInt("NumIter", &numIter, 1, 5);
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
