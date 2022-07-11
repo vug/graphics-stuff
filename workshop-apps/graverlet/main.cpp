@@ -25,6 +25,8 @@ struct VerletObject
   glm::vec2 acc{};
 };
 
+const float G = 0.2f;
+const float softening = 1.0f;
 using InterForce = std::function<glm::vec2(const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)>;
 
 class Solver
@@ -64,12 +66,12 @@ public:
     {
       // p[t + dt] = p[t] + v[t] dt + 1/2 a dt^2
       for (VerletObject &obj : objects)
-        obj.pos = obj.pos + obj.vel * period + obj.acc * (period * period * 0.5f);
+        obj.pos += obj.vel * period + obj.acc * (period * period * 0.5f);
 
       // v[t + dt / 2] = v[t] + 1/2 a[t] dt
       for (VerletObject &obj : objects)
       {
-        obj.vel = obj.vel + 0.5f * obj.acc * period;
+        obj.vel += 0.5f * obj.acc * period;
         // after using acc reset it for the next computation/accumulation
         obj.acc = {};
       }
@@ -77,19 +79,17 @@ public:
       // a[t + dt] = 1/m f(p[t + dt])
       for (size_t i = 0; i < objects.size(); ++i)
       {
-        for (size_t j = i + 1; j < objects.size(); ++j)
+        for (size_t j = 0; j < objects.size(); ++j)
         {
           VerletObject &o1 = objects[i];
           VerletObject &o2 = objects[j];
-          const glm::vec2 f = interObjectForce(o1.pos, o1.mass, o2.pos, o2.mass);
-          o1.acc -= f / o1.mass;
-          o2.acc += f / o2.mass;
+          o1.acc -= interObjectForce(o1.pos, o1.mass, o2.pos, o2.mass); // acc
         }
       }
 
       // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt
       for (VerletObject &obj : objects)
-        obj.vel = obj.vel + 0.5f * obj.acc * period;
+        obj.vel += 0.5f * obj.acc * period;
 
       remaining -= period;
 
@@ -101,7 +101,9 @@ public:
         for (size_t j = i + 1; j < objects.size(); ++j)
         {
           VerletObject &o2 = objects[j];
-          potential += -o1.mass * o2.mass / glm::length(o1.pos - o2.pos);
+          glm::vec2 r = o1.pos - o2.pos;
+          const float r2 = glm::dot(r, r);
+          potential -= G * o1.mass * o2.mass / glm::pow(r2 + softening, 0.5f);
         }
         kinetic += 0.5f * o1.mass * glm::dot(o1.vel, o1.vel);
       }
@@ -228,9 +230,9 @@ public:
 
   InterForce gravity = [](const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)
   {
-    const float tolarence = 0.00001f;
     glm::vec2 r = p1 - p2;
-    return 0.05f * m1 * m2 * glm::normalize(r) / std::max(glm::dot(r, r), tolarence);
+    const float r2 = glm::dot(r, r);
+    return G * m2 * r / glm::pow(r2 + softening, 1.5f);
   };
 
   std::mt19937 rndGen;
