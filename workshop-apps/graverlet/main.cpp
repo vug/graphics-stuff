@@ -222,7 +222,7 @@ public:
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> backgroundMesh;
 
-  InterForce gravity = [](const glm::vec2 &p1, float m1, const glm::vec2 &p2, float m2)
+  InterForce gravity = [](const glm::vec2 &p1, [[maybe_unused]] float m1, const glm::vec2 &p2, float m2)
   {
     glm::vec2 r = p1 - p2;
     const float r2 = glm::dot(r, r);
@@ -331,7 +331,7 @@ void main()
       glm::vec2 p = {x, y};
       p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
 
-      glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * 0.25f;
+      glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * 1.0f;
       objects.emplace_back(VerletObject{p, v, 1.5f, 0.01f});
     }
     solver = std::make_unique<Solver>(objects, gravity);
