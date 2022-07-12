@@ -1,3 +1,43 @@
+/**
+ * u = - G m1 m2 / r
+ *
+ * U: kg m / s^2
+ * m: kg
+ * r: m
+ * G kg^2 / m: kg m^2 / s^2
+ * G: m^3 / s^2 kg
+ * G: 9.8
+ *
+ * r' = r / R0, m' = m / M0, t' = t / T0
+ * v' = v / V0 = v T0 / R0, V0 = R0 / T0
+ * a' = a / A0 = a T0^2 / R0, A0 = R0 / T0^2
+ *
+ * G = 1
+ *
+ * a = G m / r^2
+ * a' R0 / T0^2 = G m' M0 / r'^2 R0^2
+ * a' = (G M0 T0^2 / R0^3) m' / r'^2
+ * G' = G M0 T0^2 / R0^3 = 1 <- or maybe don't fix this!
+ *
+ * T0 = sqrt(R0^3 / G M0)
+ *
+ * G = 6.674 10^−11 m^3 / kg s^2
+ * choose T0 one day, M0 earth's mass, R0 distance between earth and sun
+ * T0 = 24 * 60 * 60 sec = 8.64 10^4 sec
+ * M0 = 5.972 × 10^24 kg <- don't fix this
+ * R0  = 149.60 M kilometers = 1.496 10^11 m
+ * Sun's mass is 333030 M0
+ * Fix: T0 = 1 Day, R0 = 1 AU => mass should be given adjusted values. Calculate M0 and choose values accordingly.
+ * M0 = T0^2 / R0^3 G
+ *    = (8.64 10^4 sec)^2 / (1.496 10^11 m)^3 (6.674 10^−11 m^3 / kg s^2)
+ *    = 3.341 10^(8-33+11)
+ *     = 3.341 10^-14
+ * ..
+ * G' = (6.674 10^−11 m^3 / kg s^2) (5.972 × 10^24 kg) (8.64 10^4 sec)^2 / (1.496 10^11 m)^3
+ *    = 888.666 10^(-11+24+8-33)
+ *    = 888.67 10^-12
+ *    = 8.89 10^-10
+ */
 #include "Verlet.h"
 
 #include <App.h>
@@ -318,7 +358,7 @@ void main()
 
     static float speed = 0.1f;
     static int numIter = 2;
-    float period = deltaTime * speed;
+    float period = 0.016f * speed;
     solver->update(period, numIter);
 
     for (size_t ix = 0; const auto &obj : objects)
