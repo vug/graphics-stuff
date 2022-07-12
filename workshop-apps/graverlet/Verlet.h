@@ -47,6 +47,7 @@ public:
 
   void update(float period, int numIter)
   {
+    period /= numIter;
     potential = 0.0f;
     kinetic = 0.0f;
     for (int n = 0; n < numIter; ++n)
@@ -71,7 +72,7 @@ public:
           VerletObject &o1 = objects[i];
           VerletObject &o2 = objects[j];
           o1.acc -= interObjectForce(o1, o2) / o1.mass;
-          if (interObjectPotential)
+          if (interObjectPotential && n == numIter - 1)
             potential += interObjectPotential(o1, o2);
         }
       }
@@ -80,7 +81,8 @@ public:
       for (VerletObject &obj : objects)
       {
         obj.vel += 0.5f * obj.acc * period;
-        kinetic += 0.5f * obj.mass * glm::dot(obj.vel, obj.vel);
+        if (n == numIter - 1)
+          kinetic += 0.5f * obj.mass * glm::dot(obj.vel, obj.vel);
       }
     }
   }
