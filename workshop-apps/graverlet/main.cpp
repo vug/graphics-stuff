@@ -58,9 +58,39 @@
 #include <random>
 #include <vector>
 
-float G = 0.3f;
-float G0 = {};
-float softening = 0.01f;
+float softening = 0.001f;
+
+namespace constants
+{
+  // T0: 1 day in seconds
+  const float T0 = 24 * 60 * 60;
+
+  // M0: Earth's mass in kg
+  // https://en.wikipedia.org/wiki/Earth_mass
+  const float M0 = 5.972e24f;
+
+  // R0: // distance from earth to sun in meters = 1 AU = 150 Mkm (varies 3% throughout the year)
+  // https://en.wikipedia.org/wiki/Astronomical_unit
+  const float R0 = 150e9f;
+
+  // G: gravitational constant G in m^3 / kg s^2
+  // https://en.wikipedia.org/wiki/Gravitational_constant
+  const float GG = 6.674e-11f;
+
+  // G0: unitless gravitational constant = 8.81576e-10
+  const float G0 = GG * M0 * std::pow(T0, 2.f) / std::pow(R0, 3.f);
+
+  const float R_AU = 1.0f;
+
+  const float M_Earth = 1.0f;
+
+  // Sun's mass is 333030 M0
+  const float M_Sun = 333030.0f;
+
+  // Earth's speed = 29.78 km/s
+  // https://en.wikipedia.org/wiki/Earth%27s_orbit
+  const float V_Earth = 2.978e4f * T0 / R0;
+} // namespace constants
 
 class PlotBuffer
 {
@@ -158,7 +188,7 @@ public:
 
       ImPlot::SetupAxis(ImAxis_X1, "time", ImPlotAxisFlags_AuxDefault);
       ImPlot::SetupAxisLimits(ImAxis_X1, tMin, tMax, ImGuiCond_Always);
-      ImPlot::SetupAxisLimits(ImAxis_Y1, yMin, yMax, ImGuiCond_Always);
+      ImPlot::SetupAxisLimits(ImAxis_Y1, yMin - 0.1f, yMax + 0.1f, ImGuiCond_Always);
 
       ImPlot::PlotLine("Potential", &pData[0].x, &pData[0].y, static_cast<int>(pData.size()), 0, static_cast<int>(potentials.getOffset()), 2 * sizeof(float));
       ImPlot::PlotLine("Kinetic", &kData[0].x, &kData[0].y, static_cast<int>(kData.size()), 0, static_cast<int>(kinetics.getOffset()), 2 * sizeof(float));
@@ -229,21 +259,21 @@ public:
   {
     glm::vec2 r = obj1.pos - obj2.pos;
     const float r2 = glm::dot(r, r);
-    return G * obj1.mass * obj2.mass * r / glm::pow(r2 + softening, 1.5f);
+    return constants::G0 * obj1.mass * obj2.mass * r / glm::pow(r2 + softening, 1.5f);
   };
 
   InterPotential gravitationalPotential = [](const VerletObject &obj1, const VerletObject &obj2)
   {
     glm::vec2 r = obj1.pos - obj2.pos;
     const float r2 = glm::dot(r, r);
-    return -G * obj1.mass * obj2.mass / glm::pow(r2 + softening, 0.5f);
+    return -constants::G0 * obj1.mass * obj2.mass / glm::pow(r2 + softening, 0.5f);
   };
 
   InterPotential gravitationalPotentialOriginal = [](const VerletObject &obj1, const VerletObject &obj2)
   {
     glm::vec2 r = obj1.pos - obj2.pos;
     const float r2 = glm::dot(r, r);
-    return -G * obj1.mass * obj2.mass / glm::pow(r2, 0.5f);
+    return -constants::G0 * obj1.mass * obj2.mass / glm::pow(r2, 0.5f);
   };
 
   std::mt19937 rndGen;
@@ -284,7 +314,9 @@ public:
   {
     objects.clear();
     // Add sun
+    objects.emplace_back(VerletObject{{0, 0}, {0, 0}, constants::M_Sun, 0.05f, {}});
     // Add earth
+    objects.emplace_back(VerletObject{{constants::R_AU, 0}, {0, constants::V_Earth}, constants::M_Earth, 0.01f, {}});
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
     for (uint32_t ix = 0; const auto &obj : objects)
@@ -298,28 +330,6 @@ public:
 
   void onInit() final
   {
-    // Calculate G0
-    {
-      // T0: 1 day in seconds
-      double T0 = 24 * 60 * 60;
-
-      // M0: Earth's mass in kg
-      // https://en.wikipedia.org/wiki/Earth_mass
-      double M0 = 5.972e24;
-      // Sun's mass is 333030 M0
-
-      // R0: // distance from earth to sun in meters = 1 AU = 150 Mkm (varies 3% throughout the year)
-      // https://en.wikipedia.org/wiki/Astronomical_unit
-      double R0 = 150e9;
-
-      // G: gravitational constant G in m^3 / kg s^2
-      // https://en.wikipedia.org/wiki/Gravitational_constant
-      double GG = 6.674e-11;
-
-      // G0: unitless gravitational constant = 8.81576e-10
-      G0 = static_cast<float>(GG * M0 * std::pow(T0, 2) / std::pow(R0, 3));
-    }
-
     const char *mainShaderVertex = R"(
 #version 460 core
 
@@ -372,14 +382,18 @@ out vec4 FragColor;
 void main()
 {
   vec2 p = 2 * gl_PointCoord - 1;
-  float alpha = (1.0 - smoothstep(0.25, 1.0, length(p))) * 0.1;
-  FragColor = vec4(vertexData.color.rgb, alpha);
+  if (dot(p, p) > 1)
+    discard;
+  FragColor = vec4(1, 1, 1, 1);
+  // float alpha = (1.0 - smoothstep(0.25, 1.0, length(p))) * 0.1;
+  // FragColor = vec4(vertexData.color.rgb, alpha);
 }
 )";
 
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
-    setupGalaxyLike(500, 1.0f);
+    // setupGalaxyLike(500, 1.0f);
+    setupSolarSystemLike();
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -397,7 +411,8 @@ void main()
 
     static float speed = 0.1f;
     static int numIter = 2;
-    float period = 0.016f * speed;
+    // float period = 0.016f * speed;
+    float period = 1.0f;
     solver->update(period, numIter);
 
     for (size_t ix = 0; const auto &obj : objects)
@@ -410,9 +425,9 @@ void main()
 
     ImGui::Separator();
     static int numObjects = 500;
-    static float speedFactor = 1.5f;
+    static float speedFactor = 0.1f;
     ImGui::InputInt("Num Objects", &numObjects, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.1f, 4.0f);
+    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.001f, 1.0f);
     if (ImGui::Button("Galaxy-like"))
       setupGalaxyLike(numObjects, speedFactor);
     ImGui::SameLine();
@@ -422,14 +437,13 @@ void main()
     ImGui::Separator();
 
     ImGui::SliderFloat("Softening", &softening, 0.001f, 1.0f);
-    ImGui::SliderFloat("G", &G, 0.01f, 2.0f);
-    plotOriginalAndSoftenedGravitationalForces(gravitationalPotentialOriginal, gravitationalPotential, 2.0f);
+    plotOriginalAndSoftenedGravitationalForces(gravitationalPotentialOriginal, gravitationalPotential, 2.0f, -1e-7f);
 
     ImGui::Separator();
     ImGui::InputFloat("Speed", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::SliderInt("NumIter", &numIter, 1, 16);
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
-    static float areaSize = 10.0f;
+    static float areaSize = 1.5f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
 
     ImGui::Separator();
