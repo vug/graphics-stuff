@@ -59,6 +59,7 @@
 #include <vector>
 
 float G = 0.3f;
+float G0 = {};
 float softening = 0.01f;
 
 class PlotBuffer
@@ -250,7 +251,7 @@ public:
 
   MyApp() : App({.name = "MyApp", .width = 800u, .height = 800u, .shouldDebugOpenGL = true}) {}
 
-  void setupScene(int numObjects, float speed)
+  void setupGalaxyLike(int numObjects, float speed)
   {
     objects.clear();
     for (int n = 0; n < numObjects; n++)
@@ -279,8 +280,46 @@ public:
     mesh->uploadData();
   }
 
+  void setupSolarSystemLike()
+  {
+    objects.clear();
+    // Add sun
+    // Add earth
+
+    mesh = std::make_unique<ws::Mesh>(objects.size());
+    for (uint32_t ix = 0; const auto &obj : objects)
+    {
+      mesh->verts[ix] = ws::DefaultVertex{{obj.pos.x, obj.pos.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
+      mesh->idxs[ix] = ix;
+      ix++;
+    }
+    mesh->uploadData();
+  }
+
   void onInit() final
   {
+    // Calculate G0
+    {
+      // T0: 1 day in seconds
+      double T0 = 24 * 60 * 60;
+
+      // M0: Earth's mass in kg
+      // https://en.wikipedia.org/wiki/Earth_mass
+      double M0 = 5.972e24;
+      // Sun's mass is 333030 M0
+
+      // R0: // distance from earth to sun in meters = 1 AU = 150 Mkm (varies 3% throughout the year)
+      // https://en.wikipedia.org/wiki/Astronomical_unit
+      double R0 = 150e9;
+
+      // G: gravitational constant G in m^3 / kg s^2
+      // https://en.wikipedia.org/wiki/Gravitational_constant
+      double GG = 6.674e-11;
+
+      // G0: unitless gravitational constant = 8.81576e-10
+      G0 = static_cast<float>(GG * M0 * std::pow(T0, 2) / std::pow(R0, 3));
+    }
+
     const char *mainShaderVertex = R"(
 #version 460 core
 
@@ -340,7 +379,7 @@ void main()
 
     pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
 
-    setupScene(500, 1.0f);
+    setupGalaxyLike(500, 1.0f);
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -374,8 +413,11 @@ void main()
     static float speedFactor = 1.5f;
     ImGui::InputInt("Num Objects", &numObjects, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::SliderFloat("Speed Factor", &speedFactor, 0.1f, 4.0f);
-    if (ImGui::Button("Restart"))
-      setupScene(numObjects, speedFactor);
+    if (ImGui::Button("Galaxy-like"))
+      setupGalaxyLike(numObjects, speedFactor);
+    ImGui::SameLine();
+    if (ImGui::Button("Solar System-like"))
+      setupSolarSystemLike();
 
     ImGui::Separator();
 
