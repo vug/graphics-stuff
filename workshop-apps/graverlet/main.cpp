@@ -18,8 +18,8 @@
 #include <random>
 #include <vector>
 
-float G = 0.2f;
-float softening = 1.0f;
+float G = 0.3f;
+float softening = 0.01f;
 
 class PlotBuffer
 {
@@ -155,7 +155,7 @@ void plotOriginalAndSoftenedGravitationalForces(InterPotential original, InterPo
   static std::vector<float> ysOriginal(numPoints);
   static std::vector<float> ysSoftened(numPoints);
 
-  if (ImPlot::BeginPlot("Original & Softened", {-1, 150}))
+  if (ImPlot::BeginPlot("Original & Softened", {250, 250}))
   {
     ImPlot::SetupAxes("distance", "potential", ImPlotAxisFlags_None, ImPlotAxisFlags_None);
     ImPlot::SetupAxisLimits(ImAxis_X1, 0.001f, xMax, ImGuiCond_Always);
@@ -317,7 +317,7 @@ void main()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     static float speed = 0.1f;
-    static int numIter = 1;
+    static int numIter = 2;
     float period = deltaTime * speed;
     solver->update(period, numIter);
 
@@ -331,19 +331,21 @@ void main()
 
     ImGui::Separator();
     static int numObjects = 500;
-    static float speedFactor = 1.0f;
+    static float speedFactor = 1.5f;
     ImGui::InputInt("Num Objects", &numObjects, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.1f, 2.0f);
+    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.1f, 4.0f);
     if (ImGui::Button("Restart"))
       setupScene(numObjects, speedFactor);
 
     ImGui::Separator();
 
-    ImGui::SliderFloat("Softening", &softening, 0.01f, 1.0f);
+    ImGui::SliderFloat("Softening", &softening, 0.001f, 1.0f);
+    ImGui::SliderFloat("G", &G, 0.01f, 2.0f);
+    plotOriginalAndSoftenedGravitationalForces(gravitationalPotentialOriginal, gravitationalPotential, 2.0f);
 
     ImGui::Separator();
     ImGui::InputFloat("Speed", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::SliderInt("NumIter", &numIter, 1, 5);
+    ImGui::SliderInt("NumIter", &numIter, 1, 16);
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     static float areaSize = 10.0f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
@@ -357,7 +359,6 @@ void main()
     static EnergiesPlot eplt{5 * 60}; // approx N sec in 60 FPS
     eplt.addEnergyPoints(time, solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     eplt.plot({-1, 600});
-    plotOriginalAndSoftenedGravitationalForces(gravitationalPotentialOriginal, gravitationalPotential);
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
