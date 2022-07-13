@@ -1,4 +1,7 @@
 /**
+ * "How to do units and scaling right (Or at least how to NOT do them wrong)"
+ * https://gandalfcode.github.io/gandalf-school/Units.pdf
+ *
  * r' = r / R0, m' = m / M0, t' = t / T0
  * v' = v / V0 = v T0 / R0, V0 = R0 / T0
  * a' = a / A0 = a T0^2 / R0, A0 = R0 / T0^2
@@ -25,11 +28,13 @@
 #include <implot.h>
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <random>
 #include <vector>
 
+// https://home.ifa.hawaii.edu/users/barnes/research/smoothing/soft.pdf
 float softening = 0.000001f;
 
 namespace constants
@@ -262,19 +267,26 @@ public:
   void setupGalaxyLike(int numObjects, float speed)
   {
     objects.clear();
+    objects.emplace_back(VerletObject{{0, 0}, {0, 0}, 100, 0.05f, {}});
     for (int n = 0; n < numObjects; n++)
     {
-      const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
-      const float rad = 40.0f;
-      const float r = rad * rndDist(rndGen);
+      const float r = constants::R_AU * rndDist(rndGen);
+      glm::vec2 p{};
+      {
+        const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
+        const float x = r * std::cos(theta);
+        const float y = r * std::sin(theta);
+        p = {x, y};
+      }
+      glm::vec2 v{};
+      {
+        // const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
+        // v = spd * {std::cos(theta), std::sin(theta)};
+        const float spd = std::sqrt(constants::G0 * constants::M_Earth / r);
+        v = glm::normalize(glm::vec2{-p.y, p.x}) * spd * speed;
+      }
 
-      const float x = r * std::cos(theta);
-      const float y = r * std::sin(theta);
-      glm::vec2 p = {x, y};
-      p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
-
-      glm::vec2 v = glm::vec2{-y, x} * (rad - r) / rad * speed;
-      objects.emplace_back(VerletObject{p, v, 1.5f, 0.04f});
+      objects.emplace_back(VerletObject{p, v, 1.5f, 0.01f});
     }
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
@@ -409,9 +421,9 @@ void main()
 
     ImGui::Separator();
     static int numObjects = 500;
-    static float speedFactor = 0.0001f;
+    static float speedFactor = 0.1f;
     ImGui::InputInt("Num Objects", &numObjects, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.00001f, 1.0f);
+    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.00001f, 10.0f);
     if (ImGui::Button("Galaxy-like"))
       setupGalaxyLike(numObjects, speedFactor);
     ImGui::SameLine();

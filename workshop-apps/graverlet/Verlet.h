@@ -50,6 +50,10 @@ public:
     period /= numIter;
     potential = 0.0f;
     kinetic = 0.0f;
+    // http://itf.fys.kuleuven.be/~enrico/Teaching/molecular_dynamics.pdf
+    // "Note that the [Velocity Verlet] algorithm is identical to that of Eqs. (8) and (9).
+    // The difference is that Eq. (9) [this one] is implemented in two steps.
+    // The new implementation requires less memory: there is no need to store data at two different time steps."
     for (int n = 0; n < numIter; ++n)
     {
       // p[t + dt] = p[t] + v[t] dt + 1/2 a dt^2
