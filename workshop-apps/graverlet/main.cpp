@@ -1,42 +1,14 @@
 /**
- * u = - G m1 m2 / r
- *
- * U: kg m / s^2
- * m: kg
- * r: m
- * G kg^2 / m: kg m^2 / s^2
- * G: m^3 / s^2 kg
- * G: 9.8
- *
  * r' = r / R0, m' = m / M0, t' = t / T0
  * v' = v / V0 = v T0 / R0, V0 = R0 / T0
  * a' = a / A0 = a T0^2 / R0, A0 = R0 / T0^2
  *
- * G = 1
- *
  * a = G m / r^2
  * a' R0 / T0^2 = G m' M0 / r'^2 R0^2
  * a' = (G M0 T0^2 / R0^3) m' / r'^2
- * G' = G M0 T0^2 / R0^3 = 1 <- or maybe don't fix this!
- *
- * T0 = sqrt(R0^3 / G M0)
- *
+ * G' = G M0 T0^2 / R0^3
  * G = 6.674 10^−11 m^3 / kg s^2
  * choose T0 one day, M0 earth's mass, R0 distance between earth and sun
- * T0 = 24 * 60 * 60 sec = 8.64 10^4 sec
- * M0 = 5.972 × 10^24 kg <- don't fix this
- * R0  = 149.60 M kilometers = 1.496 10^11 m
- * Sun's mass is 333030 M0
- * Fix: T0 = 1 Day, R0 = 1 AU => mass should be given adjusted values. Calculate M0 and choose values accordingly.
- * M0 = T0^2 / R0^3 G
- *    = (8.64 10^4 sec)^2 / (1.496 10^11 m)^3 (6.674 10^−11 m^3 / kg s^2)
- *    = 3.341 10^(8-33+11)
- *     = 3.341 10^-14
- * ..
- * G' = (6.674 10^−11 m^3 / kg s^2) (5.972 × 10^24 kg) (8.64 10^4 sec)^2 / (1.496 10^11 m)^3
- *    = 888.666 10^(-11+24+8-33)
- *    = 888.67 10^-12
- *    = 8.89 10^-10
  */
 #include "Verlet.h"
 
@@ -58,7 +30,7 @@
 #include <random>
 #include <vector>
 
-float softening = 0.001f;
+float softening = 0.000001f;
 
 namespace constants
 {
@@ -89,7 +61,13 @@ namespace constants
 
   // Earth's speed = 29.78 km/s
   // https://en.wikipedia.org/wiki/Earth%27s_orbit
-  const float V_Earth = 2.978e4f * T0 / R0;
+  const float V_Earth_Sun = 2.978e4f * T0 / R0;
+
+  // Moon's speed around Earth: 1.022km/s
+  // https://en.wikipedia.org/wiki/Orbit_of_the_Moon
+  const float V_Moon_Earth = 1022 * T0 / R0;
+  const float R_Moon_Earth = 0.00257f;
+  const float M_Moon = 1.0f / 82;
 } // namespace constants
 
 class PlotBuffer
@@ -287,14 +265,15 @@ public:
     for (int n = 0; n < numObjects; n++)
     {
       const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
-      const float r = 20.0f * rndDist(rndGen);
+      const float rad = 40.0f;
+      const float r = rad * rndDist(rndGen);
 
       const float x = r * std::cos(theta);
       const float y = r * std::sin(theta);
       glm::vec2 p = {x, y};
       p = (p * 0.40f) + (glm::normalize(p) * 0.05f);
 
-      glm::vec2 v = glm::vec2{-y, x} * (20.0f - r) / 20.0f * speed;
+      glm::vec2 v = glm::vec2{-y, x} * (rad - r) / rad * speed;
       objects.emplace_back(VerletObject{p, v, 1.5f, 0.04f});
     }
 
@@ -316,7 +295,13 @@ public:
     // Add sun
     objects.emplace_back(VerletObject{{0, 0}, {0, 0}, constants::M_Sun, 0.05f, {}});
     // Add earth
-    objects.emplace_back(VerletObject{{constants::R_AU, 0}, {0, constants::V_Earth}, constants::M_Earth, 0.01f, {}});
+    objects.emplace_back(VerletObject{{constants::R_AU, 0}, {0, constants::V_Earth_Sun}, constants::M_Earth, 0.002f, {}});
+    // Add moon
+    objects.emplace_back(VerletObject{{constants::R_AU - constants::R_Moon_Earth, 0}, {0, constants::V_Earth_Sun - constants::V_Moon_Earth}, constants::M_Moon, 0.0002f, {}});
+
+    // // Earth+Moon only for debugging
+    // objects.emplace_back(VerletObject{{0, 0}, {0, 0}, constants::M_Earth, 0.002f, {}});
+    // objects.emplace_back(VerletObject{{0.00257, 0}, {0, constants::V_Moon}, 1.0f / 82, 0.0002f, {}});
 
     mesh = std::make_unique<ws::Mesh>(objects.size());
     for (uint32_t ix = 0; const auto &obj : objects)
@@ -409,10 +394,9 @@ void main()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    static float speed = 0.1f;
+    static float speed = 30.0f;
     static int numIter = 2;
-    // float period = 0.016f * speed;
-    float period = 1.0f;
+    float period = deltaTime * speed;
     solver->update(period, numIter);
 
     for (size_t ix = 0; const auto &obj : objects)
@@ -425,9 +409,9 @@ void main()
 
     ImGui::Separator();
     static int numObjects = 500;
-    static float speedFactor = 0.1f;
+    static float speedFactor = 0.0001f;
     ImGui::InputInt("Num Objects", &numObjects, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.001f, 1.0f);
+    ImGui::SliderFloat("Speed Factor", &speedFactor, 0.00001f, 1.0f);
     if (ImGui::Button("Galaxy-like"))
       setupGalaxyLike(numObjects, speedFactor);
     ImGui::SameLine();
@@ -436,15 +420,18 @@ void main()
 
     ImGui::Separator();
 
-    ImGui::SliderFloat("Softening", &softening, 0.001f, 1.0f);
+    ImGui::InputFloat("Softening", &softening, 0.001f, 0.1f, "%.8f", ImGuiInputTextFlags_EnterReturnsTrue);
     plotOriginalAndSoftenedGravitationalForces(gravitationalPotentialOriginal, gravitationalPotential, 2.0f, -1e-7f);
 
     ImGui::Separator();
-    ImGui::InputFloat("Speed", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::InputFloat("Speed (days/sec)", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::SliderInt("NumIter", &numIter, 1, 16);
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     static float areaSize = 1.5f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
+    static int objIx = 0;
+    ImGui::InputInt("Camera Follows Object", &objIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
+    const glm::vec2 camPos = objects[objIx].pos;
 
     ImGui::Separator();
     static bool showImPlotDemo = false;
@@ -458,7 +445,7 @@ void main()
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
-    const glm::mat4 projOrtho = glm::ortho(-areaSize, areaSize, -areaSize, areaSize, -1.f, 1.f);
+    const glm::mat4 projOrtho = glm::ortho(-areaSize + camPos.x, areaSize + camPos.x, -areaSize + camPos.y, areaSize + camPos.y, -1.f, 1.f);
 
     pointShader->bind();
     pointShader->setVector2fv("RenderTargetSize", rts);
