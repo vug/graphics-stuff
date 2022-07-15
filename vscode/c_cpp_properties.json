@@ -5,10 +5,10 @@
       "includePath": [
         "${default}",
         "${workspaceFolder}/workshop",
+        "${workspaceFolder}/build/workshop-apps/shader-study",
         "${workspaceFolder}/dependencies/blend2d/src",
         "${workspaceFolder}/dependencies/ColorSpace/src",
         "${workspaceFolder}/build/dependencies/gladsources/glad_gl_core_46/include",
-        "${workspaceFolder}/build/workshop-apps/shader-study",
         "${workspaceFolder}/dependencies/glfw/include",
         "${workspaceFolder}/dependencies/glm/",
         "${workspaceFolder}/dependencies/imgui/",
@@ -16,7 +16,8 @@
         "${workspaceFolder}/dependencies/imgui/backends/",
         "${workspaceFolder}/dependencies/minifb/include",
         "${workspaceFolder}/dependencies/OpenMesh/src",
-        "${workspaceFolder}/dependencies/raylib/build/raylib/include"
+        "${workspaceFolder}/dependencies/raylib/build/raylib/include",
+        "${workspaceFolder}/dependencies/stb"
       ],
       "intelliSenseMode": "windows-msvc-x64",
       "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.30.30705/bin/Hostx64/x64/cl.exe",

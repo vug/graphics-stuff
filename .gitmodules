@@ -33,3 +33,6 @@
 [submodule "dependencies/implot"]
 	path = dependencies/implot
 	url = https://github.com/epezent/implot
+[submodule "dependencies/stb"]
+	path = dependencies/stb
+	url = https://github.com/nothings/stb
