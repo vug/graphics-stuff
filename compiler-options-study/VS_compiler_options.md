@@ -131,7 +131,7 @@ There is an even more verbose warning option: `/Wall`. I assume they are not inc
 There is this "all-in" way about compiler warnings, which is `/WX`. This turns any warning into an error. If I'm working on a serios project I'll turn this on because I don't want a code that causes compiler warnings to leak into production. `/WX` will make pushing of the commit with bad code be stopped by CI systems. However, if I'm coding for fun or to study, I'd like to see the resulted executable before fixing the warning.
 
 ```cmd
-cl /std:c++20 /EHsc /W4 main.cpp module1.cpp
+cl /std:c++20 /EHsc /W4 program.cpp module1.cpp
 # optionals: /WX /link /out:program1.exe
 ```
 
@@ -145,12 +145,43 @@ When working on an actual project we rarely write everything ourselves, usually 
 
 Some of them are "header-only" libraries. Which means they don't have any CPP file. They are made of just H files. You usually include one H file in your CPP files that require their functionality and you are good to go. 
 
-At first this seems great because of practicality. But recently I learned and realized that this increases the compile time. Same logic provided by a header-only library is copy-pasted in every CPP file that uses it and recompiled again and again. Actually even standard library is bloated with lots of code.
+At first this seems great because of practicality: just download them into your project and start including headers. But recently I learned and realized that this increases the compilation times. The logic provided by a header-only library is copy-pasted in every CPP file that uses it and the same code is recompiled again and again. Actually even standard library is bloated with lots of code. (For now please see [GitHub - stdfwd: Forward declarations for C++ standard library](https://github.com/olegpublicprofile/stdfwd) and [Magnum - Forward-declaring STL container types](https://blog.magnum.graphics/backstage/forward-declaring-stl-container-types/) One day I might write about forward declarations for faster compile times.)
 
-Some header only libraries are being nice and they provide headers that only have forward declarations that one can use in their H files, and headers that have logic that can be included in CPP files. That way not your whole codebase will be infected with that library's logic.
+Let's use [stb](https://github.com/nothings/stb) as an example. It's a collection of single header libraries that does various stuff such as image saving ([stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h)), recursive `#include` support for GLSL ([stb_include.h](https://github.com/nothings/stb/blob/master/stb_include.h)) etc.
 
-Example: GLM
-Example: single header file one stb
+First option is to bring header file into the project's source code:
+
+```cmd
+project/image_program.cpp
+project/stb_image.h
+```
+
+where
+
+```cpp
+// image_program.cpp
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+unsigned char *data = stbi_load(...
+```
+
+This case does not require any changes in our build command.
+
+However, projects that rely on multiple dependencies and made of multiple files might have a more organized structure as follows
+
+```cmd
+project/src/image_program.cpp
+project/src/module1.cpp
+project/dependencies/stb/stb_image.h
+project/dependencies/other/...
+```
+
+Now, the single-header library file is not in the same folder as the CPP file that uses it. `#include "stb_image.h"` will throw an error about not being able to that file. We have to tell the compiler where to look at to find the header file.
+
+```cmd
+cl /std:c++20 /EHsc /W4 image_program.cpp module1.cpp 
+```
 
 **********************************************************************
 
