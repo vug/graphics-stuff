@@ -111,15 +111,26 @@ There is also a `/std:c++latest` option to always use the latest version. But I 
 
 See [/w, /W0, /W1, /W2, /W3, /W4, /w1, /w2, /w3, /w4, /Wall, /wd, /we, /wo, /Wv, /WX \(Warning level\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-option-warning-level?view=msvc-170)
 
+`/Wall` See [Compiler warnings that are off by default \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/preprocessor/compiler-warnings-that-are-off-by-default?view=msvc-170)
+
+`/WX` is useful too
+
 There is also this topic of conformance, non-conformance. See [/permissive\- \(Standards conformance\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170). However, looks like when c++20 is chosen, this option is automatically added.
 
 ## Compiling a library
 
-* ColorSpace
+* ColorSpace (Simpler)
+
 * ImGui
 
 ```cmd
-cl /W4 /EHsc main.cpp /I../dependencies/blend2d/src ../dependencies/blend2d/build/Release/blend2d.lib /MD
+git submodule add --branch docking https://github.com/ocornut/imgui.git
+cd imgui
+mkdir build
+cl /std:c++20 /c /EHsc /I"." /I"../glfw/include" imgui.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp imgui_demo.cpp backends/imgui_impl_glfw.cpp backends/imgui_impl_opengl3.cpp /MD /Fo.\build\
+cd build
+lib *.obj /out:imgui.lib
+del *.obj
 ```
 
 Most libraries come with CMakeLists.txt
@@ -128,6 +139,22 @@ Most libraries come with CMakeLists.txt
 * minifb
 
 ## Project depending on above libraries
+
+```cmd
+cl /W4 /EHsc main.cpp /I../dependencies/blend2d/src ../dependencies/blend2d/build/Release/blend2d.lib /MD
+```
+
+ImGui project
+
+```cmd
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/imgui" /I"../dependencies/imgui/backends" ../dependencies/imgui/build/imgui.lib /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib Opengl32.lib Gdi32.lib Shell32.lib /MD /EHsc imgui_test.cpp
+```
+
+GLFW project
+
+```cmd
+cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib Opengl32.lib User32.lib Gdi32.lib Shell32.lib /MD /EHsc glfw_01.cpp
+```
 
 processing++
 
@@ -163,11 +190,18 @@ lib ColorSpace.obj Comparison.obj Conversion.obj /out:bld\ColorSpace.lib
 
 `/Zi`
 
+I should write about debugging via Visual Studio Code (and broaders VS Code C++ setup) in a future post.
+
 ## Optimization
 
 `/O2`
+
+"Debug vs Release"
+
+See [/O options \(Optimize code\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/o-options-optimize-code?view=msvc-170)
 
 ## References
 
 * All compiler options [Compiler Options Listed by Category \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-by-category?view=msvc-170)
 * All linker options: [MSVC Linker options \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/linker-options?view=msvc-170)
+* [Use the Microsoft C\+\+ toolset from the command line \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170)
