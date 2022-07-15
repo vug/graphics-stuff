@@ -180,16 +180,63 @@ project/dependencies/other/...
 Now, the single-header library file is not in the same folder as the CPP file that uses it. `#include "stb_image.h"` will throw an error about not being able to that file. We have to tell the compiler where to look at to find the header file.
 
 ```cmd
-cl /std:c++20 /EHsc /W4 image_program.cpp module1.cpp 
+# from project/src/
+cl /std:c++20 /EHsc /W4 image_program.cpp module1.cpp /I"..\dependencies\stb"
+
+# from project/
+cl /std:c++20 /EHsc /W4 src/image_program.cpp src/module1.cpp /I"dependencies\stb"
 ```
 
+
+
+### Libraries without build support
+i.e. libraries that are only made of header and cpp files. We can choose to compile them along with our CPP files each time we build our project by adding their CPP files into our build command. However, the compiler will do the exact same calculation at each build command and spend time unnecessarily on library files, even though nothing has changed.
+
+We can "cache" the compilation output of the library by first only compiling/linking the library itself into a non-executable binary file and link our project against it.
+
+There are two types of library linking that requires two types of build outputs: dynamic and static. The content of a statically linked library (a LIB file) will be included in the final project executable (increasing its size), but it's easier to use. The content of a dynamically linked library (on Windows a DLL file) is loaded at run-time from its file (final executable size is smaller) but it's harder to use. Hopefully once I'll study and learn hot-reloading code for plug-in, visual effect development, I'll write about storing logic in DLL files and loading/reloading them at runtime.
+
+Let's go over two libraries, one small one more substantial.
+
+First, <https://github.com/berendeanicolae/ColorSpace>. The project comes with a Visual Studio solution, but because we are studying command-line options we'll ignore that.
+
+The src folder has 3 pairs of header and CPP files: ColorSpace, Comparison, Conversion. Declarations in header files to be included in our project, and definitions (logic) in CPP files that we want to store in a LIB file.
+
+```cmd
+cd ColorSpace
+mkdir build
+cl /c /EHsc src\ColorSpace.cpp src\Comparison.cpp src\Conversion.cpp
+cl /c /EHsc src\*.cpp /Fobuild\
+lib build/*.obj /out:build\ColorSpace.lib
+
+cl /c /EHsc src\*.cpp /Fobuild\ /MD
+
+lib ColorSpace.obj Comparison.obj Conversion.obj /out:bld\ColorSpace.lib
+lib bld/ColorSpace.obj bld/Comparison.obj bld/Conversion.obj /out:bld\ColorSpace.lib
+```
+
+Usually `build/` directory is added to `.gitignore` anything happening there is hidden from version control to prevent cluttering it with binary, temporary files. We'll store temporary OBJ files, and generated LIB file there.
+
+`/c` means that we are not going to link anything, just will compile OBJ files. See [/c (Compile Without Linking)](https://docs.microsoft.com/en-us/cpp/build/reference/c-compile-without-linking?view=msvc-170).
+
+We also did the trick of using `*.cpp` instead of naming each CPP file to save few keystrokes!
+
+`lib` combines `obj` files into a single LIB file. As usual `/out` option to linker is used to determine the final LIB file location and name.
+
+See [Overview of LIB](https://docs.microsoft.com/en-us/cpp/build/reference/overview-of-lib?view=msvc-170) and [Running LIB](https://docs.microsoft.com/en-us/cpp/build/reference/running-lib?view=msvc-170).
+
+Now when building our project that depends on ColorSpace we just provide the LIB file and the header file and ColorSpace is not needed to be compiled.
+
+```cmd
+cl /std:c++20 /EHsc /W4 colorspace_program.cpp module1.cpp /I..\dependencies\ColorSpace\src ../dependencies/ColorSpace/build/ColorSpace.lib
+
+cl /std:c++20 /EHsc /W4 colorspace_program.cpp module1.cpp ColorSpace.lib /I..\dependencies\ColorSpace\src /link /LIBPATH:..\dependencies\ColorSpace\build
+
+```
+
+Again `/I` is to tell where the header files are. To "include" the LIB file we have two options. A) we add the LIB file into our build command by its full path, B) treat it similar to a header file, tell the linker where to look for and just add it's name next to CPP, OBJ files. I found method A) more succint.
+
 **********************************************************************
-
-### Libraries that are only made of header and cpp files
-I'm going to show 
-
-
-* ColorSpace (Simpler)
 
 * ImGui
 
@@ -273,6 +320,8 @@ See [/O options \(Optimize code\) \| Microsoft Docs](https://docs.microsoft.com/
 
 ## References
 
+* [Compiler Options \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options?view=msvc-170)
 * All compiler options [Compiler Options Listed by Category \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-by-category?view=msvc-170)
 * All linker options: [MSVC Linker options \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/linker-options?view=msvc-170)
 * [Use the Microsoft C\+\+ toolset from the command line \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170)
+* [Compiler Command-Line Syntax \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-command-line-syntax?view=msvc-170)
