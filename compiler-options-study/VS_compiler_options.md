@@ -105,19 +105,58 @@ cl /std:c++20 /EHsc cpp20.cpp
 [/std \(Specify Language Standard Version\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/std-specify-language-standard-version?view=msvc-170) Looks like the default is `/std:c++14`.
 There is also a `/std:c++latest` option to always use the latest version. But I prefer to set the version explicitly.
 
-**********************************************************************
-
 ## Compiler Warnings
 
-See [/w, /W0, /W1, /W2, /W3, /W4, /w1, /w2, /w3, /w4, /Wall, /wd, /we, /wo, /Wv, /WX \(Warning level\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-option-warning-level?view=msvc-170)
+One way compilers help with learning the language and its best practices is to rely on it to throw warnings to detect issues at compile time. These can be about simple stuff such as a declared but unused variable [Compiler Warning (level 3) C4101](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4101?view=msvc-170) to about issues that are legal C++ but can cause problems at runtime such as "uninitialized local variable 'name' used" [Compiler Warning (level 1 and level 4) C4700](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-1-and-level-4-c4700?view=msvc-170) Examples from documentation:
 
-`/Wall` See [Compiler warnings that are off by default \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/preprocessor/compiler-warnings-that-are-off-by-default?view=msvc-170)
+```cpp
+int main() {
+  int i;   // C4101 (i never used later)
 
-`/WX` is useful too
+  int s, t, u, v;   // Danger, uninitialized variables
+  s = t + u + v;    // C4700: t, u, v used before initialization
+}
+```
+
+See [Compiler warnings C4000 - C5999](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warnings-c4000-c5999?view=msvc-170) for an index of all warnings or [Compiler Warnings by compiler version](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warnings-by-compiler-version?view=msvc-170) for having all in the same page with their names and categorized by VS version.
+
+I find these warnings mostly very useful because they help me reduce the number of bugs. Some of them are annoying, such as the ones that make you use `static_cast` instead of implicit casting: "conversion from 'type_1' to 'type_2' requires a narrowing conversion" [C4838](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-1-c4838?view=msvc-170) and "'context' : truncation from 'type1' to 'type2'" [C4305](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-1-c4305?view=msvc-170). You might "know what you are doing" by assigning a `float` value into an `int`, but also might not. :-) Usually an issue when need to narrow down `size_t` into `int` because I'm being a good citizen and using `size_t` for vector indices, but the library I'm using is old and still uses `int`s everywhere... But I see their point and obey them.
+
+No that these are just warnings, not errors. Errors prevent succesful compilation. See the index of errors here [Compiler errors C2000 - C3999, C7000 - C7999](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-errors-1/compiler-errors-c2000-c3999?view=msvc-170). Whereas one can turn off warnings and suffer the consequences.
+
+The warnings have levels. More essential ones have lower level (1) and less insequential ones have higher level (4). `/W0` means turning off warnings. I prefer `/W4`. See [/w, /W0, /W1, /W2, /W3, /W4, /w1, /w2, /w3, /w4, /Wall, /wd, /we, /wo, /Wv, /WX \(Warning level\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-option-warning-level?view=msvc-170) "For a new project, it may be best to use /W4 in all compilations. This option helps ensure the fewest possible hard-to-find code defects."
+
+There is an even more verbose warning option: `/Wall`. I assume they are not included at level-4 for a reason and not use this option. See [Compiler warnings that are off by default \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/preprocessor/compiler-warnings-that-are-off-by-default?view=msvc-170)
+
+There is this "all-in" way about compiler warnings, which is `/WX`. This turns any warning into an error. If I'm working on a serios project I'll turn this on because I don't want a code that causes compiler warnings to leak into production. `/WX` will make pushing of the commit with bad code be stopped by CI systems. However, if I'm coding for fun or to study, I'd like to see the resulted executable before fixing the warning.
+
+```cmd
+cl /std:c++20 /EHsc /W4 main.cpp module1.cpp
+# optionals: /WX /link /out:program1.exe
+```
 
 There is also this topic of conformance, non-conformance. See [/permissive\- \(Standards conformance\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170). However, looks like when c++20 is chosen, this option is automatically added.
 
 ## Compiling a library
+
+When working on an actual project we rarely write everything ourselves, usually we rely on other libraries/code which we bring into our project as dependencies.
+
+### Header-only libraries
+
+Some of them are "header-only" libraries. Which means they don't have any CPP file. They are made of just H files. You usually include one H file in your CPP files that require their functionality and you are good to go. 
+
+At first this seems great because of practicality. But recently I learned and realized that this increases the compile time. Same logic provided by a header-only library is copy-pasted in every CPP file that uses it and recompiled again and again. Actually even standard library is bloated with lots of code.
+
+Some header only libraries are being nice and they provide headers that only have forward declarations that one can use in their H files, and headers that have logic that can be included in CPP files. That way not your whole codebase will be infected with that library's logic.
+
+Example: GLM
+Example: single header file one stb
+
+**********************************************************************
+
+### Libraries that are only made of header and cpp files
+I'm going to show 
+
 
 * ColorSpace (Simpler)
 
@@ -133,6 +172,7 @@ lib *.obj /out:imgui.lib
 del *.obj
 ```
 
+### Libraries with some building support such as CMake
 Most libraries come with CMakeLists.txt
 
 * blend2d
