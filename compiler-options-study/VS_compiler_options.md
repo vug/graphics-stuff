@@ -203,23 +203,21 @@ First, <https://github.com/berendeanicolae/ColorSpace>. The project comes with a
 The src folder has 3 pairs of header and CPP files: ColorSpace, Comparison, Conversion. Declarations in header files to be included in our project, and definitions (logic) in CPP files that we want to store in a LIB file.
 
 ```cmd
-cd ColorSpace
+cd project/dependencies/ColorSpace
 mkdir build
 cl /c /EHsc src\ColorSpace.cpp src\Comparison.cpp src\Conversion.cpp
+# OR
 cl /c /EHsc src\*.cpp /Fobuild\
 lib build/*.obj /out:build\ColorSpace.lib
-
-cl /c /EHsc src\*.cpp /Fobuild\ /MD
-
-lib ColorSpace.obj Comparison.obj Conversion.obj /out:bld\ColorSpace.lib
-lib bld/ColorSpace.obj bld/Comparison.obj bld/Conversion.obj /out:bld\ColorSpace.lib
 ```
 
 Usually `build/` directory is added to `.gitignore` anything happening there is hidden from version control to prevent cluttering it with binary, temporary files. We'll store temporary OBJ files, and generated LIB file there.
 
 `/c` means that we are not going to link anything, just will compile OBJ files. See [/c (Compile Without Linking)](https://docs.microsoft.com/en-us/cpp/build/reference/c-compile-without-linking?view=msvc-170).
 
-We also did the trick of using `*.cpp` instead of naming each CPP file to save few keystrokes!
+We also did the trick of using `*.cpp` instead of naming each CPP file to save few keystrokes! and used `/Fo` (output file - obj) option to set the folder into which OBJ files are placed. See [/Fo (Object File Name)](https://docs.microsoft.com/en-us/cpp/build/reference/fo-object-file-name?view=msvc-170)
+
+Also note that we didn't use `/W4` because we don't care about the compiler warnings caused by the dependency. That's not our reponsibility.
 
 `lib` combines `obj` files into a single LIB file. As usual `/out` option to linker is used to determine the final LIB file location and name.
 
@@ -231,24 +229,96 @@ Now when building our project that depends on ColorSpace we just provide the LIB
 cl /std:c++20 /EHsc /W4 colorspace_program.cpp module1.cpp /I..\dependencies\ColorSpace\src ../dependencies/ColorSpace/build/ColorSpace.lib
 
 cl /std:c++20 /EHsc /W4 colorspace_program.cpp module1.cpp ColorSpace.lib /I..\dependencies\ColorSpace\src /link /LIBPATH:..\dependencies\ColorSpace\build
-
 ```
 
 Again `/I` is to tell where the header files are. To "include" the LIB file we have two options. A) we add the LIB file into our build command by its full path, B) treat it similar to a header file, tell the linker where to look for and just add it's name next to CPP, OBJ files. I found method A) more succint.
 
-**********************************************************************
 
-* ImGui
+Let's do a more substantial and complex library: ImGui at <https://github.com/ocornut/imgui>. It's an "immediate mode" UI library for C++ that's used a lot in rendering projects. We are going to use it's OpenGL backend for rendering and GLFW backend for windowing, which are extra dependencies that'll complicate the build process. Just assume that we have glfw under dependencies and it was build using a tool such as CMake with default settings therefore we have its headers and LIB file ready.
+
+By the way, a trick to bring the library into your project's version control is to use `git submodule` command.
+
 
 ```cmd
+cd project/dependencies
+git submodule add https://github.com/ocornut/imgui.git
+
+# OR if a specific branch is needed
+
 git submodule add --branch docking https://github.com/ocornut/imgui.git
-cd imgui
+```
+
+Now, whoever clones your project from GitHub also will clone the dependency libraries with it and your repo is not responsible of the dependency repo's files.
+
+```cmd
+cd project/dependencies/imgui
 mkdir build
-cl /std:c++20 /c /EHsc /I"." /I"../glfw/include" imgui.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp imgui_demo.cpp backends/imgui_impl_glfw.cpp backends/imgui_impl_opengl3.cpp /MD /Fo.\build\
+cl /c /EHsc /I. /I../glfw/include imgui.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp imgui_demo.cpp backends/imgui_impl_glfw.cpp backends/imgui_impl_opengl3.cpp /MD /Fobuild\
+
 cd build
 lib *.obj /out:imgui.lib
-del *.obj
 ```
+
+Again we use `/c` to just compile OBJ files. We include all necessary CPP files from ImGui. We choose `.\build\` as the output directory. 
+
+3 extra dependency specific tweaks: 
+1. Included current directory. `/I.` because some CPP files are not in the same folder as the rest of the source files. `backends/imgui_impl_glfw.cpp` includes `imgui.h` via `#include "imgui.h"` but that header is in the parent folder.
+2. that we rely on another dependency, GLFW, whose headers we include.
+3. we included `/MD` option which'll be explained very soon
+
+Let's build our project `imgui_test.cpp` that uses ImGui. Figuring out exact build command will take some process. Start with the following which includes GLFW headers and lib (assume we have it)
+
+```cmd
+cl /std:c++20 /W4 /EHsc ^
+    /I"../dependencies/imgui" /I"../dependencies/imgui/backends" ../dependencies/imgui/build/imgui.lib ^
+    /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib ^
+    imgui_test.cpp
+```
+
+We get millions of errors, first one being: `LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library`. See [LNK4098](https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-170). This is related to the previously mentioned `/MD` option which is related to the runtime libraries. See [/MD, /MT, /LD (Use Run-Time Library)](https://docs.microsoft.com/en-us/cpp/build/reference/md-mt-ld-use-run-time-library?view=msvc-170).
+
+Please refer to [C runtime (CRT) and C++ Standard Library (STL) .lib files](https://docs.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-170) about runtime libraries. AFAIU, CRT has the implementations of lower-level functionalities required by STL plus some other stuff the operating system provides. "The C runtime Library (CRT) is the part of the C++ Standard Library that incorporates the ISO C standard library." See [Microsoft C runtime library (CRT) reference](https://docs.microsoft.com/en-us/cpp/c-runtime-library/c-run-time-library-reference?view=msvc-170) for stuff that are provided with CRT. As an example, `new`, `delete` operators, `malloc()`, `free()` functions are implemented in CRT [Memory allocation](https://docs.microsoft.com/en-us/cpp/c-runtime-library/memory-allocation?view=msvc-170)
+
+`/MT` uses static version of the runtime library whereas `/MD` uses the dynamic version. (they also have `d` suffix to use the debug versions, e.g. `/MDd`). VS documentations recommends to use `/MD` all the time so I won't rebel against that. 
+
+The warning above was due to the fact that different components included in the final link, i.e. glfw, imgui, and our code, have different options used for the choice of runtime library. The suggestion to use `/NODEFAULTLIB:library` is to prevent linking any library (including runtime library) automatically.
+
+However, if everything uses `/MD` then every component uses the same version DLL provided by operating system and there won't be inconsistencies among them. So, let's add `/MD` into our build command.
+
+```cmd
+cl /std:c++20 /W4 /EHsc ^
+  /I"../dependencies/imgui" /I"../dependencies/imgui/backends" ../dependencies/imgui/build/imgui.lib ^
+  /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib ^
+  /MD ^
+  imgui_test.cpp
+```
+
+Suddenly number of warnings/errors dropped from million to 20! An example warning that was gone was: `LINK : warning LNK4286: symbol 'strncmp' defined in 'libucrt.lib(strncmp.obj)' is imported by 'glfw3.lib(context.obj)'` This should make more sense now. Documentation says `/MT` "Statically links the native CRT startup into your code." which is `libcmt.lib`. When not using `/MD` default `/MT` was used, but probably GLFW was build with `/MD` option and included the `strncmp` definition already.
+
+With `/MD` the first error we get is `imgui_test.obj : error LNK2019: unresolved external symbol __imp_glClear referenced in function main`. See [LNK2019](https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-error-lnk2019?view=msvc-170). This means, we are using a function, which is probably declared in one of the header files, but no OBJ file provided its definition/implementation.
+
+The procedure to fix these LNK2019 errors is to google the name of the missing symbol, and find the library that implemented that symbol in MS documents. :-)
+
+But this first one is a bit cryptic. You can tell that `glClear` is an OpenGL API function, and just add OpenGL32.lib as a library to our build command: `/MD OpenGL32.lib ^`. That is the OpenGL 1.1 library provided in Windows. (You might ask, what? How is that v1.1? Aren't we using 4.6? But that's a topic for another blog post. Just know that we are using OpenGL 1.1 to load OpenGL 4.6 functions later at runtime.)
+
+
+Now we have 17 errors. All errors from `imgui_test.obj` are gone, all of which were related to OpenGL API calls. Next error is `glfw3.lib(win32_window.obj) : error LNK2019: unresolved external symbol __imp_CreateBitmap referenced in function createIcon`. Google `CreateBitmap` which brings us to [CreateBitmap function (wingdi.h)](https://docs.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createbitmap) Scroll down and see "Library	`Gdi32.lib`". OK, now we know which other LIB to add: `/MD OpenGL32.lib Gdi32.lib ^`
+
+Nice, 4 errors were left. First one is `glfw3.lib(win32_window.obj) : error LNK2019: unresolved external symbol __imp_DragQueryFileW referenced in function windowProc`. We know the drill. Google `DragQueryFileW`. Get to [DragQueryFileW function (shellapi.h)](https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-dragqueryfilew). See that it uses `	Shell32.lib`. Build command has following line now: `/MD OpenGL32.lib Gdi32.lib Shell32.lib ^`
+
+Neat! We don't have any errors anymore and it generated the functioning executable.
+
+```cmd
+cl /std:c++20 /W4 /EHsc ^
+  /I"../dependencies/imgui" /I"../dependencies/imgui/backends" ../dependencies/imgui/build/imgui.lib ^
+  /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib ^
+  /MD OpenGL32.lib Gdi32.lib Shell32.lib ^
+  imgui_test.cpp
+```
+
+This was mouthful but we build a project that has complex dependencies, and we have a methodology to find necessary the LIB files provided by Windows.
+
+**********************************************************************
 
 ### Libraries with some building support such as CMake
 Most libraries come with CMakeLists.txt
@@ -256,22 +326,14 @@ Most libraries come with CMakeLists.txt
 * blend2d
 * minifb
 
-## Project depending on above libraries
+## Compiler Warnings Reprise - No warnings from dependencies
+
+```cmd
+/external:I"../dependencies" /external:W0
+```
 
 ```cmd
 cl /W4 /EHsc main.cpp /I../dependencies/blend2d/src ../dependencies/blend2d/build/Release/blend2d.lib /MD
-```
-
-ImGui project
-
-```cmd
-cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/imgui" /I"../dependencies/imgui/backends" ../dependencies/imgui/build/imgui.lib /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib Opengl32.lib Gdi32.lib Shell32.lib /MD /EHsc imgui_test.cpp
-```
-
-GLFW project
-
-```cmd
-cl /std:c++20 /W4 /external:I"../dependencies" /external:W0 /I"../dependencies/glfw/include" ../dependencies/glfw/build/src/Release/glfw3.lib Opengl32.lib User32.lib Gdi32.lib Shell32.lib /MD /EHsc glfw_01.cpp
 ```
 
 processing++
@@ -293,16 +355,6 @@ At this point it's better to have a `build.bat` file with above command in it.
 
 It'll be even better to have a `Makefile` and more better to have a `CMakeLists.txt` but the goal here is to learn the VS compiler options.
 
-## Compiler warnings only for our code, not for dependencies
-
-## Creating our own library
-
-instead of an executable
-
-```cmd
-cl /c /EHsc src\ColorSpace.cpp src\Comparison.cpp src\Conversion.cpp
-lib ColorSpace.obj Comparison.obj Conversion.obj /out:bld\ColorSpace.lib
-```
 
 ## Debug symbols
 
