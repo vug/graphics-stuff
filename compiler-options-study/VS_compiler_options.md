@@ -2,7 +2,13 @@
 
 ## TL;DR
 
-some options to give VS compiler/linker when building small projects from command-line.
+* Some options to give VS compiler/linker when building small projects from command-line. 
+* Projects of various size (single file, multi-file, multi-dependencies)
+* C Runtime library.
+* Which LIB files to provide to the linker.
+* Compiler warnings.
+* Various C++ specifications (c++17, c++20 etc). 
+* Creating LIB files.
 
 ## Introduction
 
@@ -187,9 +193,8 @@ cl /std:c++20 /EHsc /W4 image_program.cpp module1.cpp /I"..\dependencies\stb"
 cl /std:c++20 /EHsc /W4 src/image_program.cpp src/module1.cpp /I"dependencies\stb"
 ```
 
-
-
 ### Libraries without build support
+
 i.e. libraries that are only made of header and cpp files. We can choose to compile them along with our CPP files each time we build our project by adding their CPP files into our build command. However, the compiler will do the exact same calculation at each build command and spend time unnecessarily on library files, even though nothing has changed.
 
 We can "cache" the compilation output of the library by first only compiling/linking the library itself into a non-executable binary file and link our project against it.
@@ -318,57 +323,146 @@ cl /std:c++20 /W4 /EHsc ^
 
 This was mouthful but we build a project that has complex dependencies, and we have a methodology to find necessary the LIB files provided by Windows.
 
-**********************************************************************
 
 ### Libraries with some building support such as CMake
-Most libraries come with CMakeLists.txt
 
-* blend2d
-* minifb
+Above we assumed that we have GLFW library as dependency, but we didn't mention how it was built. I'm not going to dive into details of CMake but just going to provide commands to demonstrate building a dependency that has CMake support.
+
+First add GLFW as a submodule dependency
+
+```cmd
+cd project/dependencies
+git submodule add https://github.com/glfw/glfw.git
+```
+
+then create a build folder under glfw
+
+```cmd
+cd glfw
+mkdir build
+cd build
+```
+
+optionally list configuration options for this project
+
+```cmd
+cmake .. -L
+```
+
+for example following options are printed with `-L` call
+
+```txt
+BUILD_SHARED_LIBS:BOOL=OFF
+CMAKE_CONFIGURATION_TYPES:STRING=Debug;Release;MinSizeRel;RelWithDebInfo
+CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/GLFW
+GLFW_BUILD_DOCS:BOOL=ON
+GLFW_BUILD_EXAMPLES:BOOL=ON
+GLFW_BUILD_TESTS:BOOL=ON
+GLFW_BUILD_WIN32:BOOL=ON
+GLFW_INSTALL:BOOL=ON
+GLFW_LIBRARY_TYPE:STRING=
+GLFW_USE_HYBRID_HPG:BOOL=OFF
+USE_MSVC_RUNTIME_LIBRARY_DLL:BOOL=ON
+```
+
+Generate the build system with our choice of configuration settings. For example we don't need examples, documentation, tests. And we don't want to install anything.
+
+```cmd
+cmake .. -DGLFW_BUILD_DOCS=OFF -DGLFW_BUILD_EXAMPLES=Off -DGLFW_BUILD_TESTS=OFF -DGLFW_INSTALL=OFF
+```
+
+This creates a Visual Studio solution for us (because that's the default setting for me). Though we don't need to open the IDE, we can let the CMake to build the project from command-line via following
+
+```cmd
+cmake --build . --config Release
+cmake --build . --config Debug
+```
+
+First one builds the optimized Release library binaries, and the latter build the unoptimized Debug version that has debugging symbols.
+
+If everything goes well we should see the LIB files in
+
+```txt
+project/dependencies/glfw/build/src/Release/glfw3.lib
+project/dependencies/glfw/build/src/Debug/glfw3.lib
+```
+
+Use the version that fits the purpose.
+
 
 ## Compiler Warnings Reprise - No warnings from dependencies
 
-```cmd
-/external:I"../dependencies" /external:W0
-```
+Sometimes the author of a library we use does not care about the compiler warnings. This can become annoying if the warning is thrown due to a code in its header files. Then we'll see the warning each time we build.
+
+It's possible to tell the compiler "this is my code and these are external code. I want detailed warnings about my code but no warnings about those external code". `/external:I` tells the location of external code and `/external:W?` tells the level of warnings from external code.
+
+In my project structure all external logic is under `dependencies/` folder there fore I use following line in my build command.
 
 ```cmd
-cl /W4 /EHsc main.cpp /I../dependencies/blend2d/src ../dependencies/blend2d/build/Release/blend2d.lib /MD
+    /external:I"../dependencies" /external:W0
 ```
 
-processing++
+## Optimization and Debug Symbols
+
+Remember CMake provides Release and Debug build options. (I think standard VS solutions provide the same too.) We can provide optimization options from command line too. See [/O options \(Optimize code\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/o-options-optimize-code?view=msvc-170)
+
+Basically if you want an optimized Release version use `/O2` option. See [/O1, /O2 (Minimize Size, Maximize Speed)](https://docs.microsoft.com/en-us/cpp/build/reference/o1-o2-minimize-size-maximize-speed?view=msvc-170).
+
+The default `/O` options is `/Od` which is the debugging option. See [/Od (Disable (Debug))](https://docs.microsoft.com/en-us/cpp/build/reference/od-disable-debug?view=msvc-170)
+
+Don't be lazy use optimization options because they really make a difference in code execution speed! (It produces shorter assembily code that'll be ran in fewer CPU cycles.)
+
+Other useful option related debugging is about generating debug information such as list of symbols. See [/DEBUG (Generate Debug Info)](https://docs.microsoft.com/en-us/cpp/build/reference/debug-generate-debug-info?view=msvc-170).
+
+[/Z7, /Zi, /ZI (Debug Information Format)](https://docs.microsoft.com/en-us/cpp/build/reference/z7-zi-zi-debug-information-format?view=msvc-170) says that if we use "`/Zi` option [it] produces a separate PDB file that contains all the symbolic debugging information for use with the debugger". (I might write about a VS Code setup with debugging option for C++ later.)
+
+So, either use `/O2` or `/Zi`.
+
+## Summary
+
+Assuming all dependencies are under `dependencies/` folder we have the following build command structure. 
+
+* Start with `cl /std:c++20 /W4 /external:I../dependencies /external:W0 /EHsc /MD`
+* If release add `/O2` if debug add `/Zi` options
+* Then for each dependency add necessary inclusion folders via `/I` for its headers and their LIB file. (Either using full path or using filename only with `/LIBPATH:` providing folder to libs) Also bring release vs. debug verions of dependencies based on our choice.
+* If necessary add LIBs that comes with Windows
+* Add CPP files from our project.
+
+At this point it's better to have a `build.bat` file with our build command in it.
+
+
+```bat
+// build_release.bat
+cl /std:c++20 /W4 /external:I../dependencies /external:W0 /EHsc /MD /O2 /I../dependencies/imgui /I../dependencies/imgui/backends ../dependencies/imgui/build/imgui.lib /I../dependencies/glfw/include ../dependencies/glfw/build/src/Release/glfw3.lib OpenGL32.lib Gdi32.lib Shell32.lib imgui_test.cpp module1.cpp
+```
+
+```bat
+// build_debug.bat
+cl /std:c++20 /W4 /external:I../dependencies /external:W0 /EHsc /MD /Zi /I../dependencies/imgui /I../dependencies/imgui/backends ../dependencies/imgui/build/imgui.lib /I../dependencies/glfw/include ../dependencies/glfw/build/src/Debug/glfw3.lib OpenGL32.lib Gdi32.lib Shell32.lib imgui_test.cpp module1.cpp
+```
+
+They can even output temp files and final executable into different folders based on the taste. :-)
+
+And remember we can build library dependencies themselves via
 
 ```cmd
-cl /W4 /EHsc main.cpp processing.cpp sketch1.cpp /I../dependencies/minifb/include ../dependencies/minifb/build/Release/minifb.lib User32.lib OpenGL32.lib Gdi32.lib Winmm.lib /I../dependencies/blend2d/src ../dependencies/blend2d/build/Release/blend2d.lib /MD
+cl /c /EHsc src\*.cpp /Fobuild\ 
+lib build/*.obj /out:build\MyLibrary.lib
 ```
 
-```cmd
-cl /W4 /EHsc main.cpp processing.cpp sketch1.cpp ^
-  User32.lib OpenGL32.lib Gdi32.lib Winmm.lib ^
-  /I../dependencies/minifb/include ../dependencies/minifb/build/Release/minifb.lib ^
-  /I../dependencies/blend2d/src ../dependencies/blend2d/build/Release/blend2d.lib ^
-  /I../dependencies/ColorSpace/src ../dependencies/ColorSpace/bld/ColorSpace.lib ^
-  /MD
-```
+and optionally use `/Zi` or `/O2` at compilation step.
 
-At this point it's better to have a `build.bat` file with above command in it.
+## Conclusion
 
-It'll be even better to have a `Makefile` and more better to have a `CMakeLists.txt` but the goal here is to learn the VS compiler options.
+It'll be even better to have a `Makefile` and more better to have a `CMakeLists.txt` but my goal with this post was to learn the VS compiler options. I might write about a practical CMake based project structure later.
 
+One does not need to deal with any of these and just use Visual Studio IDE and apply settings there. 
 
-## Debug symbols
+However, I believe, it's always good to know what's happening under the hood. And learning concepts apply to different platforms and compilers too. I should learn the gcc and clang counterparts of all the options mentioned in this post. 
 
-`/Zi`
+And sometimes, when projects become very big (thousands of dependencies, hunderds of software developers working on the same codebase) it might not be practical to rely on the IDE and some advanced build tool (bazel, buck, ninja, conan etc.) needed and we've to provide options via config files.
 
-I should write about debugging via Visual Studio Code (and broaders VS Code C++ setup) in a future post.
-
-## Optimization
-
-`/O2`
-
-"Debug vs Release"
-
-See [/O options \(Optimize code\) \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/o-options-optimize-code?view=msvc-170)
+So, a one time investment on understanding building projects purely from command-line options provides concepts to utilize for long time!
 
 ## References
 
@@ -377,3 +471,4 @@ See [/O options \(Optimize code\) \| Microsoft Docs](https://docs.microsoft.com/
 * All linker options: [MSVC Linker options \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/linker-options?view=msvc-170)
 * [Use the Microsoft C\+\+ toolset from the command line \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170)
 * [Compiler Command-Line Syntax \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/compiler-command-line-syntax?view=msvc-170)
+* [Order of CL Options \| Microsoft Docs](https://docs.microsoft.com/en-us/cpp/build/reference/order-of-cl-options?view=msvc-170) "Options can appear anywhere on the CL command line, except for the /link option, which must occur last."
