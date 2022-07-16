@@ -193,67 +193,10 @@ public:
 
   void onInit() final
   {
-    const char *mainShaderVertex = R"(
-#version 460 core
-
-layout (location = 0) in vec3 vPos;
-layout (location = 1) in vec3 vNorm;
-layout (location = 2) in vec2 vUV;
-layout (location = 3) in vec4 vColor;
-layout (location = 4) in vec4 vCustom;
-
-uniform mat4 WorldFromObject;
-uniform mat4 ViewFromWorld;
-uniform mat4 ProjectionFromView;
-uniform vec2 RenderTargetSize;
-
-out VertexData
-{
-  vec3 position;
-  vec3 normal;
-  vec2 uv;
-  vec4 color;
-} vertexData;
-
-void main()
-{
-  //gl_Position = ProjectionFromView * ViewFromWorld * WorldFromObject * vec4(vPos, 1.0);
-  gl_Position = ProjectionFromView * vec4(vPos, 1.0);
-  float radius = vCustom.x;
-  gl_PointSize = radius * RenderTargetSize.y;
-
-  vertexData.position = vPos;
-  vertexData.normal = vNorm;
-  vertexData.uv = vUV;
-  vertexData.color = vColor;
-}
-)";
-
-    const char *pointShaderFragment = R"(
-#version 460 core
-
-in VertexData
-{
-  vec3 position;
-  vec3 normal;
-  vec2 uv;
-  vec4 color;
-} vertexData;
-
-out vec4 FragColor;
-
-void main()
-{
-  vec2 p = 2 * gl_PointCoord - 1;
-  if (dot(p, p) > 1)
-    discard;
-  FragColor = vec4(1, 1, 1, 1);
-  // float alpha = (1.0 - smoothstep(0.25, 1.0, length(p))) * 0.1;
-  // FragColor = vec4(vertexData.color.rgb, alpha);
-}
-)";
-
-    pointShader = std::make_unique<ws::Shader>(mainShaderVertex, pointShaderFragment);
+    pointShader = std::make_unique<ws::Shader>();
+    pointShader->load(
+        "C:/Users/veliu/Documents/repos/graphics-stuff/workshop-apps/graverlet/main.vert",
+        "C:/Users/veliu/Documents/repos/graphics-stuff/workshop-apps/graverlet/point.frag");
 
     // setupGalaxyLike(500, 1.0f);
     setupSolarSystemLike();
