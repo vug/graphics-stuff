@@ -17,6 +17,7 @@
 #include "plots.h"
 
 #include <App.h>
+#include <Camera.h>
 #include <Mesh.h>
 #include <Shader.h>
 
@@ -103,6 +104,8 @@ public:
 
   std::unique_ptr<ws::Shader> pointShader;
   std::unique_ptr<ws::Mesh> mesh;
+
+  std::unique_ptr<ws::Camera2D> camera;
 
   InterForce gravitationalForce = [](const VerletObject &obj1, const VerletObject &obj2)
   {
@@ -202,6 +205,8 @@ public:
     setupSolarSystemLike();
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
+    camera = std::make_unique<ws::Camera2D>(static_cast<float>(specs.width), static_cast<float>(specs.height));
+
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
     // glEnable(GL_CULL_FACE);
@@ -252,7 +257,9 @@ public:
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
     static int objIx = 0;
     ImGui::InputInt("Camera Follows Object", &objIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
-    const glm::vec2 camPos = objects[objIx].pos;
+    camera->width = areaSize * 2;
+    camera->height = areaSize * 2;
+    camera->position = objects[objIx].pos;
 
     ImGui::Separator();
     static bool showImPlotDemo = false;
@@ -266,11 +273,10 @@ public:
     ImGui::End();
 
     float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
-    const glm::mat4 projOrtho = glm::ortho(-areaSize + camPos.x, areaSize + camPos.x, -areaSize + camPos.y, areaSize + camPos.y, -1.f, 1.f);
 
     pointShader->bind();
     pointShader->setVector2fv("RenderTargetSize", rts);
-    pointShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(projOrtho));
+    pointShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
