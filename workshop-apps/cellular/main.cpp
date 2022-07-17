@@ -25,7 +25,7 @@ public:
   ws::OMesh *oMesh;
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> meshSelectionViz;
-  std::unique_ptr<ws::Camera> camera;
+  std::unique_ptr<ws::CameraPerspective> camera;
   std::mt19937 rng;
   std::uniform_real_distribution<float> dist;
 
@@ -105,7 +105,7 @@ void main()
     // oMesh = ws::makeDiskOMesh(5);
     mesh.reset(ws::makeMeshFromOMesh(*oMesh));
 
-    camera = std::make_unique<ws::Camera>(static_cast<float>(specs.width), static_cast<float>(specs.height));
+    camera = std::make_unique<ws::CameraPerspective>(static_cast<float>(specs.width), static_cast<float>(specs.height));
 
     meshSelectionViz = std::make_unique<ws::Mesh>(3);
     meshSelectionViz->verts[0].color = {1, 0, 0, 1};
