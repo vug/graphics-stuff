@@ -205,7 +205,7 @@ public:
     setupSolarSystemLike();
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
-    camera = std::make_unique<ws::Camera2D>(static_cast<float>(specs.width), static_cast<float>(specs.height));
+    camera = std::make_unique<ws::Camera2D>(2.5f, 2.5f);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -234,17 +234,28 @@ public:
     ImGui::SetNextWindowPos(ImVec2(static_cast<float>(getWinPosX()), static_cast<float>(getWinPosY())), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(static_cast<float>(width), static_cast<float>(height)), ImGuiCond_Always);
     ImGui::Begin("Main Window", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse);
+    // Pan
     static glm::vec2 camPos0{};
-    static const float panSpeed = 0.005f;
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
       camPos0 = camera->position;
     if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
     {
       ImVec2 mouseDrag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-      camera->position.x = camPos0.x - mouseDrag.x * panSpeed;
-      camera->position.y = camPos0.y + mouseDrag.y * panSpeed;
+      // for consistent pan experience at every zoom-level
+      // move the camera full width/height when mouse moved whole side
+      camera->position.x = camPos0.x - mouseDrag.x * (camera->width / specs.width);
+      camera->position.y = camPos0.y + mouseDrag.y * (camera->height / specs.height);
     }
-    // TODO: zoom via add scroll wheel and via another drag
+    // Zoom
+    const float wheel = ImGui::GetIO().MouseWheel;
+    if (wheel != 0)
+    {
+      // for consistent zoom experience at every zoom-level should have "same amount" of visible zoom in/out
+      // therefore change the width & height exponentially.
+      const float factor = std::powf(2.f, -wheel / 4.0f);
+      camera->width = camera->width * factor;
+      camera->height = camera->height * factor;
+    }
     ImGui::End();
 
     ImGui::Begin("Verlet Simulation");
@@ -269,13 +280,9 @@ public:
     ImGui::Separator();
     ImGui::InputFloat("Speed (days/sec)", &speed, 0.001f, 0, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::SliderInt("NumIter", &numIter, 1, 16);
-    ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
-    static float areaSize = 1.5f;
-    ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
+    ImGui::Text("cam pos: (%g, %G), size: (%g, %G)", camera->position.x, camera->position.y, camera->width, camera->height);
     static int objIx = -1;
     ImGui::InputInt("Camera Follows Object", &objIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
-    camera->width = areaSize * 2;
-    camera->height = areaSize * 2;
     if (objIx > -1)
       camera->position = objects[objIx].pos;
 
@@ -290,6 +297,7 @@ public:
     if (showImGuiDemo)
       ImGui::ShowDemoWindow();
 
+    ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     static EnergiesPlot eplt{5 * 60}; // approx N sec in 60 FPS
     eplt.addEnergyPoints(time, solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     eplt.plot({-1, 600});
