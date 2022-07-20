@@ -87,6 +87,7 @@ namespace ws
       ImGui::NewFrame();
 
       glfwPollEvents();
+      glfwGetWindowPos(window, &winPosX, &winPosY);
 
       const float deltaTime = static_cast<float>(glfwGetTime()) - time;
       time += deltaTime;

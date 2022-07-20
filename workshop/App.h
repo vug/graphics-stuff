@@ -19,6 +19,8 @@ namespace ws
     ~App();
 
     void run();
+    const int &getWinPosX() const { return winPosX; }
+    const int &getWinPosY() const { return winPosY; }
 
     virtual void onInit() = 0;
     virtual void onRender(float time, float deltaTime) = 0;
@@ -27,5 +29,9 @@ namespace ws
     Specs specs;
     uint32_t width{};
     uint32_t height{};
+
+  private:
+    int winPosX{};
+    int winPosY{};
   };
 }
