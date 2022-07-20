@@ -18,6 +18,7 @@
 
 #include <App.h>
 #include <Camera.h>
+#include <CameraController.h>
 #include <Mesh.h>
 #include <Shader.h>
 
@@ -106,6 +107,7 @@ public:
   std::unique_ptr<ws::Mesh> mesh;
 
   std::unique_ptr<ws::Camera2D> camera;
+  std::unique_ptr<ws::Camera2DController> camController;
 
   InterForce gravitationalForce = [](const VerletObject &obj1, const VerletObject &obj2)
   {
@@ -206,6 +208,7 @@ public:
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
     camera = std::make_unique<ws::Camera2D>(2.5f, 2.5f);
+    camController = std::make_unique<ws::Camera2DController>(*camera);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -230,32 +233,13 @@ public:
 
     mesh->uploadData();
 
+    const float widthF = static_cast<float>(width);
+    const float heightF = static_cast<float>(height);
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::SetNextWindowPos(ImVec2(static_cast<float>(getWinPosX()), static_cast<float>(getWinPosY())), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(width), static_cast<float>(height)), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(widthF, heightF), ImGuiCond_Always);
     ImGui::Begin("Main Window", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse);
-    // Pan
-    static glm::vec2 camPos0{};
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-      camPos0 = camera->position;
-    if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
-    {
-      ImVec2 mouseDrag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-      // for consistent pan experience at every zoom-level
-      // move the camera full width/height when mouse moved whole side
-      camera->position.x = camPos0.x - mouseDrag.x * (camera->width / specs.width);
-      camera->position.y = camPos0.y + mouseDrag.y * (camera->height / specs.height);
-    }
-    // Zoom
-    const float wheel = ImGui::GetIO().MouseWheel;
-    if (wheel != 0)
-    {
-      // for consistent zoom experience at every zoom-level should have "same amount" of visible zoom in/out
-      // therefore change the width & height exponentially.
-      const float factor = std::powf(2.f, -wheel / 4.0f);
-      camera->width = camera->width * factor;
-      camera->height = camera->height * factor;
-    }
+    camController->update(widthF, heightF);
     ImGui::End();
 
     ImGui::Begin("Verlet Simulation");
@@ -303,7 +287,7 @@ public:
     eplt.plot({-1, 600});
     ImGui::End();
 
-    float rts[2] = {static_cast<float>(width), static_cast<float>(height)};
+    float rts[2] = {widthF, heightF};
 
     pointShader->bind();
     pointShader->setVector2fv("RenderTargetSize", rts);
