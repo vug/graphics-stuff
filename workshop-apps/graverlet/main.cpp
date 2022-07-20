@@ -16,6 +16,7 @@
 #include "Verlet.h"
 #include "plots.h"
 
+#include <GSAssets.h>
 #include <App.h>
 #include <Camera.h>
 #include <CameraController.h>
@@ -217,8 +218,8 @@ public:
   {
     pointShader = std::make_unique<ws::Shader>();
     pointShader->load(
-        "C:/Users/veliu/Documents/repos/graphics-stuff/workshop-apps/graverlet/main.vert",
-        "C:/Users/veliu/Documents/repos/graphics-stuff/workshop-apps/graverlet/point.frag");
+        GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
+        GS_ASSETS_FOLDER / "shaders/graverlet/point.frag");
 
     setupSunEarthMoon();
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
