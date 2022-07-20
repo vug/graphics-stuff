@@ -1,0 +1,2 @@
+#include <filesystem>
+std::filesystem::path GS_ASSETS_FOLDER = "@GS_ASSETS_FOLDER@";

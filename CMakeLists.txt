@@ -4,6 +4,10 @@ project(GraphicsEngineersWorkshop
   VERSION 0.1
   DESCRIPTION "Graphics Engineer's Workshop")
 
+set(GS_ASSETS_FOLDER ${PROJECT_SOURCE_DIR}/assets)
+configure_file(assets/GSAssets.h.in assets/GSAssets.h @ONLY)
+include_directories(${PROJECT_BINARY_DIR}/assets)
+
 add_subdirectory(dependencies)
 add_subdirectory(workshop)
 add_subdirectory(workshop-apps/boilerplate)
