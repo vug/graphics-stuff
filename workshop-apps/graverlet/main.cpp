@@ -135,10 +135,10 @@ public:
 
   MyApp() : App({.name = "MyApp", .width = 800u, .height = 800u, .shouldDebugOpenGL = true}) {}
 
-  void setupGalaxyLike(int numObjects, float speed)
+  void setupSolarSystemFilledWithPlanets(int numObjects, float speedFactor)
   {
     objects.clear();
-    objects.emplace_back(VerletObject{{0, 0}, {0, 0}, 100, 0.05f, {}});
+    objects.emplace_back(VerletObject{{0, 0}, {0, 0}, constants::M_Sun, 0.05f, {}});
     for (int n = 0; n < numObjects; n++)
     {
       const float r = constants::R_AU * rndDist(rndGen);
@@ -151,10 +151,8 @@ public:
       }
       glm::vec2 v{};
       {
-        // const float theta = 2.0f * 3.14159265f * rndDist(rndGen);
-        // v = spd * {std::cos(theta), std::sin(theta)};
-        const float spd = std::sqrt(constants::G0 * constants::M_Earth / r);
-        v = glm::normalize(glm::vec2{-p.y, p.x}) * spd * speed;
+        const float speed = constants::V_Earth_Sun / std::sqrt(r);
+        v = glm::normalize(glm::vec2{-p.y, p.x}) * speed * speedFactor;
       }
 
       objects.emplace_back(VerletObject{p, v, 1.5f, 0.01f});
@@ -172,7 +170,7 @@ public:
     mesh->uploadData();
   }
 
-  void setupSolarSystemLike()
+  void setupSunEarthMoon()
   {
     objects.clear();
     // Add sun
@@ -182,7 +180,7 @@ public:
     // Add moon
     objects.emplace_back(VerletObject{{constants::R_AU - constants::R_Moon_Earth, 0}, {0, constants::V_Earth_Sun - constants::V_Moon_Earth}, constants::M_Moon, 0.0002f, {}});
 
-    // // Earth+Moon only for debugging
+    // Earth+Moon only
     // objects.emplace_back(VerletObject{{0, 0}, {0, 0}, constants::M_Earth, 0.002f, {}});
     // objects.emplace_back(VerletObject{{0.00257, 0}, {0, constants::V_Moon}, 1.0f / 82, 0.0002f, {}});
 
@@ -203,8 +201,7 @@ public:
         "C:/Users/veliu/Documents/repos/graphics-stuff/workshop-apps/graverlet/main.vert",
         "C:/Users/veliu/Documents/repos/graphics-stuff/workshop-apps/graverlet/point.frag");
 
-    // setupGalaxyLike(500, 1.0f);
-    setupSolarSystemLike();
+    setupSunEarthMoon();
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
     camera = std::make_unique<ws::Camera2D>(2.5f, 2.5f);
@@ -246,15 +243,15 @@ public:
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
 
     ImGui::Separator();
-    static int numObjects = 500;
-    static float speedFactor = 0.1f;
+    static int numObjects = 200;
+    static float speedFactor = 1.0f;
     ImGui::InputInt("Num Objects", &numObjects, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::SliderFloat("Speed Factor", &speedFactor, 0.00001f, 10.0f);
-    if (ImGui::Button("Galaxy-like"))
-      setupGalaxyLike(numObjects, speedFactor);
+    if (ImGui::Button("Sun with N planets"))
+      setupSolarSystemFilledWithPlanets(numObjects, speedFactor);
     ImGui::SameLine();
-    if (ImGui::Button("Solar System-like"))
-      setupSolarSystemLike();
+    if (ImGui::Button("Sun, Earth, Moon"))
+      setupSunEarthMoon();
 
     ImGui::Separator();
 
