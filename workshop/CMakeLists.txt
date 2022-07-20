@@ -1,5 +1,8 @@
 add_library(Workshop STATIC
-  App.cpp Shader.cpp Mesh.cpp OMesh.cpp Camera.cpp)
+  App.cpp
+  Shader.cpp
+  Mesh.cpp OMesh.cpp
+  Camera.cpp CameraController.cpp)
 
 target_compile_features(Workshop PRIVATE cxx_std_20)
 
