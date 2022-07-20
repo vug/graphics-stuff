@@ -230,6 +230,23 @@ public:
 
     mesh->uploadData();
 
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::SetNextWindowPos(ImVec2(static_cast<float>(getWinPosX()), static_cast<float>(getWinPosY())), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(width), static_cast<float>(height)), ImGuiCond_Always);
+    ImGui::Begin("Main Window", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse);
+    static glm::vec2 camPos0{};
+    static const float panSpeed = 0.005f;
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+      camPos0 = camera->position;
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+    {
+      ImVec2 mouseDrag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+      camera->position.x = camPos0.x - mouseDrag.x * panSpeed;
+      camera->position.y = camPos0.y + mouseDrag.y * panSpeed;
+    }
+    // TODO: zoom via add scroll wheel and via another drag
+    ImGui::End();
+
     ImGui::Begin("Verlet Simulation");
     ImGui::Text("Frame dur: %.4f, FPS: %.1f", deltaTime, 1.0f / deltaTime);
 
@@ -267,6 +284,11 @@ public:
     ImGui::Checkbox("ImPlot Demo", &showImPlotDemo);
     if (showImPlotDemo)
       ImPlot::ShowDemoWindow();
+    ImGui::SameLine();
+    static bool showImGuiDemo = false;
+    ImGui::Checkbox("ImGui Demo", &showImGuiDemo);
+    if (showImGuiDemo)
+      ImGui::ShowDemoWindow();
 
     static EnergiesPlot eplt{5 * 60}; // approx N sec in 60 FPS
     eplt.addEnergyPoints(time, solver->potential, solver->kinetic, solver->potential + solver->kinetic);
