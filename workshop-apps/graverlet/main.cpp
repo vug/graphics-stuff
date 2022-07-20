@@ -255,11 +255,12 @@ public:
     ImGui::Text("Potential: %+3.2e, Kinetic: %+3.2e, Total: %+3.2e", solver->potential, solver->kinetic, solver->potential + solver->kinetic);
     static float areaSize = 1.5f;
     ImGui::SliderFloat("Area Size", &areaSize, 0.1f, 100.f, "%3.1f");
-    static int objIx = 0;
+    static int objIx = -1;
     ImGui::InputInt("Camera Follows Object", &objIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
     camera->width = areaSize * 2;
     camera->height = areaSize * 2;
-    camera->position = objects[objIx].pos;
+    if (objIx > -1)
+      camera->position = objects[objIx].pos;
 
     ImGui::Separator();
     static bool showImPlotDemo = false;
