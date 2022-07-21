@@ -221,6 +221,7 @@ public:
     glEnable(GL_PROGRAM_POINT_SIZE);
     // glEnable(GL_CULL_FACE);
     // glEnable(GL_DEPTH_TEST); // render all star fragments -> no depth test
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   }
@@ -308,19 +309,19 @@ public:
     debugMesh->idxs.clear();
     uint32_t saGridIdx = 0;
     const std::array<uint32_t, 8> relativeIdxs = {0, 1, 1, 2, 2, 3, 3, 0};
+    const std::array<glm::vec2, 4> relativePoses = {glm::vec2{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+
     for (auto &[key, vec] : sa.cache)
     {
       const float x = static_cast<float>(key.first) * cellSize;
       const float y = static_cast<float>(key.second) * cellSize;
-      const float z = 0.f;
-      debugMesh->verts.emplace_back(glm::vec3{x, y, z});
-      debugMesh->verts.emplace_back(glm::vec3{x + cellSize, y, z});
-      debugMesh->verts.emplace_back(glm::vec3{x + cellSize, y + cellSize, z});
-      debugMesh->verts.emplace_back(glm::vec3{x, y + cellSize, z});
+      const float z = -0.1f;
+      for (const auto &rp : relativePoses)
+        debugMesh->verts.emplace_back(glm::vec3{x + rp.x * cellSize, y + rp.y * cellSize, z});
 
       for (auto relIx : relativeIdxs)
         debugMesh->idxs.push_back(saGridIdx + relIx);
-      saGridIdx += static_cast<uint32_t>(relativeIdxs.size());
+      saGridIdx += static_cast<uint32_t>(relativePoses.size());
     }
     debugMesh->uploadData();
 

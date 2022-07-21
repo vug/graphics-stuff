@@ -62,8 +62,8 @@ public:
   {
     for (size_t ix = 0; const auto &obj : objects)
     {
-      const int i = static_cast<int>(obj.pos.x / cellSize);
-      const int j = static_cast<int>(obj.pos.y / cellSize);
+      const int i = static_cast<int>(std::floor(obj.pos.x / cellSize));
+      const int j = static_cast<int>(std::floor(obj.pos.y / cellSize));
       cache[std::make_pair(i, j)].push_back(obj);
       // printf("[%zu] (%d, %d) <- (%g, %g)\n", ix, i, j, obj.pos.x, obj.pos.y);
       ++ix;
