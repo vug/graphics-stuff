@@ -99,24 +99,6 @@ glm::vec4 bv2rgb(double bv)    // RGB <0,1> <- BV <-0.4,+2.0> [-]
 }
 // clang-format on
 
-template <class T>
-inline void hash_combine(std::size_t &seed, const T &v)
-{
-  std::hash<T> hasher;
-  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
-struct hash_pair
-{
-  std::size_t operator()(const std::pair<int, int> &p) const
-  {
-    std::size_t h = 0;
-    hash_combine(h, p.first);
-    hash_combine(h, p.second);
-    return h;
-  }
-};
-
 class MyApp : public ws::App
 {
 public:
@@ -240,26 +222,8 @@ public:
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    std::unordered_map<std::pair<int, int>, std::vector<std::reference_wrapper<const VerletObject>>, hash_pair> spatialAccl;
     static float cellSize = 0.1f;
-    for (size_t ix = 0; const auto &obj : objects)
-    {
-      const int i = static_cast<int>(obj.pos.x / cellSize);
-      const int j = static_cast<int>(obj.pos.y / cellSize);
-      spatialAccl[std::make_pair(i, j)].push_back(obj);
-      // printf("[%zu] (%d, %d) <- (%g, %g)\n", ix, i, j, obj.pos.x, obj.pos.y);
-      ++ix;
-    }
-    for (auto &[key, v] : spatialAccl)
-    {
-      // printf("[%d, %d]: %zu\n", key.first, key.second, v.size());
-    }
-    // printf("******************\n\n");
-    // TODO: how to deal with stray planents (with high index) -> put them into some maximum value bucket
-    // TODO: iterator over every object in a cell
-    // TODO: iterator over every object in this cell and neighboring cells
-    // TODO: store total mass per cell
-    // TODO: "optimized Verlet" that uses spatialAccelration structure
+    SpatialAccelarator sa{objects, cellSize};
 
     static float speed = 30.0f;
     static int numIter = 2;
@@ -285,6 +249,8 @@ public:
 
     ImGui::Separator();
     ImGui::SliderFloat("cellSize", &cellSize, 0.001f, 0.5f, "%.4f");
+    if (ImGui::Button("Objs in SA"))
+      sa.debugPrint();
 
     ImGui::Separator();
     static int numObjects = 200;

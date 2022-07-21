@@ -15,6 +15,71 @@ struct VerletObject
   glm::vec2 acc{};
 };
 
+// TODO: how to deal with stray planents (with high index) -> put them into some maximum value bucket
+// TODO: iterator over every object in a cell
+// TODO: iterator over every object in this cell and neighboring cells
+// TODO: store total mass per cell
+// TODO: "optimized Verlet" that uses spatialAccelration structure
+// TODO: simpler hashing: 1000*x+y (?)
+// TODO: iterator and ranges over objects in neighboring cells
+// TODO: list of objects that won't be included in cells
+class SpatialAccelarator
+{
+public:
+  template <class T>
+  static inline void hash_combine(std::size_t &seed, const T &v)
+  {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  }
+
+  struct hash_pair
+  {
+    std::size_t operator()(const std::pair<int, int> &p) const
+    {
+      std::size_t h = 0;
+      hash_combine(h, p.first);
+      hash_combine(h, p.second);
+      return h;
+    }
+  };
+
+  struct hash_pair_simple
+  {
+    std::size_t operator()(const std::pair<int, int> &p) const
+    {
+      return p.first * 10'000 + p.second;
+    }
+  };
+
+  using PositionHashMap = std::unordered_map<std::pair<int, int>, std::vector<std::reference_wrapper<const VerletObject>>, hash_pair>;
+
+  PositionHashMap cache;
+  float cellSize{0.1f};
+
+  SpatialAccelarator(const std::vector<VerletObject> &objects, const float cellSize = 0.1f)
+      : cellSize(cellSize)
+  {
+    for (size_t ix = 0; const auto &obj : objects)
+    {
+      const int i = static_cast<int>(obj.pos.x / cellSize);
+      const int j = static_cast<int>(obj.pos.y / cellSize);
+      cache[std::make_pair(i, j)].push_back(obj);
+      // printf("[%zu] (%d, %d) <- (%g, %g)\n", ix, i, j, obj.pos.x, obj.pos.y);
+      ++ix;
+    }
+  }
+
+  void debugPrint()
+  {
+    for (auto &[key, v] : cache)
+    {
+      printf("[%d, %d]: %zu\n", key.first, key.second, v.size());
+    }
+    printf("******************\n\n");
+  }
+};
+
 using InterForce = std::function<glm::vec2(const VerletObject &obj1, const VerletObject &obj2)>;
 using InterPotential = std::function<float(const VerletObject &obj1, const VerletObject &obj2)>;
 
