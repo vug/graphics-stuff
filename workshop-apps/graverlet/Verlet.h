@@ -26,6 +26,8 @@ struct VerletObject
 class SpatialAccelarator
 {
 public:
+  using PositionIndex = std::pair<int, int>;
+
   template <class T>
   static inline void hash_combine(std::size_t &seed, const T &v)
   {
@@ -35,7 +37,7 @@ public:
 
   struct hash_pair
   {
-    std::size_t operator()(const std::pair<int, int> &p) const
+    std::size_t operator()(const PositionIndex &p) const
     {
       std::size_t h = 0;
       hash_combine(h, p.first);
@@ -52,10 +54,65 @@ public:
     }
   };
 
-  using PositionHashMap = std::unordered_map<std::pair<int, int>, std::vector<std::reference_wrapper<const VerletObject>>, hash_pair>;
-
+  using PositionHashMap = std::unordered_map<PositionIndex, std::vector<std::reference_wrapper<const VerletObject>>, hash_pair>;
   PositionHashMap cache;
+  std::unordered_map<PositionIndex, VerletObject, hash_pair> cellAverages;
+
   float cellSize{0.1f};
+
+  /*
+  struct NeighboringObjectsIterator
+  {
+    NeighboringObjectsIterator(SpatialAccelarator &acc, std::vector<PositionIndex> &cellIdxs)
+        : acc{acc}, cellIter{cellIdxs.begin()} {}
+
+    bool operator!=(const VerletObject *other)
+    {
+      return current != other;
+    }
+
+    NeighboringObjectsIterator &operator++()
+    {
+      ++objIxInCell;
+      if (objIxInCell)
+      {
+        objIxInCell = 0;
+        cellIx += 1;
+      }
+      current = &acc.cache[neighboringCellIdxs[cellIx]][objIxInCell].get();
+
+      current = cellIter->
+      return *this;
+    }
+
+    const VerletObject *operator*() const
+    {
+      return current;
+    }
+
+  private:
+    SpatialAccelarator &acc;
+    const VerletObject *current;
+    std::vector<PositionIndex>::iterator cellIter;
+    // PositionHashMap::iterator cellIter;
+    std::vector<PositionIndex> neighboringCellIdxs;
+    size_t cellIx{0};
+    size_t objIxInCell{0};
+  };
+
+  struct NeighboringObjectsRange
+  {
+    NeighboringObjectsRange(SpatialAccelarator &acc) : acc{acc} {}
+
+    NeighboringObjectsIterator begin() const
+    {
+      return NeighboringObjectsIterator(acc);
+    }
+
+  private:
+    SpatialAccelarator &acc;
+  };
+  */
 
   SpatialAccelarator(const std::vector<VerletObject> &objects, const float cellSize = 0.1f)
       : cellSize(cellSize)
@@ -67,6 +124,14 @@ public:
       cache[std::make_pair(i, j)].push_back(obj);
       // printf("[%zu] (%d, %d) <- (%g, %g)\n", ix, i, j, obj.pos.x, obj.pos.y);
       ++ix;
+    }
+
+    for (const auto &[pIx, vec] : cache)
+    {
+      auto &avgObj = cellAverages[pIx];
+      avgObj.pos = {pIx.first * cellSize + cellSize * 0.5f, pIx.second * cellSize + cellSize * 0.5f};
+      for (const auto &obj : vec)
+        avgObj.mass += obj.get().mass;
     }
   }
 
