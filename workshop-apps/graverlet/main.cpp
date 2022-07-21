@@ -30,6 +30,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
+#include <array>
 #include <cmath>
 #include <functional>
 #include <unordered_map>
@@ -106,7 +107,9 @@ public:
   std::unique_ptr<Solver> solver;
 
   std::unique_ptr<ws::Shader> pointShader;
+  std::unique_ptr<ws::Shader> lineShader;
   std::unique_ptr<ws::Mesh> mesh;
+  std::unique_ptr<ws::Mesh> debugMesh;
 
   std::unique_ptr<ws::Camera2D> camera;
   std::unique_ptr<ws::Camera2DController> camController;
@@ -203,11 +206,16 @@ public:
         GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
         GS_ASSETS_FOLDER / "shaders/graverlet/point.frag");
 
+    lineShader = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
+                                              GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
+
     setupSunEarthMoon();
     solver = std::make_unique<Solver>(objects, gravitationalForce, gravitationalPotential);
 
     camera = std::make_unique<ws::Camera2D>(2.5f, 2.5f);
     camController = std::make_unique<ws::Camera2DController>(*camera);
+
+    debugMesh = std::make_unique<ws::Mesh>(1024);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -295,11 +303,38 @@ public:
     ImGui::End();
 
     float rts[2] = {widthF, heightF};
+
+    debugMesh->verts.clear();
+    debugMesh->idxs.clear();
+    uint32_t saGridIdx = 0;
+    const std::array<uint32_t, 8> relativeIdxs = {0, 1, 1, 2, 2, 3, 3, 0};
+    for (auto &[key, vec] : sa.cache)
+    {
+      const float x = static_cast<float>(key.first) * cellSize;
+      const float y = static_cast<float>(key.second) * cellSize;
+      const float z = 0.f;
+      debugMesh->verts.emplace_back(glm::vec3{x, y, z});
+      debugMesh->verts.emplace_back(glm::vec3{x + cellSize, y, z});
+      debugMesh->verts.emplace_back(glm::vec3{x + cellSize, y + cellSize, z});
+      debugMesh->verts.emplace_back(glm::vec3{x, y + cellSize, z});
+
+      for (auto relIx : relativeIdxs)
+        debugMesh->idxs.push_back(saGridIdx + relIx);
+      saGridIdx += static_cast<uint32_t>(relativeIdxs.size());
+    }
+    debugMesh->uploadData();
+
     pointShader->bind();
     pointShader->setVector2fv("RenderTargetSize", rts);
     pointShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
+
+    lineShader->bind();
+    lineShader->setVector2fv("RenderTargetSize", rts);
+    lineShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
+    glBindVertexArray(debugMesh->vao);
+    glDrawElements(GL_LINES, static_cast<GLsizei>(debugMesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
 
   void onDeinit() final
