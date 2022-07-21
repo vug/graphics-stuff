@@ -5,6 +5,7 @@
       "includePath": [
         "${default}",
         "${workspaceFolder}/workshop",
+        "${workspaceFolder}/build/assets",
         "${workspaceFolder}/build/workshop-apps/shader-study",
         "${workspaceFolder}/dependencies/blend2d/src",
         "${workspaceFolder}/dependencies/ColorSpace/src",
