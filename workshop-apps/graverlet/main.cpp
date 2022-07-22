@@ -260,6 +260,9 @@ public:
     ImGui::SliderFloat("cellSize", &cellSize, 0.001f, 0.5f, "%.4f");
     if (ImGui::Button("Objs in SA"))
       sa.debugPrint();
+    ImGui::SameLine();
+    static bool showAccGrid = true;
+    ImGui::Checkbox("Show Acc Grid", &showAccGrid);
     static int selObjIx = 0;
     ImGui::InputInt("Selected Object", &selObjIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
     if (ImGui::Button("List Neighbors"))
@@ -340,11 +343,14 @@ public:
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
 
-    lineShader->bind();
-    lineShader->setVector2fv("RenderTargetSize", rts);
-    lineShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
-    glBindVertexArray(debugMesh->vao);
-    glDrawElements(GL_LINES, static_cast<GLsizei>(debugMesh->idxs.size()), GL_UNSIGNED_INT, 0);
+    if (showAccGrid)
+    {
+      lineShader->bind();
+      lineShader->setVector2fv("RenderTargetSize", rts);
+      lineShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
+      glBindVertexArray(debugMesh->vao);
+      glDrawElements(GL_LINES, static_cast<GLsizei>(debugMesh->idxs.size()), GL_UNSIGNED_INT, 0);
+    }
   }
 
   void onDeinit() final
