@@ -3,6 +3,7 @@
 #include <glm/vec2.hpp>
 #include <glm/geometric.hpp>
 
+#include <array>
 #include <functional>
 #include <vector>
 
@@ -27,6 +28,13 @@ class SpatialAccelarator
 {
 public:
   using PositionIndex = std::pair<int, int>;
+
+  PositionIndex getPosIndex(const VerletObject &obj)
+  {
+    const int i = static_cast<int>(std::floor(obj.pos.x / cellSize));
+    const int j = static_cast<int>(std::floor(obj.pos.y / cellSize));
+    return std::make_pair(i, j);
+  }
 
   template <class T>
   static inline void hash_combine(std::size_t &seed, const T &v)
@@ -60,11 +68,10 @@ public:
 
   float cellSize{0.1f};
 
-  /*
   struct NeighboringObjectsIterator
   {
     NeighboringObjectsIterator(SpatialAccelarator &acc, std::vector<PositionIndex> &cellIdxs)
-        : acc{acc}, cellIter{cellIdxs.begin()} {}
+        : acc{acc}, cellIter{cellIdxs.begin()}, objIter{acc.cache[*cellIter].begin()} {}
 
     bool operator!=(const VerletObject *other)
     {
@@ -73,15 +80,14 @@ public:
 
     NeighboringObjectsIterator &operator++()
     {
-      ++objIxInCell;
-      if (objIxInCell)
+      const auto &currentCell = acc.cache[*cellIter];
+      ++objIter;
+      if (objIter == currentCell.end())
       {
-        objIxInCell = 0;
-        cellIx += 1;
+        ++cellIter;
+        objIter = acc.cache[*cellIter].begin();
       }
-      current = &acc.cache[neighboringCellIdxs[cellIx]][objIxInCell].get();
-
-      current = cellIter->
+      current = &objIter->get();
       return *this;
     }
 
@@ -95,36 +101,45 @@ public:
     const VerletObject *current;
     std::vector<PositionIndex>::iterator cellIter;
     // PositionHashMap::iterator cellIter;
+    std::vector<std::reference_wrapper<const VerletObject>>::iterator objIter;
     std::vector<PositionIndex> neighboringCellIdxs;
-    size_t cellIx{0};
-    size_t objIxInCell{0};
+    // size_t cellIx{0};
+    // size_t objIxInCell{0};
   };
 
   struct NeighboringObjectsRange
   {
-    NeighboringObjectsRange(SpatialAccelarator &acc) : acc{acc} {}
+    NeighboringObjectsRange(SpatialAccelarator &acc, const VerletObject &obj) : acc{acc}, obj(obj) {}
 
     NeighboringObjectsIterator begin() const
     {
-      return NeighboringObjectsIterator(acc);
+      const auto &objPosIx = acc.getPosIndex(obj);
+      std::vector<PositionIndex> neighborCellIdxs;
+      std::array<PositionIndex, 9> relIdxs = {PositionIndex{0, 0}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}};
+      for (const PositionIndex &relIx : relIdxs)
+      {
+        const PositionIndex neighPosIx = {objPosIx.first + relIx.first, objPosIx.second + relIx.second};
+        if (acc.cache.contains(neighPosIx))
+          neighborCellIdxs.push_back(neighPosIx);
+      }
+      return NeighboringObjectsIterator(acc, neighborCellIdxs);
     }
+
+    // TODO: implement end
+    // NeighboringObjectsIterator end() const
+    // {
+    // }
 
   private:
     SpatialAccelarator &acc;
+    const VerletObject &obj;
   };
-  */
 
   SpatialAccelarator(const std::vector<VerletObject> &objects, const float cellSize = 0.1f)
       : cellSize(cellSize)
   {
-    for (size_t ix = 0; const auto &obj : objects)
-    {
-      const int i = static_cast<int>(std::floor(obj.pos.x / cellSize));
-      const int j = static_cast<int>(std::floor(obj.pos.y / cellSize));
-      cache[std::make_pair(i, j)].push_back(obj);
-      // printf("[%zu] (%d, %d) <- (%g, %g)\n", ix, i, j, obj.pos.x, obj.pos.y);
-      ++ix;
-    }
+    for (const auto &obj : objects)
+      cache[getPosIndex(obj)].push_back(obj);
 
     for (const auto &[pIx, vec] : cache)
     {
@@ -133,6 +148,11 @@ public:
       for (const auto &obj : vec)
         avgObj.mass += obj.get().mass;
     }
+  }
+
+  NeighboringObjectsRange neighborsOf(const VerletObject &obj)
+  {
+    return NeighboringObjectsRange(*this, obj);
   }
 
   void debugPrint()

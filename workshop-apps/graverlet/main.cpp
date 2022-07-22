@@ -260,6 +260,15 @@ public:
     ImGui::SliderFloat("cellSize", &cellSize, 0.001f, 0.5f, "%.4f");
     if (ImGui::Button("Objs in SA"))
       sa.debugPrint();
+    static int selObjIx = 0;
+    ImGui::InputInt("Selected Object", &selObjIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
+    if (ImGui::Button("List Neighbors"))
+    {
+      // for (auto &obj : sa.neighborsOf(objects[selObjIx]))
+      // {
+
+      // }
+    }
 
     ImGui::Separator();
     static int numObjects = 200;
