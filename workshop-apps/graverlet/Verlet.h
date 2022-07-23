@@ -17,12 +17,9 @@ struct VerletObject
 };
 
 // TODO: how to deal with stray planents (with high index) -> put them into some maximum value bucket
-// TODO: iterator over every object in a cell
+// TODO: iterator over every object in a cell ->
 // TODO: iterator over every object in this cell and neighboring cells
-// TODO: store total mass per cell
 // TODO: "optimized Verlet" that uses spatialAccelration structure
-// TODO: simpler hashing: 1000*x+y (?)
-// TODO: iterator and ranges over objects in neighboring cells
 // TODO: list of objects that won't be included in cells
 class SpatialAccelarator
 {
