@@ -232,12 +232,19 @@ public:
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     static float cellSize = 0.1f;
-    SpatialAccelarator sa{objects, cellSize};
 
     static float speed = 30.0f;
     static int numIter = 2;
     float period = deltaTime * speed;
-    solver->update(period, numIter);
+    static bool useApproximation = false;
+    SpatialAccelarator *sa = nullptr;
+    if (!useApproximation)
+    {
+      solver->update(period, numIter);
+      sa = new SpatialAccelarator{objects, cellSize};
+    }
+    else
+      solver->updateOptimized(period, numIter, cellSize, sa);
 
     for (size_t ix = 0; const auto &obj : objects)
       mesh->verts[ix++].position = {obj.pos.x, obj.pos.y, 0};
@@ -258,21 +265,22 @@ public:
 
     ImGui::Separator();
     ImGui::SliderFloat("cellSize", &cellSize, 0.001f, 0.5f, "%.4f");
-    if (ImGui::Button("Objs in SA"))
-      sa.debugPrint();
+    // if (ImGui::Button("Objs in SA"))
+    //   sa.debugPrint();
     ImGui::SameLine();
     static bool showAccGrid = true;
     ImGui::Checkbox("Show Acc Grid", &showAccGrid);
     static int selObjIx = 0;
     ImGui::InputInt("Selected Object", &selObjIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
-    if (ImGui::Button("List Neighbors"))
-    {
-      printf("Listing neighbors...\n");
-      for (auto &obj : sa.neighborsOf(objects[selObjIx]))
-      {
-        printf("(%g, %g)\n", obj.pos.x, obj.pos.y);
-      }
-    }
+    // if (ImGui::Button("List Neighbors"))
+    // {
+    //   printf("Listing neighbors...\n");
+    //   for (auto &obj : sa.neighborsOf(objects[selObjIx]))
+    //   {
+    //     printf("(%g, %g)\n", obj.pos.x, obj.pos.y);
+    //   }
+    // }
+    ImGui::Checkbox("Approximate", &useApproximation);
 
     ImGui::Separator();
     static int numObjects = 200;
@@ -324,19 +332,23 @@ public:
     const std::array<uint32_t, 8> relativeIdxs = {0, 1, 1, 2, 2, 3, 3, 0};
     const std::array<glm::vec2, 4> relativePoses = {glm::vec2{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
-    for (auto &[key, vec] : sa.cache)
+    if (sa != nullptr)
     {
-      const float x = static_cast<float>(key.first) * cellSize;
-      const float y = static_cast<float>(key.second) * cellSize;
-      const float z = -0.1f;
-      for (const auto &rp : relativePoses)
-        debugMesh->verts.emplace_back(glm::vec3{x + rp.x * cellSize, y + rp.y * cellSize, z});
+      for (auto &[key, vec] : sa->cache)
+      {
+        const float x = static_cast<float>(key.first) * cellSize;
+        const float y = static_cast<float>(key.second) * cellSize;
+        const float z = -0.1f;
+        for (const auto &rp : relativePoses)
+          debugMesh->verts.emplace_back(glm::vec3{x + rp.x * cellSize, y + rp.y * cellSize, z});
 
-      for (auto relIx : relativeIdxs)
-        debugMesh->idxs.push_back(saGridIdx + relIx);
-      saGridIdx += static_cast<uint32_t>(relativePoses.size());
+        for (auto relIx : relativeIdxs)
+          debugMesh->idxs.push_back(saGridIdx + relIx);
+        saGridIdx += static_cast<uint32_t>(relativePoses.size());
+      }
+      delete sa;
+      debugMesh->uploadData();
     }
-    debugMesh->uploadData();
 
     pointShader->bind();
     pointShader->setVector2fv("RenderTargetSize", rts);

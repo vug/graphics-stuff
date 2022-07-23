@@ -67,20 +67,20 @@ public:
   using ObjRefIter = std::vector<std::reference_wrapper<const VerletObject>>::const_iterator;
   using PosIxIter = std::vector<PositionIndex>::iterator;
 
-  struct NeighboringObjectsIterator
+  struct ObjectsInCellsIterator
   {
-    NeighboringObjectsIterator(const SpatialAccelarator &acc, const PosIxIter &posIxIter, const ObjRefIter &objRefIter, const PosIxIter &lastPosIxIter)
+    ObjectsInCellsIterator(const SpatialAccelarator &acc, const PosIxIter &posIxIter, const ObjRefIter &objRefIter, const PosIxIter &lastPosIxIter)
         : acc{acc}, posIxIter{posIxIter}, objRefIter{objRefIter}, lastPosIxIter{lastPosIxIter} {}
 
     // or `friend bool operator!=(const Iter& left, const Iter& right)
-    bool operator!=(const NeighboringObjectsIterator &other)
+    bool operator!=(const ObjectsInCellsIterator &other)
     {
       return posIxIter != other.posIxIter || objRefIter != other.objRefIter;
     }
 
     // For each cell go over every VerletObject ref.
     // When reaching .end() of cell, increment cell iterator, and start from its begin()
-    NeighboringObjectsIterator &operator++()
+    ObjectsInCellsIterator &operator++()
     {
       const auto &currentCell = acc.cache.at(*posIxIter);
       ++objRefIter;
@@ -110,13 +110,11 @@ public:
   {
     NeighboringObjectsRange(const SpatialAccelarator &acc, const PositionIndex &posIdx) : acc{acc}
     {
-      std::array<PositionIndex, 9> relIdxs = {PositionIndex{0, 0}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}};
-      for (const PositionIndex &relIx : relIdxs)
-      {
-        const PositionIndex neighPosIx = {posIdx.first + relIx.first, posIdx.second + relIx.second};
-        if (acc.cache.contains(neighPosIx))
-          neighborCellIdxs.push_back(neighPosIx);
-      }
+      for (const auto &[posIdx2, _] : acc.cache)
+        if (std::abs(posIdx.first - posIdx2.first) <= 1 && std::abs(posIdx.second - posIdx2.second) <= 1)
+          neighborCellIdxs.push_back(posIdx2);
+        else
+          distantCellIdxs.push_back(posIdx2);
 
       assert(neighborCellIdxs.size() > 0);
       posIxBeginIter = neighborCellIdxs.begin();
@@ -124,19 +122,32 @@ public:
 
       posIxLastIter = neighborCellIdxs.end() - 1;
       objEndIter = acc.cache.at(*posIxLastIter).end();
+
+      // if (neighborCellIdxs.size() != 0)
+      // {
+      //   posIxLastIter = neighborCellIdxs.end() - 1;
+      //   objEndIter = acc.cache.at(*posIxLastIter).end();
+      // }
+      // else
+      // {
+      //   posIxLastIter = neighborCellIdxs.end();
+      //   objEndIter = acc.cache.at(*posIxBeginIter).end();
+      // }
     }
 
     // NeighboringObjectsRange(SpatialAccelarator &acc, const VerletObject &obj) : NeighboringObjectsRange(acc, acc.getPosIndex(obj)) {}
 
-    NeighboringObjectsIterator begin() const
+    ObjectsInCellsIterator begin() const
     {
-      return NeighboringObjectsIterator(acc, posIxBeginIter, objBeginIter, posIxLastIter);
+      return ObjectsInCellsIterator(acc, posIxBeginIter, objBeginIter, posIxLastIter);
     }
 
-    NeighboringObjectsIterator end() const
+    ObjectsInCellsIterator end() const
     {
-      return NeighboringObjectsIterator(acc, posIxLastIter, objEndIter, posIxLastIter);
+      return ObjectsInCellsIterator(acc, posIxLastIter, objEndIter, posIxLastIter);
     }
+
+    std::vector<PositionIndex> distantCellIdxs;
 
   private:
     const SpatialAccelarator &acc;
@@ -212,21 +223,56 @@ public:
     }
   }
 
-  // void updateOptimized(float period, int numIter, SpatialAccelarator &sa)
-  // {
-  //   period /= numIter;
-  //   potential = 0.0f;
-  //   kinetic = 0.0f;
-  //   for (int n = 0; n < numIter; ++n)
-  //   {
-  //     for (auto [posIx, objs] : sa.cache)
-  //     {
-  //       for (auto &obj : sa.neighborsOf(posIx))
-  //       {
-  //       }
-  //     }
-  //   }
-  // }
+  void updateOptimized(float period, int numIter, float cellSize, SpatialAccelarator *&sa)
+  {
+    period /= numIter;
+    potential = 0.0f;
+    kinetic = 0.0f;
+    for (int n = 0; n < numIter; ++n)
+    {
+      // p[t + dt] = p[t] + v[t] dt + 1/2 a dt^2
+      for (VerletObject &obj : objects)
+        obj.pos += obj.vel * period + obj.acc * (period * period * 0.5f);
+
+      // v[t + dt / 2] = v[t] + 1/2 a[t] dt
+      for (VerletObject &obj : objects)
+      {
+        obj.vel += 0.5f * obj.acc * period;
+        // after using acc reset it for the next computation/accumulation
+        obj.acc = {};
+      }
+
+      sa = new SpatialAccelarator{objects, cellSize};
+
+      // a[t + dt] = 1/m f(p[t + dt])
+      for (auto &obj1 : objects)
+      {
+        const auto &rng = sa->neighborsOf(obj1);
+        for (auto &obj2 : rng)
+        {
+          obj1.acc -= interObjectForce(obj1, obj2) / obj1.mass;
+          if (interObjectPotential && n == numIter - 1)
+            potential += interObjectPotential(obj1, obj2);
+        }
+
+        for (auto &posIx : rng.distantCellIdxs)
+        {
+          auto &obj2 = sa->cellAverages[posIx];
+          obj1.acc -= interObjectForce(obj1, obj2) / obj1.mass;
+          if (interObjectPotential && n == numIter - 1)
+            potential += interObjectPotential(obj1, obj2);
+        }
+      }
+
+      // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt
+      for (VerletObject &obj : objects)
+      {
+        obj.vel += 0.5f * obj.acc * period;
+        if (n == numIter - 1)
+          kinetic += 0.5f * obj.mass * glm::dot(obj.vel, obj.vel);
+      }
+    }
+  }
 
   void update(float period, int numIter)
   {
