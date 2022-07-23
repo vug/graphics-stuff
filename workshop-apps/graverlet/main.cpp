@@ -267,10 +267,11 @@ public:
     ImGui::InputInt("Selected Object", &selObjIx, 1, 10, ImGuiInputTextFlags_EnterReturnsTrue);
     if (ImGui::Button("List Neighbors"))
     {
-      // for (auto &obj : sa.neighborsOf(objects[selObjIx]))
-      // {
-
-      // }
+      printf("Listing neighbors...\n");
+      for (auto &obj : sa.neighborsOf(objects[selObjIx]))
+      {
+        printf("(%g, %g)\n", obj.pos.x, obj.pos.y);
+      }
     }
 
     ImGui::Separator();
