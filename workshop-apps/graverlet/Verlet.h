@@ -65,27 +65,30 @@ public:
   float cellSize{0.1f};
 
   using ObjRefIter = std::vector<std::reference_wrapper<const VerletObject>>::iterator;
-  using CellIter = std::vector<PositionIndex>::iterator;
+  using PosIxIter = std::vector<PositionIndex>::iterator;
 
   struct NeighboringObjectsIterator
   {
-    NeighboringObjectsIterator(SpatialAccelarator &acc, const CellIter &cellIter, const ObjRefIter &objRefIter, const CellIter &lastCellIter)
-        : acc{acc}, cellIter{cellIter}, objRefIter{objRefIter}, lastCellIter{lastCellIter} {}
+    NeighboringObjectsIterator(SpatialAccelarator &acc, const PosIxIter &posIxIter, const ObjRefIter &objRefIter, const PosIxIter &lastPosIxIter)
+        : acc{acc}, posIxIter{posIxIter}, objRefIter{objRefIter}, lastPosIxIter{lastPosIxIter} {}
 
     // or `friend bool operator!=(const Iter& left, const Iter& right)
     bool operator!=(const NeighboringObjectsIterator &other)
     {
-      return cellIter != other.cellIter || objRefIter != other.objRefIter;
+      return posIxIter != other.posIxIter || objRefIter != other.objRefIter;
     }
 
+    // For each cell go over every VerletObject ref.
+    // When reaching .end() of cell, increment cell iterator, and start from its begin()
     NeighboringObjectsIterator &operator++()
     {
-      const auto &currentCell = acc.cache[*cellIter];
+      const auto &currentCell = acc.cache[*posIxIter];
       ++objRefIter;
-      if (objRefIter == currentCell.end() && cellIter != lastCellIter)
+      if (objRefIter == currentCell.end() && posIxIter != lastPosIxIter)
       {
-        ++cellIter;
-        objRefIter = acc.cache[*cellIter].begin();
+        ++posIxIter;
+        // don't want to dereference posIxIter for cells.end() therefor we lastPosIxIter above
+        objRefIter = acc.cache[*posIxIter].begin();
       }
       return *this;
     }
@@ -97,11 +100,12 @@ public:
 
   private:
     SpatialAccelarator &acc;
-    CellIter cellIter;
+    PosIxIter posIxIter;
     ObjRefIter objRefIter;
-    const CellIter &lastCellIter;
+    const PosIxIter &lastPosIxIter;
   };
 
+  // Range of all VerletObjects in the cell and its neighbors with given PositionIndex
   struct NeighboringObjectsRange
   {
     NeighboringObjectsRange(SpatialAccelarator &acc, const PositionIndex &posIdx) : acc{acc}
@@ -115,30 +119,30 @@ public:
       }
 
       assert(neighborCellIdxs.size() > 0);
-      cellsBeginIter = neighborCellIdxs.begin();
-      objBeginIter = acc.cache[*cellsBeginIter].begin();
+      posIxBeginIter = neighborCellIdxs.begin();
+      objBeginIter = acc.cache[*posIxBeginIter].begin();
 
-      cellsLastIter = neighborCellIdxs.end() - 1;
-      objEndIter = acc.cache[*cellsLastIter].end();
+      posIxLastIter = neighborCellIdxs.end() - 1;
+      objEndIter = acc.cache[*posIxLastIter].end();
     }
 
     // NeighboringObjectsRange(SpatialAccelarator &acc, const VerletObject &obj) : NeighboringObjectsRange(acc, acc.getPosIndex(obj)) {}
 
     NeighboringObjectsIterator begin() const
     {
-      return NeighboringObjectsIterator(acc, cellsBeginIter, objBeginIter, cellsLastIter);
+      return NeighboringObjectsIterator(acc, posIxBeginIter, objBeginIter, posIxLastIter);
     }
 
     NeighboringObjectsIterator end() const
     {
-      return NeighboringObjectsIterator(acc, cellsLastIter, objEndIter, cellsLastIter);
+      return NeighboringObjectsIterator(acc, posIxLastIter, objEndIter, posIxLastIter);
     }
 
   private:
     SpatialAccelarator &acc;
     std::vector<PositionIndex> neighborCellIdxs;
-    CellIter cellsBeginIter;
-    CellIter cellsLastIter; // not end!
+    PosIxIter posIxBeginIter;
+    PosIxIter posIxLastIter; // not end!
     ObjRefIter objBeginIter;
     ObjRefIter objEndIter;
   };
