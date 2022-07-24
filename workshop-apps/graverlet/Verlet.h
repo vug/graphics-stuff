@@ -166,10 +166,15 @@ public:
 
     for (const auto &[pIx, vec] : cache)
     {
+      // "average object" representing all objects in a center of mass and has total mass
       auto &avgObj = cellAverages[pIx];
-      avgObj.pos = {pIx.first * cellSize + cellSize * 0.5f, pIx.second * cellSize + cellSize * 0.5f};
       for (const auto &obj : vec)
-        avgObj.mass += obj.get().mass;
+      {
+        const auto &o = obj.get();
+        avgObj.pos += o.pos * o.mass;
+        avgObj.mass += o.mass;
+      }
+      avgObj.pos /= avgObj.mass;
     }
   }
 
