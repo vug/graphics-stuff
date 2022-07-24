@@ -24,10 +24,18 @@ namespace ws
   class Mesh
   {
   public:
-    Mesh(size_t capacity);
-    Mesh(const std::vector<DefaultVertex> &vertices, const std::vector<uint32_t> &indices);
+    enum class Type
+    {
+      Points,
+      Lines,
+      Triangles,
+    };
+
+    Mesh(size_t capacity, Type type = Type::Triangles);
+    Mesh(const std::vector<DefaultVertex> &vertices, const std::vector<uint32_t> &indices, Type type = Type::Triangles);
     ~Mesh();
 
+    Type type = Type::Triangles;
     std::vector<DefaultVertex> verts;
     std::vector<uint32_t> idxs;
     size_t capacity{};
@@ -40,9 +48,12 @@ namespace ws
     void uploadData();
 
     static Mesh makeQuad();
+    static Mesh makeQuadLines();
 
   private:
     void createBuffers();
     void allocateBuffers();
+
+    static std::vector<DefaultVertex> quadVertices;
   };
 }

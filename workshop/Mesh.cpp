@@ -6,8 +6,15 @@
 
 namespace ws
 {
-  Mesh::Mesh(size_t capacity)
-      : capacity(capacity)
+  std::vector<DefaultVertex> Mesh::quadVertices = {
+      {{-1, 1, 0}, {0, 0, 1}, {0, 1}, {1, 1, 1, 1}},
+      {{-1, -1, 0}, {0, 0, 1}, {0, 0}, {1, 1, 1, 1}},
+      {{1, -1, 0}, {0, 0, 1}, {1, 0}, {1, 1, 1, 1}},
+      {{1, 1, 0}, {0, 0, 1}, {1, 1}, {1, 1, 1, 1}},
+  };
+
+  Mesh::Mesh(size_t capacity, Type type)
+      : capacity{capacity}, type{type}
   {
     verts.resize(capacity);
     idxs.resize(capacity);
@@ -16,8 +23,8 @@ namespace ws
     uploadData();
   }
 
-  Mesh::Mesh(const std::vector<DefaultVertex> &vertices, const std::vector<uint32_t> &indices)
-      : verts(std::move(vertices)), idxs(std::move(indices))
+  Mesh::Mesh(const std::vector<DefaultVertex> &vertices, const std::vector<uint32_t> &indices, Type type)
+      : verts(std::move(vertices)), idxs(std::move(indices)), type{type}
   {
     size_t cnt = vertices.size();
     // next power of two larger than size
@@ -90,16 +97,23 @@ namespace ws
 
   Mesh Mesh::makeQuad()
   {
-    std::vector<DefaultVertex> vertices = {
-        {{-1, 1, 0}, {0, 0, 1}, {0, 1}, {1, 1, 1, 1}},
-        {{-1, -1, 0}, {0, 0, 1}, {0, 0}, {1, 1, 1, 1}},
-        {{1, -1, 0}, {0, 0, 1}, {1, 0}, {1, 1, 1, 1}},
-        {{1, 1, 0}, {0, 0, 1}, {1, 1}, {1, 1, 1, 1}},
-    };
+    std::vector<DefaultVertex> vertices = Mesh::quadVertices;
     std::vector<uint32_t> indices = {
         0, 1, 2, // t1
         0, 2, 3, // t2
     };
-    return Mesh(vertices, indices);
+    return Mesh(vertices, indices, Type::Triangles);
+  }
+
+  Mesh Mesh::makeQuadLines()
+  {
+    std::vector<DefaultVertex> vertices = Mesh::quadVertices;
+    std::vector<uint32_t> indices = {
+        0, 1, // e1
+        1, 2, // e2
+        2, 3, // e3
+        3, 0, // e4
+    };
+    return Mesh(vertices, indices, Type::Lines);
   }
 }
