@@ -95,6 +95,16 @@ namespace ws
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 
+  void Mesh::bind() const
+  {
+    glBindVertexArray(vao);
+  }
+
+  void Mesh::unbind() const
+  {
+    glBindVertexArray(0);
+  }
+
   Mesh Mesh::makeQuad()
   {
     std::vector<DefaultVertex> vertices = Mesh::quadVertices;

@@ -50,7 +50,7 @@ public:
     shader->setVector2fv("RenderTargetSize", renderTargetSize);
     auto proj = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -1.f, 1.f);
     shader->setMatrix4fv("ProjectionFromView", glm::value_ptr(proj));
-    glBindVertexArray(mesh->vao);
+    mesh->bind();
     glDrawElements(GL_LINES, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
   }
 

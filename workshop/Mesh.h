@@ -47,6 +47,9 @@ namespace ws
     // call after setting verts and idxs to upload them to GPU
     void uploadData();
 
+    void bind() const;
+    void unbind() const;
+
     static Mesh makeQuad();
     static Mesh makeQuadLines();
 
