@@ -17,7 +17,6 @@ struct VerletObject
 };
 
 // TODO: how to deal with stray planents (with high index) -> put them into some maximum value bucket
-// TODO: "optimized Verlet" that uses spatialAccelration structure
 // TODO: list of objects that won't be included in cells
 // TODO: use hash_pair_simple and compare perf
 class SpatialAccelarator
@@ -32,23 +31,23 @@ public:
     return std::make_pair(i, j);
   }
 
-  template <class T>
-  static inline void hash_combine(std::size_t &seed, const T &v)
-  {
-    std::hash<T> hasher;
-    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-  }
+  // template <class T>
+  // static inline void hash_combine(std::size_t &seed, const T &v)
+  // {
+  //   std::hash<T> hasher;
+  //   seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  // }
 
-  struct hash_pair
-  {
-    std::size_t operator()(const PositionIndex &p) const
-    {
-      std::size_t h = 0;
-      hash_combine(h, p.first);
-      hash_combine(h, p.second);
-      return h;
-    }
-  };
+  // struct hash_pair
+  // {
+  //   std::size_t operator()(const PositionIndex &p) const
+  //   {
+  //     std::size_t h = 0;
+  //     hash_combine(h, p.first);
+  //     hash_combine(h, p.second);
+  //     return h;
+  //   }
+  // };
 
   struct hash_pair_simple
   {
@@ -58,9 +57,9 @@ public:
     }
   };
 
-  using PositionHashMap = std::unordered_map<PositionIndex, std::vector<std::reference_wrapper<const VerletObject>>, hash_pair>;
+  using PositionHashMap = std::unordered_map<PositionIndex, std::vector<std::reference_wrapper<const VerletObject>>, hash_pair_simple>;
   PositionHashMap cache;
-  std::unordered_map<PositionIndex, VerletObject, hash_pair> cellAverages;
+  std::unordered_map<PositionIndex, VerletObject, hash_pair_simple> cellAverages;
 
   float cellSize{0.1f};
 
@@ -122,17 +121,6 @@ public:
 
       posIxLastIter = neighborCellIdxs.end() - 1;
       objEndIter = acc.cache.at(*posIxLastIter).end();
-
-      // if (neighborCellIdxs.size() != 0)
-      // {
-      //   posIxLastIter = neighborCellIdxs.end() - 1;
-      //   objEndIter = acc.cache.at(*posIxLastIter).end();
-      // }
-      // else
-      // {
-      //   posIxLastIter = neighborCellIdxs.end();
-      //   objEndIter = acc.cache.at(*posIxBeginIter).end();
-      // }
     }
 
     // NeighboringObjectsRange(SpatialAccelarator &acc, const VerletObject &obj) : NeighboringObjectsRange(acc, acc.getPosIndex(obj)) {}
