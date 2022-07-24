@@ -163,7 +163,7 @@ public:
       objects.emplace_back(VerletObject{p, v, 1.5f, 0.01f});
     }
 
-    mesh = std::make_unique<ws::Mesh>(objects.size());
+    mesh = std::make_unique<ws::Mesh>(objects.size(), ws::Mesh::Type::Points);
     for (uint32_t ix = 0; const auto &obj : objects)
     {
       // TODO: learn and use actual star bv distribution instead of uniform dist
@@ -189,7 +189,7 @@ public:
     // objects.emplace_back(VerletObject{{0, 0}, {0, 0}, constants::M_Earth, 0.002f, {}});
     // objects.emplace_back(VerletObject{{0.00257, 0}, {0, constants::V_Moon}, 1.0f / 82, 0.0002f, {}});
 
-    mesh = std::make_unique<ws::Mesh>(objects.size());
+    mesh = std::make_unique<ws::Mesh>(objects.size(), ws::Mesh::Type::Points);
     for (uint32_t ix = 0; const auto &obj : objects)
     {
       mesh->verts[ix] = ws::DefaultVertex{{obj.pos.x, obj.pos.y, 0}, {}, {}, {1, 1, 1, 1}, {obj.radius, 0, 0, 0}};
@@ -215,7 +215,7 @@ public:
     camera = std::make_unique<ws::Camera2D>(2.5f, 2.5f);
     camController = std::make_unique<ws::Camera2DController>(*camera);
 
-    debugMesh = std::make_unique<ws::Mesh>(1024);
+    debugMesh = std::make_unique<ws::Mesh>(1024, ws::Mesh::Type::Lines);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -353,16 +353,14 @@ public:
     pointShader->bind();
     pointShader->setVector2fv("RenderTargetSize", rts);
     pointShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
-    glBindVertexArray(mesh->vao);
-    glDrawElements(GL_POINTS, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
+    mesh->draw();
 
     if (showAccGrid)
     {
       lineShader->bind();
       lineShader->setVector2fv("RenderTargetSize", rts);
       lineShader->setMatrix4fv("ProjectionFromView", glm::value_ptr(camera->getProjectionFromView()));
-      glBindVertexArray(debugMesh->vao);
-      glDrawElements(GL_LINES, static_cast<GLsizei>(debugMesh->idxs.size()), GL_UNSIGNED_INT, 0);
+      debugMesh->draw();
     }
   }
 

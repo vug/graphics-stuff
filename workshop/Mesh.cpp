@@ -105,6 +105,23 @@ namespace ws
     glBindVertexArray(0);
   }
 
+  void Mesh::draw() const
+  {
+    glBindVertexArray(vao);
+    switch (type)
+    {
+    case Type::Points:
+      glDrawElements(GL_POINTS, static_cast<GLsizei>(idxs.size()), GL_UNSIGNED_INT, 0);
+      break;
+    case Type::Lines:
+      glDrawElements(GL_LINES, static_cast<GLsizei>(idxs.size()), GL_UNSIGNED_INT, 0);
+      break;
+    case Type::Triangles:
+      glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(idxs.size()), GL_UNSIGNED_INT, 0);
+      break;
+    }
+  }
+
   Mesh Mesh::makeQuad()
   {
     std::vector<DefaultVertex> vertices = Mesh::quadVertices;

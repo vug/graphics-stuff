@@ -49,6 +49,7 @@ namespace ws
 
     void bind() const;
     void unbind() const;
+    void draw() const;
 
     static Mesh makeQuad();
     static Mesh makeQuadLines();
