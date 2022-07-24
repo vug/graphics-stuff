@@ -23,6 +23,7 @@ void main()
 {
   //gl_Position = ProjectionFromView * ViewFromWorld * WorldFromObject * vec4(vPos, 1.0);
   gl_Position = ProjectionFromView * vec4(vPos, 1.0);
+  // gl_Position = vec4(vPos, 1.0);
   float radius = vCustom.x;
   gl_PointSize = radius * RenderTargetSize.y;
 
