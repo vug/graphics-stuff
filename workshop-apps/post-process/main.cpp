@@ -29,6 +29,8 @@ public:
   {
     shaders["main"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
                                                    GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
+    shaders["tunnel"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
+                                                     GS_ASSETS_FOLDER / "shaders/postprocess/tunnel.frag");
     shaders["quad"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
                                                    GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
 
@@ -37,6 +39,7 @@ public:
     meshQuad.reset(new ws::Mesh(ws::Mesh::makeQuad()));
 
     framebuffer = std::make_unique<ws::Framebuffer>(width, height);
+    framebuffer2 = std::make_unique<ws::Framebuffer>(width, height);
   }
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
@@ -75,6 +78,21 @@ public:
     }
 
     {
+      framebuffer2->bind();
+      glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT);
+      ws::Shader &shader = *shaders["tunnel"];
+      shader.bind();
+      // shader.setVector2fv("RenderTargetSize", renderTargetSize);
+      shader.SetScalar1f("time", time);
+      meshQuad->bind();
+      glDisable(GL_DEPTH_TEST);
+      glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment());
+      meshQuad->draw();
+      framebuffer2->unbind();
+    }
+
+    {
       glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
       ws::Shader &shader = *shaders["quad"];
@@ -82,7 +100,7 @@ public:
       shader.setVector2fv("RenderTargetSize", renderTargetSize);
       meshQuad->bind();
       glDisable(GL_DEPTH_TEST);
-      glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment());
+      glBindTexture(GL_TEXTURE_2D, framebuffer2->getColorAttachment());
       meshQuad->draw();
     }
   }
