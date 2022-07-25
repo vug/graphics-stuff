@@ -21,6 +21,7 @@ namespace ws
     // Deallocate resources
     ~Shader();
 
+    void SetScalar1f(const char *name, const float value);
     void setVector2fv(const char *name, const float *value);
     void setVector3fv(const char *name, const float *value);
     void setMatrix3fv(const char *name, const float *value);

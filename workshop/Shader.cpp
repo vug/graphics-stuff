@@ -159,6 +159,12 @@ namespace ws
       glDetachShader(id, shaderId);
   }
 
+  void Shader::SetScalar1f(const char *name, const float value)
+  {
+    const int location = glGetUniformLocation(id, name);
+    glUniform1f(location, value);
+  }
+
   void Shader::setVector2fv(const char *name, const float *value)
   {
     const int location = glGetUniformLocation(id, name);
