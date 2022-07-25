@@ -1,12 +1,12 @@
 #pragma once
 
+#include "Common.h"
+
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
 #include <vector>
-
-constexpr uint32_t INVALID = static_cast<uint32_t>(-1);
 
 namespace ws
 {
