@@ -16,7 +16,9 @@ class Boilerplate : public ws::App
 {
 public:
   std::unique_ptr<ws::Shader> shader;
+  std::unique_ptr<ws::Shader> shaderQuad;
   std::unique_ptr<ws::Mesh> mesh;
+  std::unique_ptr<ws::Mesh> meshQuad;
   std::unique_ptr<ws::Framebuffer> framebuffer;
 
   Boilerplate() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
@@ -26,6 +28,10 @@ public:
     shader = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
                                           GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
     mesh.reset(new ws::Mesh(ws::Mesh::makeQuadLines()));
+
+    shaderQuad = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
+                                              GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
+    meshQuad.reset(new ws::Mesh(ws::Mesh::makeQuad()));
 
     framebuffer = std::make_unique<ws::Framebuffer>(width, height);
   }
@@ -45,9 +51,12 @@ public:
       ImGui::ShowDemoWindow();
     if (showImPlotDemo)
       ImPlot::ShowDemoWindow();
+    ImGui::Separator();
+    if (ImGui::Button("Reload"))
+      shaderQuad->reload();
     ImGui::End();
 
-    // framebuffer->bind();
+    framebuffer->bind();
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -56,11 +65,17 @@ public:
     auto proj = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -1.f, 1.f);
     shader->setMatrix4fv("ProjectionFromView", glm::value_ptr(proj));
     mesh->bind();
-    glDrawElements(GL_LINES, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
-    // framebuffer->unbind();
+    mesh->draw();
+    framebuffer->unbind();
 
-    // glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    shaderQuad->bind();
+    shaderQuad->setVector2fv("RenderTargetSize", renderTargetSize);
+    meshQuad->bind();
+    glDisable(GL_DEPTH_TEST);
+    glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment());
+    meshQuad->draw();
   }
 
   void onDeinit() final
