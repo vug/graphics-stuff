@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "Common.h"
 
 namespace ws
 {
@@ -15,8 +15,11 @@ namespace ws
     void bind() const;
     void unbind() const;
     // TODO: add recreateIfNeeded(uint32_t width, uint32_t height) method
+    uint32_t getColorAttachment() const;
 
   private:
-    uint32_t fbo{};
+    uint32_t fbo{INVALID};
+    uint32_t texColor{INVALID};
+    uint32_t texDepthStencil{INVALID};
   };
 }

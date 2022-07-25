@@ -12,7 +12,6 @@ namespace ws
     bind();
 
     // Texture
-    uint32_t texColor;
     glGenTextures(1, &texColor);
     glBindTexture(GL_TEXTURE_2D, texColor);
     // TODO: parametrize format
@@ -24,7 +23,6 @@ namespace ws
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    uint32_t texDepthStencil;
     glGenTextures(1, &texDepthStencil);
     glBindTexture(GL_TEXTURE_2D, texDepthStencil);
     // TODO: parametrize attachment no and texture type
@@ -59,5 +57,10 @@ namespace ws
   void Framebuffer::unbind() const
   {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  }
+
+  uint32_t Framebuffer::getColorAttachment() const
+  {
+    return texColor;
   }
 }
