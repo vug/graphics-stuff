@@ -1,4 +1,5 @@
 #include <App.h>
+#include <Framebuffer.h>
 #include <GSAssets.h>
 #include <Mesh.h>
 #include <Shader.h>
@@ -16,6 +17,7 @@ class Boilerplate : public ws::App
 public:
   std::unique_ptr<ws::Shader> shader;
   std::unique_ptr<ws::Mesh> mesh;
+  std::unique_ptr<ws::Framebuffer> framebuffer;
 
   Boilerplate() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
 
@@ -24,6 +26,8 @@ public:
     shader = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
                                           GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
     mesh.reset(new ws::Mesh(ws::Mesh::makeQuadLines()));
+
+    framebuffer = std::make_unique<ws::Framebuffer>();
   }
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
