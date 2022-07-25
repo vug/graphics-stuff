@@ -27,7 +27,7 @@ public:
                                           GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
     mesh.reset(new ws::Mesh(ws::Mesh::makeQuadLines()));
 
-    framebuffer = std::make_unique<ws::Framebuffer>();
+    framebuffer = std::make_unique<ws::Framebuffer>(width, height);
   }
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
@@ -47,6 +47,7 @@ public:
       ImPlot::ShowDemoWindow();
     ImGui::End();
 
+    // framebuffer->bind();
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -56,6 +57,10 @@ public:
     shader->setMatrix4fv("ProjectionFromView", glm::value_ptr(proj));
     mesh->bind();
     glDrawElements(GL_LINES, static_cast<GLsizei>(mesh->idxs.size()), GL_UNSIGNED_INT, 0);
+    // framebuffer->unbind();
+
+    // glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+    // glClear(GL_COLOR_BUFFER_BIT);
   }
 
   void onDeinit() final
