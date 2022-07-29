@@ -1,7 +1,7 @@
 add_library(Workshop STATIC
   App.cpp
   Shader.cpp
-  Framebuffer.cpp
+  Texture.cpp Framebuffer.cpp
   Mesh.cpp OMesh.cpp
   Camera.cpp CameraController.cpp)
 
