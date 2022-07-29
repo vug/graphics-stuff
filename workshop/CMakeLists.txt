@@ -15,6 +15,7 @@ target_link_libraries(
   imgui
   implot
   OpenMeshCore
+  stb
 )
 
 target_compile_options(

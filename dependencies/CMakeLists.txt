@@ -57,3 +57,13 @@ target_include_directories(
 set(BUILD_APPS false CACHE INTERNAL "" FORCE) # we don't need the QT apps that comes with OpenMesh
 set(OPENMESH_DOCS false CACHE INTERNAL "" FORCE)
 add_subdirectory(openmesh)
+
+# https://github.com/nothings/stb
+# https://stackoverflow.com/questions/55081746/add-target-properties-to-an-existing-imported-library-in-cmake
+# Am I making compilation slower by not putting "#define STB_IMAGE_IMPLEMENTATION" into a CPP file?
+add_library(stb INTERFACE)
+set_property(TARGET stb APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS STB_IMAGE_IMPLEMENTATION)
+target_include_directories(
+  stb INTERFACE
+  stb/
+)
