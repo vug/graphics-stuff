@@ -87,7 +87,7 @@ public:
       shader.SetScalar1f("time", time);
       meshQuad->bind();
       glDisable(GL_DEPTH_TEST);
-      glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment());
+      glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment().getId());
       meshQuad->draw();
       framebuffer2->unbind();
     }
@@ -100,7 +100,7 @@ public:
       shader.setVector2fv("RenderTargetSize", renderTargetSize);
       meshQuad->bind();
       glDisable(GL_DEPTH_TEST);
-      glBindTexture(GL_TEXTURE_2D, framebuffer2->getColorAttachment());
+      glBindTexture(GL_TEXTURE_2D, framebuffer2->getColorAttachment().getId());
       meshQuad->draw();
     }
   }

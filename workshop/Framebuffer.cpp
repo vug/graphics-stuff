@@ -2,44 +2,22 @@
 
 #include <glad/gl.h>
 
+#include <cassert>
 #include <cstdio>
 
 namespace ws
 {
   Framebuffer::Framebuffer(uint32_t width, uint32_t height)
+      : fbo([this]()
+            { uint32_t id; glGenFramebuffers(1, &id); glBindFramebuffer(GL_FRAMEBUFFER, id); return id; }()),
+        texColor{{width, height, Texture::Format::RGB8, Texture::Filter::Nearest, Texture::Wrap::Repeat}},
+        texDepthStencil{{width, height, Texture::Format::Depth24Stencil8, Texture::Filter::Nearest, Texture::Wrap::ClampToBorder}}
   {
-    glGenFramebuffers(1, &fbo);
-    bind();
 
-    // Texture
-    glGenTextures(1, &texColor);
-    glBindTexture(GL_TEXTURE_2D, texColor);
-    // TODO: parametrize format
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    // TODO: paremetrize filter
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColor.getId(), 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texDepthStencil.getId(), 0);
 
-    glGenTextures(1, &texDepthStencil);
-    glBindTexture(GL_TEXTURE_2D, texDepthStencil);
-    // TODO: parametrize attachment no and texture type
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColor, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texDepthStencil, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-      printf("Framebuffer %u incomplete.", fbo);
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
     unbind();
   }
@@ -61,7 +39,7 @@ namespace ws
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
 
-  uint32_t Framebuffer::getColorAttachment() const
+  Texture &Framebuffer::getColorAttachment()
   {
     return texColor;
   }

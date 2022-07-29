@@ -82,7 +82,7 @@ public:
       shader.setVector2fv("RenderTargetSize", renderTargetSize);
       meshQuad->bind();
       glDisable(GL_DEPTH_TEST);
-      glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment());
+      glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment().getId());
       meshQuad->draw();
     }
   }
