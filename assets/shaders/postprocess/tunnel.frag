@@ -23,6 +23,6 @@ void main()
   vec2 st = vec2(a / 3.1415, 0.1 / r) + 0.2 * time;
 
   vec3 col = texture(screenTexture, st).rgb;
-  // col *= 3.5 * r;
+  col *= 3.5 * r;
   FragColor = vec4(col, 1);
 }

@@ -3,6 +3,7 @@
 #include <GSAssets.h>
 #include <Mesh.h>
 #include <Shader.h>
+#include <Texture.h>
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,6 +23,7 @@ public:
   std::unique_ptr<ws::Mesh> meshQuad;
   std::unique_ptr<ws::Framebuffer> framebuffer;
   std::unique_ptr<ws::Framebuffer> framebuffer2;
+  std::unique_ptr<ws::Texture> pngImage;
 
   Boilerplate() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
 
@@ -40,6 +42,8 @@ public:
 
     framebuffer = std::make_unique<ws::Framebuffer>(width, height);
     framebuffer2 = std::make_unique<ws::Framebuffer>(width, height);
+
+    pngImage = std::make_unique<ws::Texture>(GS_ASSETS_FOLDER / "images/container.jpg"); // awesomeface.png has alpha
   }
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
@@ -87,7 +91,8 @@ public:
       shader.SetScalar1f("time", time);
       meshQuad->bind();
       glDisable(GL_DEPTH_TEST);
-      glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment().getId());
+      // glBindTexture(GL_TEXTURE_2D, framebuffer->getColorAttachment().getId());
+      glBindTexture(GL_TEXTURE_2D, pngImage->getId());
       meshQuad->draw();
       framebuffer2->unbind();
     }
