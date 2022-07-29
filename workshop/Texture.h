@@ -54,6 +54,8 @@ namespace ws
     uint32_t getId() const { return id; }
     void bind() const;
     void unbind() const;
+    // not type-safe
+    void loadPixels(const void *data);
 
     Specs specs;
 
