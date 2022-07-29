@@ -2,6 +2,9 @@
 
 #include "Common.h"
 
+#include <glad/gl.h>
+#include <filesystem>
+
 namespace ws
 {
   class Texture
@@ -40,17 +43,32 @@ namespace ws
       Format format = Format::RGB8;
       Filter filter = Filter::Linear;
       Wrap wrap = Wrap::ClampToBorder;
+      const void *data = nullptr;
     };
 
     Texture();
     Texture(Specs specs);
+    Texture(const std::filesystem::path &file);
     ~Texture();
 
     uint32_t getId() const { return id; }
+    void bind() const;
+    void unbind() const;
 
     Specs specs;
 
   private:
     uint32_t id = ws::INVALID;
+
+    struct GlSpecs
+    {
+      GLint internalFormat = -1;
+      GLenum format = INVALID;
+      GLenum type = INVALID;
+      GLint paramFilter = -1;
+      GLint paramWrap = -1;
+    };
+
+    GlSpecs getGlSpecs();
   };
 }
