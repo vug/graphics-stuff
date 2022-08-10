@@ -20,7 +20,6 @@ class Boilerplate : public ws::App
 {
 public:
   std::unordered_map<std::string, std::unique_ptr<ws::Shader>> shaders;
-  std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> meshQuad;
   std::mt19937 rng;
   std::uniform_real_distribution<float> dist;
@@ -34,9 +33,6 @@ public:
 
     shaders["quad"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
                                                    GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
-
-    mesh.reset(new ws::Mesh(ws::Mesh::makeQuadLines()));
-
     meshQuad.reset(new ws::Mesh(ws::Mesh::makeQuad()));
   }
 
@@ -107,6 +103,9 @@ public:
                                                                                  GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
     if (!shaders.contains("main"))
       shaders["main"] = std::move(shaderMain);
+    static std::unique_ptr<ws::Mesh> mesh;
+    if (!mesh)
+      mesh.reset(new ws::Mesh(ws::Mesh::makeQuadLines()));
 
     framebuffer->bind();
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
