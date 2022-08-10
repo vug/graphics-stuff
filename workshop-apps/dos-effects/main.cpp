@@ -15,7 +15,7 @@
 #include <random>
 #include <string>
 #include <unordered_map>
-#include <list>
+#include <deque>
 
 class Boilerplate : public ws::App
 {
@@ -151,7 +151,7 @@ public:
     uint32_t snowInitX = static_cast<uint32_t>((image->specs.height - 1) * image->specs.width + dist(rng) * image->specs.width);
     imgSnow[snowInitX * 3] = 255;
 
-    std::list<size_t> noSnow;
+    std::deque<size_t> noSnow;
     for (uint32_t i = 1; i < image->specs.height; ++i)
     {
       for (uint32_t j = 1; j < image->specs.width - 1; ++j)
@@ -173,10 +173,8 @@ public:
           if (noSnow.empty())
             continue;
 
-          size_t index = static_cast<size_t>(dist(rng) * noSnow.size());
-          auto it = noSnow.begin();
-          std::advance(it, index);
-          imgSnow[*it + 0] = 255;
+          const size_t rndIx = static_cast<size_t>(dist(rng) * noSnow.size());
+          imgSnow[noSnow[rndIx] + 0] = 255;
           imgSnow[ix + 0] = 0;
         }
       }
