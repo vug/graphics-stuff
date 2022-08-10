@@ -15,6 +15,7 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+#include <list>
 
 class Boilerplate : public ws::App
 {
@@ -150,6 +151,7 @@ public:
     uint32_t snowInitX = static_cast<uint32_t>((image->specs.height - 1) * image->specs.width + dist(rng) * image->specs.width);
     imgSnow[snowInitX * 3] = 255;
 
+    std::list<size_t> noSnow;
     for (uint32_t i = 1; i < image->specs.height; ++i)
     {
       for (uint32_t j = 1; j < image->specs.width - 1; ++j)
@@ -157,55 +159,27 @@ public:
         size_t ix = 3 * (i * image->specs.width + j);
         if (imgSnow[ix + 0] == 255)
         {
-          size_t ixLeft = 3 * ((i - 1) * image->specs.width + (j - 1));
-          size_t ixMid = 3 * ((i - 1) * image->specs.width + (j - 0));
-          size_t ixRight = 3 * ((i - 1) * image->specs.width + (j + 1));
-          bool leftEmpty = imgSnow[ixLeft] == 0;
-          bool midEmpty = imgSnow[ixMid] == 0;
-          bool rightEmpty = imgSnow[ixRight] == 0;
+          const size_t ixLeft = 3 * ((i - 1) * image->specs.width + (j - 1));
+          const size_t ixMid = 3 * ((i - 1) * image->specs.width + (j - 0));
+          const size_t ixRight = 3 * ((i - 1) * image->specs.width + (j + 1));
+          noSnow.clear();
+          if (imgSnow[ixLeft] == 0)
+            noSnow.emplace_back(ixLeft);
+          if (imgSnow[ixMid] == 0)
+            noSnow.emplace_back(ixMid);
+          if (imgSnow[ixRight] == 0)
+            noSnow.emplace_back(ixRight);
 
-          bool removeCurrent = leftEmpty || midEmpty || rightEmpty;
+          if (noSnow.empty())
+            continue;
 
-          if (leftEmpty && !midEmpty && !rightEmpty)
-            imgSnow[ixLeft + 0] = 255;
-          else if (!leftEmpty && midEmpty && !rightEmpty)
-            imgSnow[ixMid + 0] = 255;
-          else if (!leftEmpty && !midEmpty && rightEmpty)
-            imgSnow[ixRight + 0] = 255;
-          else if (leftEmpty && midEmpty && !rightEmpty)
-          {
-            if (dist(rng) < 0.5)
-              imgSnow[ixLeft] = 255;
-            else
-              imgSnow[ixMid] = 255;
-          }
-          else if (leftEmpty && !midEmpty && rightEmpty)
-          {
-            if (dist(rng) < 0.5)
-              imgSnow[ixLeft] = 255;
-            else
-              imgSnow[ixRight] = 255;
-          }
-          else if (!leftEmpty && midEmpty && rightEmpty)
-          {
-            if (dist(rng) < 0.5)
-              imgSnow[ixMid] = 255;
-            else
-              imgSnow[ixRight] = 255;
-          }
-          else if (leftEmpty && midEmpty && rightEmpty)
-          {
-            float rnd = dist(rng);
-            if (rnd < 1.0f / 3)
-              imgSnow[ixLeft] = 255;
-            else if (rnd < 2.0f / 3)
-              imgSnow[ixMid] = 255;
-            else
-              imgSnow[ixRight] = 255;
-          }
+          size_t index = static_cast<size_t>(dist(rng) * noSnow.size());
+          auto it = noSnow.begin();
 
-          if (removeCurrent)
-            imgSnow[ix + 0] = 0;
+          for (int k = 0; k < index; ++k)
+            it++;
+          imgSnow[*it + 0] = 255;
+          imgSnow[ix + 0] = 0;
         }
       }
     }
