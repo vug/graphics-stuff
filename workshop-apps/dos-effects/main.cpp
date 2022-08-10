@@ -157,23 +157,22 @@ public:
       for (uint32_t j = 1; j < image->specs.width - 1; ++j)
       {
         const size_t ix = 3 * (i * image->specs.width + j);
-        if (imgSnow[ix + 0] == 255)
+        if (imgSnow[ix + 0] != 255)
+          continue;
+
+        noSnow.clear();
+        for (int k = -1; k <= 1; ++k)
         {
-          noSnow.clear();
-          for (int k = -1; k <= 1; ++k)
-          {
-            const size_t ixBelow = 3 * ((i - 1) * image->specs.width + (j - k));
-            if (imgSnow[ixBelow] == 0)
-              noSnow.emplace_back(ixBelow);
-          }
-
-          if (noSnow.empty())
-            continue;
-
-          const size_t rndIx = static_cast<size_t>(dist(rng) * noSnow.size());
-          imgSnow[noSnow[rndIx] + 0] = 255;
-          imgSnow[ix + 0] = 0;
+          const size_t ixBelow = ix - 3 * (image->specs.width - k);
+          if (imgSnow[ixBelow] == 0)
+            noSnow.emplace_back(ixBelow);
         }
+        if (noSnow.empty())
+          continue;
+
+        const size_t rndIx = static_cast<size_t>(dist(rng) * noSnow.size());
+        imgSnow[noSnow[rndIx] + 0] = 255;
+        imgSnow[ix + 0] = 0;
       }
     }
     image->loadPixels(imgSnow);
