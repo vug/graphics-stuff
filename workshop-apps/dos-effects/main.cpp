@@ -12,6 +12,7 @@
 #include <implot.h>
 
 #include <memory>
+#include <random>
 #include <string>
 #include <unordered_map>
 
@@ -24,11 +25,17 @@ public:
   std::unique_ptr<ws::Framebuffer> framebuffer;
   std::unique_ptr<ws::Framebuffer> framebuffer2;
   std::unique_ptr<ws::Texture> image;
+  std::mt19937 rng;
+  std::uniform_real_distribution<float> dist;
+  uint8_t *imgSnow = new uint8_t[3 * height * width];
 
-  Boilerplate() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
+  Boilerplate() : App({.name = "MyApp", .width = 1280u, .height = 960u, .shouldDebugOpenGL = true}) {}
 
   void onInit() final
   {
+    rng = std::mt19937{std::random_device{}()};
+    dist = std::uniform_real_distribution<float>();
+
     shaders["main"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
                                                    GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
     shaders["quad"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
@@ -41,6 +48,18 @@ public:
     framebuffer = std::make_unique<ws::Framebuffer>(width, height);
 
     image = std::make_unique<ws::Texture>(ws::Texture::Specs{width, height, ws::Texture::Format::RGB8, ws::Texture::Filter::Nearest, ws::Texture::Wrap::Repeat});
+    image = std::make_unique<ws::Texture>(ws::Texture::Specs{160, 120, ws::Texture::Format::RGB8, ws::Texture::Filter::Nearest, ws::Texture::Wrap::Repeat});
+
+    for (uint32_t i = 0; i < height; ++i)
+    {
+      for (uint32_t j = 0; j < width; ++j)
+      {
+        size_t ix = 3 * (i * width + j);
+        imgSnow[ix + 0] = 0;
+        imgSnow[ix + 1] = 0;
+        imgSnow[ix + 2] = 0;
+      }
+    }
   }
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
@@ -78,18 +97,83 @@ public:
       framebuffer->unbind();
     }
 
-    static uint8_t *imgData = new uint8_t[3 * height * width];
-    for (uint32_t i = 0; i < height; ++i)
+    static uint32_t frameNo = 0;
+    uint32_t snowInitX = static_cast<uint32_t>((image->specs.height - 1) * image->specs.width + dist(rng) * image->specs.width);
+    imgSnow[snowInitX * 3] = 255;
+
+    for (uint32_t i = 1; i < image->specs.height; ++i)
     {
-      for (uint32_t j = 0; j < width; ++j)
+      for (uint32_t j = 1; j < image->specs.width - 1; ++j)
       {
-        size_t ix = 3 * (i * width + j);
-        imgData[ix + 0] = static_cast<float>(j) / width * 255;
-        imgData[ix + 1] = static_cast<float>(i) / height * 255;
-        imgData[ix + 2] = 0;
+        size_t ix = 3 * (i * image->specs.width + j);
+        if (imgSnow[ix + 0] == 255)
+        {
+          size_t ixLeft = 3 * ((i - 1) * image->specs.width + (j - 1));
+          size_t ixMid = 3 * ((i - 1) * image->specs.width + (j - 0));
+          size_t ixRight = 3 * ((i - 1) * image->specs.width + (j + 1));
+          bool leftEmpty = imgSnow[ixLeft] == 0;
+          bool midEmpty = imgSnow[ixMid] == 0;
+          bool rightEmpty = imgSnow[ixRight] == 0;
+
+          bool removeCurrent = leftEmpty || midEmpty || rightEmpty;
+
+          if (leftEmpty && !midEmpty && !rightEmpty)
+            imgSnow[ixLeft + 0] = 255;
+          else if (!leftEmpty && midEmpty && !rightEmpty)
+            imgSnow[ixMid + 0] = 255;
+          else if (!leftEmpty && !midEmpty && rightEmpty)
+            imgSnow[ixRight + 0] = 255;
+          else if (leftEmpty && midEmpty && !rightEmpty)
+          {
+            if (dist(rng) < 0.5)
+              imgSnow[ixLeft] = 255;
+            else
+              imgSnow[ixMid] = 255;
+          }
+          else if (leftEmpty && !midEmpty && rightEmpty)
+          {
+            if (dist(rng) < 0.5)
+              imgSnow[ixLeft] = 255;
+            else
+              imgSnow[ixRight] = 255;
+          }
+          else if (!leftEmpty && midEmpty && rightEmpty)
+          {
+            if (dist(rng) < 0.5)
+              imgSnow[ixMid] = 255;
+            else
+              imgSnow[ixRight] = 255;
+          }
+          else if (leftEmpty && midEmpty && rightEmpty)
+          {
+            float rnd = dist(rng);
+            if (rnd < 1.0f / 3)
+              imgSnow[ixLeft] = 255;
+            else if (rnd < 2.0f / 3)
+              imgSnow[ixMid] = 255;
+            else
+              imgSnow[ixRight] = 255;
+          }
+
+          if (removeCurrent)
+            imgSnow[ix + 0] = 0;
+        }
       }
     }
-    image->loadPixels(imgData);
+    image->loadPixels(imgSnow);
+
+    // static uint8_t *imgData = new uint8_t[3 * height * width];
+    // for (uint32_t i = 0; i < height; ++i)
+    // {
+    //   for (uint32_t j = 0; j < width; ++j)
+    //   {
+    //     size_t ix = 3 * (i * width + j);
+    //     imgData[ix + 0] = static_cast<uint8_t>(static_cast<float>(j) / width * 255);
+    //     imgData[ix + 1] = static_cast<uint8_t>(static_cast<float>(i) / height * 255);
+    //     imgData[ix + 2] = 0;
+    //   }
+    // }
+    // image->loadPixels(imgData);
 
     {
       glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
@@ -103,6 +187,8 @@ public:
       glBindTexture(GL_TEXTURE_2D, image->getId());
       meshQuad->draw();
     }
+
+    ++frameNo;
   }
 
   void onDeinit() final
