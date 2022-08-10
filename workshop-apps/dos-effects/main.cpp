@@ -175,9 +175,7 @@ public:
 
           size_t index = static_cast<size_t>(dist(rng) * noSnow.size());
           auto it = noSnow.begin();
-
-          for (int k = 0; k < index; ++k)
-            it++;
+          std::advance(it, index);
           imgSnow[*it + 0] = 255;
           imgSnow[ix + 0] = 0;
         }
