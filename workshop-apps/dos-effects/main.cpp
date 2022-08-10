@@ -156,19 +156,16 @@ public:
     {
       for (uint32_t j = 1; j < image->specs.width - 1; ++j)
       {
-        size_t ix = 3 * (i * image->specs.width + j);
+        const size_t ix = 3 * (i * image->specs.width + j);
         if (imgSnow[ix + 0] == 255)
         {
-          const size_t ixLeft = 3 * ((i - 1) * image->specs.width + (j - 1));
-          const size_t ixMid = 3 * ((i - 1) * image->specs.width + (j - 0));
-          const size_t ixRight = 3 * ((i - 1) * image->specs.width + (j + 1));
           noSnow.clear();
-          if (imgSnow[ixLeft] == 0)
-            noSnow.emplace_back(ixLeft);
-          if (imgSnow[ixMid] == 0)
-            noSnow.emplace_back(ixMid);
-          if (imgSnow[ixRight] == 0)
-            noSnow.emplace_back(ixRight);
+          for (int k = -1; k <= 1; ++k)
+          {
+            const size_t ixBelow = 3 * ((i - 1) * image->specs.width + (j - k));
+            if (imgSnow[ixBelow] == 0)
+              noSnow.emplace_back(ixBelow);
+          }
 
           if (noSnow.empty())
             continue;
