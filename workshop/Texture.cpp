@@ -94,8 +94,10 @@ namespace ws
 
   void Texture::loadPixels(const void *data)
   {
+    bind();
     GlSpecs gs = getGlSpecs();
     glTexImage2D(GL_TEXTURE_2D, 0, gs.internalFormat, specs.width, specs.height, 0, gs.format, gs.type, data);
+    unbind();
   }
 
   Texture::~Texture()
