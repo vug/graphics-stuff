@@ -145,34 +145,41 @@ public:
 
   uint32_t snowEffect()
   {
-    static std::unique_ptr<ws::Texture> image = std::make_unique<ws::Texture>(ws::Texture::Specs{160, 120, ws::Texture::Format::RGB8, ws::Texture::Filter::Nearest, ws::Texture::Wrap::Repeat});
+    static std::unique_ptr<ws::Texture> image = std::make_unique<ws::Texture>(ws::Texture::Specs{80, 60, ws::Texture::Format::RGB8, ws::Texture::Filter::Nearest, ws::Texture::Wrap::Repeat});
     static uint8_t *imgSnow = new uint8_t[3 * image->specs.height * image->specs.width]{}; // {} initializes with zeroes
+    static auto setColor = [&](uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b)
+    {
+      const size_t ix = 3 * (y * image->specs.width + x);
+      imgSnow[ix] = r;
+      imgSnow[ix + 1] = g;
+      imgSnow[ix + 2] = b;
+    };
 
-    uint32_t snowInitX = static_cast<uint32_t>((image->specs.height - 1) * image->specs.width + dist(rng) * image->specs.width);
-    imgSnow[snowInitX * 3] = 255;
+    static auto getRed = [&](uint32_t x, uint32_t y)
+    { return imgSnow[3 * (y * image->specs.width + x)]; };
 
-    std::deque<size_t> noSnow;
+    const uint8_t tone = static_cast<uint8_t>(dist(rng) * 55 + 200);
+    setColor(static_cast<uint32_t>(dist(rng) * image->specs.width), image->specs.height - 1, tone, tone, tone);
+
+    std::deque<uint32_t> noSnow;
     for (uint32_t i = 1; i < image->specs.height; ++i)
     {
       for (uint32_t j = 1; j < image->specs.width - 1; ++j)
       {
-        const size_t ix = 3 * (i * image->specs.width + j);
-        if (imgSnow[ix + 0] != 255)
+        const uint8_t r = getRed(j, i);
+        if (r == 0)
           continue;
 
         noSnow.clear();
         for (int k = -1; k <= 1; ++k)
-        {
-          const size_t ixBelow = ix - 3 * (image->specs.width - k);
-          if (imgSnow[ixBelow] == 0)
-            noSnow.emplace_back(ixBelow);
-        }
+          if (getRed(j - k, i - 1) == 0)
+            noSnow.emplace_back(k);
         if (noSnow.empty())
           continue;
 
-        const size_t rndIx = static_cast<size_t>(dist(rng) * noSnow.size());
-        imgSnow[noSnow[rndIx] + 0] = 255;
-        imgSnow[ix + 0] = 0;
+        const uint32_t rndIx = static_cast<uint32_t>(dist(rng) * noSnow.size());
+        setColor(j - noSnow[rndIx], i - 1, r, r, r); // can I swap instead of two assignments?
+        setColor(j, i, 0, 0, 0);
       }
     }
     image->loadPixels(imgSnow);
