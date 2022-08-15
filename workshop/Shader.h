@@ -19,6 +19,8 @@ namespace ws
     // Create a shader program and compile shaders from files. Keep track of files for further reload
     Shader(std::filesystem::path vertexShader, std::filesystem::path fragmentShader);
     // Deallocate resources
+    Shader(const char *computeSource);
+    Shader(std::filesystem::path computeShader);
     ~Shader();
 
     void SetScalar1f(const char *name, const float value);
@@ -33,8 +35,10 @@ namespace ws
     // If compilation fails, keeps existing shaders if there are any.
     // If compilation succeeds, detaches existing shaders before linking new shaders to the program.
     bool compile(const char *vertexShaderSource, const char *fragmentShaderSource);
+    bool compile(const char *computeShaderSource);
     // Compile shaders into program from given shader files. Update shader files.
     bool load(std::filesystem::path vertexShader, std::filesystem::path fragmentShader);
+    bool load(std::filesystem::path computeShader);
     // reload/recompile same shader files. Good for hot-reload.
     bool reload();
 
@@ -59,6 +63,7 @@ namespace ws
   private:
     std::filesystem::path vertexShader;
     std::filesystem::path fragmentShader;
+    std::filesystem::path computeShader;
     int32_t id{-1};
   };
 }

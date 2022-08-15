@@ -28,10 +28,22 @@ namespace ws
     compile(vertexShaderSource, fragmentShaderSource);
   }
 
+  Shader::Shader(const char *computeSource)
+      : id(glCreateProgram())
+  {
+    compile(computeSource);
+  }
+
   Shader::Shader(std::filesystem::path vertexShader, std::filesystem::path fragmentShader)
       : vertexShader(vertexShader), fragmentShader(fragmentShader), id(glCreateProgram())
   {
     load(vertexShader, fragmentShader);
+  }
+
+  Shader::Shader(std::filesystem::path computeShader)
+      : computeShader(computeShader), id(glCreateProgram())
+  {
+    load(computeShader);
   }
 
   bool Shader::compile(const char *vertexShaderSource, const char *fragmentShaderSource)
@@ -88,6 +100,43 @@ namespace ws
     return success;
   }
 
+  bool Shader::compile(const char *computeShaderSource)
+  {
+    int success;
+    char infoLog[512];
+
+    unsigned int compute = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(compute, 1, &computeShaderSource, NULL);
+    glCompileShader(compute);
+    glGetShaderiv(compute, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+      glGetShaderInfoLog(compute, 512, NULL, infoLog);
+      std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                << infoLog << std::endl;
+      return success;
+    }
+
+    if (isValid())
+      detachShaders();
+
+    glAttachShader(id, compute);
+    glLinkProgram(id);
+    glGetProgramiv(id, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+      glGetProgramInfoLog(id, 512, NULL, infoLog);
+      std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+                << infoLog << std::endl;
+
+      glDeleteShader(compute);
+      return success;
+    }
+
+    glDeleteShader(compute);
+    return success;
+  }
+
   bool Shader::load(std::filesystem::path vertexShader, std::filesystem::path fragmentShader)
   {
     this->vertexShader = vertexShader;
@@ -110,9 +159,37 @@ namespace ws
     return compile(vertexCode.c_str(), fragmentCode.c_str());
   }
 
+  bool Shader::load(std::filesystem::path computeShader)
+  {
+    this->computeShader = computeShader;
+
+    if (computeShader.empty())
+    {
+      std::cerr << "shader object " << id << " is not associated with a shader file\n";
+      return false;
+    }
+    else if (!std::filesystem::exists(computeShader))
+    {
+      std::cerr << "no shader file: " << computeShader.string() << "\n";
+      return false;
+    }
+
+    const std::string computeCode = readFile(computeShader);
+
+    return compile(computeCode.c_str());
+  }
+
   bool Shader::reload()
   {
-    return load(vertexShader, fragmentShader);
+    if (!vertexShader.empty() && !fragmentShader.empty())
+      return load(vertexShader, fragmentShader);
+    else if (!computeShader.empty())
+      return load(computeShader);
+    else
+    {
+      assert(false); // incorrect shader code combination
+      return false;
+    }
   }
 
   Shader::~Shader()
