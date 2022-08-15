@@ -20,10 +20,13 @@ class FirstComputeShader : public ws::App
 {
 public:
   std::unordered_map<std::string, std::unique_ptr<ws::Shader>> shaders;
+  std::unordered_map<std::string, std::unique_ptr<ws::Texture>> textures;
   std::unique_ptr<ws::Mesh> mesh;
   std::unique_ptr<ws::Mesh> meshQuad;
   std::unique_ptr<ws::Framebuffer> framebuffer;
   std::unique_ptr<ws::Framebuffer> framebuffer2;
+  uint32_t compTexId{};
+  const glm::uvec2 compTexSize = {10, 1};
 
   FirstComputeShader() : App({.name = "ComputeShaderStudy", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
 
@@ -33,6 +36,23 @@ public:
                                                    GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
     shaders["quad"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
                                                    GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
+    shaders["compute"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/compute-shader-study/first.comp");
+
+    // TODO: add this texture type to ws::Texture abstraction later
+    // textures["computeInput"] = std::make_unique<ws::Texture>(ws::Texture::Specs{width, height, ws::Texture::Format::RGB8, ws::Texture::Filter::Nearest, ws::Texture::Wrap::Repeat});
+    // create input/output textures
+    glGenTextures(1, &compTexId);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, compTexId);
+    // turns out we need this. huh.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // create empty texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, compTexSize.x, compTexSize.y, 0, GL_RED, GL_FLOAT, NULL);
+    glBindImageTexture(0, compTexId, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
+    // upload values
+    float compTextInitialValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, compTexSize.x, compTexSize.y, 0, GL_RED, GL_FLOAT, compTextInitialValues);
 
     mesh.reset(new ws::Mesh(ws::Mesh::makeQuadLines()));
 
@@ -61,6 +81,19 @@ public:
       for (auto &[name, shader] : shaders)
         shader->reload();
     ImGui::End();
+
+    shaders["compute"]->bind();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, compTexId);
+    glDispatchCompute(compTexSize.x, compTexSize.y, 1);
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+    unsigned int collection_size = compTexSize.x * compTexSize.y;
+    std::vector<float> compute_data(collection_size);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, compute_data.data());
+    for (const float x : compute_data)
+      printf("%.1f ", x);
+    printf("\n");
 
     {
       framebuffer->bind();
