@@ -22,7 +22,7 @@ namespace ws
   void GLAPIENTRY OpenGLDebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                                              GLsizei length, const char *message, const void *userParam);
 
-  App::App(const Specs &specs)
+  App::App(const Specs &specs) : specs(specs)
   {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
