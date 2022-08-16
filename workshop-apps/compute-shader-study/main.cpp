@@ -25,7 +25,6 @@ public:
   std::unique_ptr<ws::Mesh> meshQuad;
   std::unique_ptr<ws::Framebuffer> framebuffer;
   std::unique_ptr<ws::Framebuffer> framebuffer2;
-  uint32_t compTexId{};
   const glm::uvec2 compTexSize = {10, 1};
 
   FirstComputeShader() : App({.name = "ComputeShaderStudy", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
@@ -38,20 +37,8 @@ public:
                                                    GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
     shaders["compute"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/compute-shader-study/first.comp");
 
-    // TODO: add this texture type to ws::Texture abstraction later
-    // textures["computeInput"] = std::make_unique<ws::Texture>(ws::Texture::Specs{width, height, ws::Texture::Format::RGB8, ws::Texture::Filter::Nearest, ws::Texture::Wrap::Repeat});
-    // create input/output textures
-    glGenTextures(1, &compTexId);
-    glBindTexture(GL_TEXTURE_2D, compTexId);
-    // turns out we need this. huh.
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // create empty texture
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, compTexSize.x, compTexSize.y, 0, GL_RED, GL_FLOAT, NULL);
-    // upload values
     float compTextInitialValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, compTexSize.x, compTexSize.y, 0, GL_RED, GL_FLOAT, compTextInitialValues);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    textures["computeInOut"] = std::make_unique<ws::Texture>(ws::Texture::Specs{compTexSize.x, compTexSize.y, ws::Texture::Format::R32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, compTextInitialValues});
 
     mesh.reset(new ws::Mesh(ws::Mesh::makeQuadLines()));
 
@@ -83,8 +70,8 @@ public:
 
     shaders["compute"]->bind();
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, compTexId);
-    glBindImageTexture(0, compTexId, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
+    textures["computeInOut"]->bind();
+    glBindImageTexture(0, textures["computeInOut"]->getId(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
     // glUniform1i(DiffuseTextureID, 0); or glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0); would have been needed to use sampler2d in a fragment shader?
     glDispatchCompute(compTexSize.x, compTexSize.y, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
