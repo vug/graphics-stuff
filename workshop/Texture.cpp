@@ -7,7 +7,7 @@
 
 namespace ws
 {
-  Texture::GlSpecs Texture::getGlSpecs()
+  Texture::GlSpecs Texture::getGlSpecs() const
   {
     GlSpecs gs{};
 
@@ -103,6 +103,26 @@ namespace ws
   void Texture::unbind() const
   {
     glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  void Texture::bindImageTexture(uint32_t textureNo, Access access) const
+  {
+    GLenum glAccess{};
+    switch (access)
+    {
+    case Access::Read:
+      glAccess = GL_READ_ONLY;
+      break;
+    case Access::Write:
+      glAccess = GL_WRITE_ONLY;
+      break;
+    case Access::ReadAndWrite:
+      glAccess = GL_READ_WRITE;
+      break;
+    default:
+      assert(false); // unknown Access value
+    }
+    glBindImageTexture(textureNo, id, 0, GL_FALSE, 0, glAccess, getGlSpecs().internalFormat);
   }
 
   void Texture::loadPixels(const void *data)

@@ -71,7 +71,7 @@ public:
     shaders["compute"]->bind();
     glActiveTexture(GL_TEXTURE0);
     textures["computeInOut"]->bind();
-    glBindImageTexture(0, textures["computeInOut"]->getId(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
+    textures["computeInOut"]->bindImageTexture(0, ws::Texture::Access::ReadAndWrite);
     // glUniform1i(DiffuseTextureID, 0); or glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0); would have been needed to use sampler2d in a fragment shader?
     glDispatchCompute(compTexSize.x, compTexSize.y, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);

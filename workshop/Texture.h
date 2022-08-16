@@ -46,6 +46,13 @@ namespace ws
       const void *data = nullptr;
     };
 
+    enum class Access
+    {
+      Read,
+      Write,
+      ReadAndWrite,
+    };
+
     Texture();
     Texture(const Specs &specs);
     Texture(const std::filesystem::path &file);
@@ -54,6 +61,8 @@ namespace ws
     uint32_t getId() const { return id; }
     void bind() const;
     void unbind() const;
+    // should already be bound
+    void bindImageTexture(uint32_t textureNo, Access access) const;
     // not type-safe
     void loadPixels(const void *data);
 
@@ -71,6 +80,6 @@ namespace ws
       GLint paramWrap = -1;
     };
 
-    GlSpecs getGlSpecs();
+    GlSpecs getGlSpecs() const;
   };
 }
