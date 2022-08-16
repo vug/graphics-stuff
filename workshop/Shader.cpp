@@ -112,7 +112,7 @@ namespace ws
     if (!success)
     {
       glGetShaderInfoLog(compute, 512, NULL, infoLog);
-      std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+      std::cerr << "ERROR::SHADER::COMPUTE::COMPILATION_FAILED\n"
                 << infoLog << std::endl;
       return success;
     }
