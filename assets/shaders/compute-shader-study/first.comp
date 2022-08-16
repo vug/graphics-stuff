@@ -16,6 +16,7 @@
 // more details at https://www.khronos.org/opengl/wiki/Compute_Shader#Outputs
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+// image2D uses integer coordinates and a single image, whereas sampler2D uses normalized floating coordinates and the texture can be made of multiple images at different mip levels and has filtering and clamping etc.
 layout(r32f, binding = 0) uniform image2D out_tex;
 
 void main() {
