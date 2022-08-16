@@ -22,6 +22,15 @@ namespace ws
       gs.internalFormat = GL_DEPTH24_STENCIL8;
       gs.format = GL_DEPTH_STENCIL;
       gs.type = GL_UNSIGNED_INT_24_8;
+      break;
+    case Format::R32f:
+      gs.internalFormat = GL_R32F;
+      gs.format = GL_RED;
+      gs.type = GL_FLOAT;
+      break;
+    default:
+      assert(false); // missing format conversion
+      break;
     };
 
     switch (specs.filter)
@@ -32,6 +41,8 @@ namespace ws
     case Filter::Linear:
       gs.paramFilter = GL_LINEAR;
       break;
+    default:
+      assert(false); // missing filter conversion
     };
 
     switch (specs.wrap)
@@ -42,6 +53,8 @@ namespace ws
     case Wrap::Repeat:
       gs.paramWrap = GL_REPEAT;
       break;
+    default:
+      assert(false); // missing wrap conversion
     };
 
     return gs;
@@ -49,7 +62,7 @@ namespace ws
 
   Texture::Texture() : Texture{Specs{}} {}
 
-  Texture::Texture(Specs specs)
+  Texture::Texture(const Specs &specs)
       : specs(specs),
         id([]()
            { uint32_t texId; glGenTextures(1, &texId); return texId; }())

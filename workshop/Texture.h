@@ -47,7 +47,7 @@ namespace ws
     };
 
     Texture();
-    Texture(Specs specs);
+    Texture(const Specs &specs);
     Texture(const std::filesystem::path &file);
     ~Texture();
 
