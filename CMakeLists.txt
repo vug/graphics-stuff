@@ -14,9 +14,10 @@ add_subdirectory(workshop-apps/boilerplate)
 
 # add_subdirectory(workshop-apps/cellular)
 # add_subdirectory(workshop-apps/collision-verlet)
-add_subdirectory(workshop-apps/dos-effects)
+# add_subdirectory(workshop-apps/dos-effects)
 add_subdirectory(workshop-apps/compute-shader-study)
+add_subdirectory(workshop-apps/graverlet)
+add_subdirectory(workshop-apps/graverlet-gpu)
 
-# add_subdirectory(workshop-apps/graverlet)
 # add_subdirectory(workshop-apps/post-process)
 # add_subdirectory(workshop-apps/shader-study)
