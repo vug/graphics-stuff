@@ -28,6 +28,16 @@ namespace ws
       gs.format = GL_RED;
       gs.type = GL_FLOAT;
       break;
+    case Format::RGB32f:
+      gs.internalFormat = GL_RGB32F;
+      gs.format = GL_RGB;
+      gs.type = GL_FLOAT;
+      break;
+    case Format::RGBA32f:
+      gs.internalFormat = GL_RGBA32F;
+      gs.format = GL_RGBA;
+      gs.type = GL_FLOAT;
+      break;
     default:
       assert(false); // missing format conversion
       break;
