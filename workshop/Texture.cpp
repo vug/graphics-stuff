@@ -95,7 +95,7 @@ namespace ws
   {
   }
 
-  void activateTexture(uint32_t no = 0)
+  void Texture::activateTexture(uint32_t no)
   {
     assert(no == 0); // add more numbers as needed
     glActiveTexture(GL_TEXTURE0);

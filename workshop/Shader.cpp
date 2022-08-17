@@ -137,44 +137,44 @@ namespace ws
     return success;
   }
 
-  bool Shader::load(std::filesystem::path vertexShader, std::filesystem::path fragmentShader)
+  bool Shader::load(std::filesystem::path vertex, std::filesystem::path fragment)
   {
-    this->vertexShader = vertexShader;
-    this->fragmentShader = fragmentShader;
+    this->vertexShader = vertex;
+    this->fragmentShader = fragment;
 
-    if (vertexShader.empty() || fragmentShader.empty())
+    if (vertex.empty() || fragment.empty())
     {
       std::cerr << "shader object " << id << " is not associated with a shader file\n";
       return false;
     }
-    else if (!std::filesystem::exists(vertexShader) || !std::filesystem::exists(fragmentShader))
+    else if (!std::filesystem::exists(vertex) || !std::filesystem::exists(fragment))
     {
-      std::cerr << "no shader file: " << vertexShader.string() << " or: " << fragmentShader.string() << "\n";
+      std::cerr << "no shader file: " << vertex.string() << " or: " << fragment.string() << "\n";
       return false;
     }
 
-    const std::string vertexCode = readFile(vertexShader);
-    const std::string fragmentCode = readFile(fragmentShader);
+    const std::string vertexCode = readFile(vertex);
+    const std::string fragmentCode = readFile(fragment);
 
     return compile(vertexCode.c_str(), fragmentCode.c_str());
   }
 
-  bool Shader::load(std::filesystem::path computeShader)
+  bool Shader::load(std::filesystem::path compute)
   {
-    this->computeShader = computeShader;
+    computeShader = compute;
 
-    if (computeShader.empty())
+    if (compute.empty())
     {
       std::cerr << "shader object " << id << " is not associated with a shader file\n";
       return false;
     }
-    else if (!std::filesystem::exists(computeShader))
+    else if (!std::filesystem::exists(compute))
     {
-      std::cerr << "no shader file: " << computeShader.string() << "\n";
+      std::cerr << "no shader file: " << compute.string() << "\n";
       return false;
     }
 
-    const std::string computeCode = readFile(computeShader);
+    const std::string computeCode = readFile(compute);
 
     return compile(computeCode.c_str());
   }
@@ -234,6 +234,11 @@ namespace ws
     auto shaderIds = getShaderIds();
     for (auto shaderId : shaderIds)
       glDetachShader(id, shaderId);
+  }
+
+  void Shader::dispatchCompute(uint32_t x, uint32_t y, uint32_t z)
+  {
+    glDispatchCompute(x, y, z);
   }
 
   void Shader::SetScalar1f(const char *name, const float value)

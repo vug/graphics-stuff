@@ -3,6 +3,7 @@
 #include <GSAssets.h>
 #include <Mesh.h>
 #include <Shader.h>
+#include <Texture.h>
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -73,7 +74,8 @@ public:
     textures["computeInOut"]->bind();
     textures["computeInOut"]->bindImageTexture(0, ws::Texture::Access::ReadAndWrite);
     // glUniform1i(DiffuseTextureID, 0); or glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0); would have been needed to use sampler2d in a fragment shader?
-    glDispatchCompute(compTexSize.x, compTexSize.y, 1);
+    ws::Shader::dispatchCompute(compTexSize.x, compTexSize.y, 1);
+    // glDispatchCompute(compTexSize.x, compTexSize.y, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
     unsigned int collection_size = compTexSize.x * compTexSize.y;

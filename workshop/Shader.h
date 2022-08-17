@@ -23,6 +23,8 @@ namespace ws
     Shader(std::filesystem::path computeShader);
     ~Shader();
 
+    static void dispatchCompute(uint32_t x, uint32_t y, uint32_t z);
+
     void SetScalar1f(const char *name, const float value);
     void setVector2fv(const char *name, const float *value);
     void setVector3fv(const char *name, const float *value);
