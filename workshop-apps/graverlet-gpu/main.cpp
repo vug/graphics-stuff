@@ -39,13 +39,14 @@ public:
     {
       int maxTextureSize;
       glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
-      printf("Max Texture Size: %d", maxTextureSize);
+      printf("Max Texture Size: %d\n", maxTextureSize);
     }
 
     shaders["main"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
                                                    GS_ASSETS_FOLDER / "shaders/graverlet/line.frag");
     shaders["quad"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
                                                    GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
+    shaders["compute"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/graverlet.comp");
 
     // cannot be allocated on stack
     auto initialState = std::make_unique<std::array<std::array<glm::vec4, MAX_PARTICLES>, 3>>();
@@ -86,12 +87,21 @@ public:
         shader->reload();
     ImGui::End();
 
+    shaders["compute"]->bind();
     // ws::Texture::activateTexture(0);
-    textures["state"]->bind();
     textures["state"]->bindImageTexture(0, ws::Texture::Access::Read);
+    textures["stateNext"]->bindImageTexture(1, ws::Texture::Access::Write);
+    // int imgUnitIxInp = 0; // something unique
+    // int imgUnitIxOut = 1; // something unique
+    // glUniform1i(glGetUniformLocation(shaders["compute"]->getId(), "texIn"), imgUnitIxInp); // program must be active
+    // glBindImageTexture(imgUnitIxInp, textures["state"]->getId(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    // glUniform1i(glGetUniformLocation(shaders["compute"]->getId(), "texOut"), imgUnitIxOut); // program must be active
+    // glBindImageTexture(imgUnitIxOut, textures["state"]->getId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    ws::Shader::dispatchCompute(numParticles, 1, 1);
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
     std::unique_ptr<glm::vec4[]> computeData = std::make_unique<glm::vec4[]>(numParticles * 3);
-    glGetTextureSubImage(textures["state"]->getId(), 0, 0, 0, 0, numParticles, 3, 1, GL_RGBA, GL_FLOAT, numParticles * 3 * sizeof(glm::vec4), computeData.get());
+    glGetTextureSubImage(textures["stateNext"]->getId(), 0, 0, 0, 0, numParticles, 3, 1, GL_RGBA, GL_FLOAT, numParticles * 3 * sizeof(glm::vec4), computeData.get());
     for (uint32_t n = 0; n < numParticles; ++n)
     {
       const uint32_t ixPos = n;
@@ -104,7 +114,9 @@ public:
     }
     printf("\n");
 
-    textures["state"]->unbind();
+    glCopyImageSubData(textures["stateNext"]->getId(), GL_TEXTURE_2D, 0, 0, 0, 0,
+                       textures["state"]->getId(), GL_TEXTURE_2D, 0, 0, 0, 0,
+                       numParticles, 3, 1);
 
     {
       framebuffer->bind();

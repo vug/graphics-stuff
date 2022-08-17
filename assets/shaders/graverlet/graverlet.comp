@@ -1,0 +1,19 @@
+#version 460 core
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(rgba32f, binding = 0) readonly uniform image2D texIn;
+layout(rgba32f, binding = 1) writeonly uniform image2D texOut;
+
+void main() {
+    const ivec2 ixPos = ivec2(gl_GlobalInvocationID.x, 0);
+    const ivec2 ixVel = ivec2(gl_GlobalInvocationID.x, 1);
+    const ivec2 ixAcc = ivec2(gl_GlobalInvocationID.x, 2);
+
+    const vec3 pos = imageLoad(texIn, ixPos).rgb;
+    const vec3 vel = imageLoad(texIn, ixVel).rgb;
+    const vec3 acc = imageLoad(texIn, ixAcc).rgb;
+
+    imageStore(texOut, ixPos, vec4(pos + 1, 0));
+    imageStore(texOut, ixVel, vec4(vel + 1, 0));
+    imageStore(texOut, ixAcc, vec4(acc + 1, 0));
+}

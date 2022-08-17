@@ -107,8 +107,7 @@ namespace ws
 
   void Texture::activateTexture(uint32_t no)
   {
-    assert(no == 0); // add more numbers as needed
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0 + no);
   }
 
   void Texture::bind() const
