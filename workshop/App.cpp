@@ -66,7 +66,7 @@ namespace ws
     {
       glEnable(GL_DEBUG_OUTPUT);
       glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-      glDebugMessageCallback(OpenGLDebugMessageCallback, nullptr);
+      glDebugMessageCallback(OpenGLDebugMessageCallback, this);
       // Ignore notifications
       glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
     }
@@ -206,7 +206,7 @@ namespace ws
   }
 
   void GLAPIENTRY OpenGLDebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
-                                             [[maybe_unused]] GLsizei length, const char *message, [[maybe_unused]] const void *userParam)
+                                             [[maybe_unused]] GLsizei length, const char *message, const void *userParam)
   {
     // filter out non-significant error/warning codes
     if (
@@ -224,5 +224,9 @@ namespace ws
               << ". Source: " << glMessageSourceToString(source)
               << ". Type: " << glMessageTypeToString(type)
               << ". Message: " << message << ".\n";
+
+    App *thisApp = (App *)userParam;
+    if (thisApp->specs.shouldBreakAtOpenGLDebugCallback)
+      __debugbreak();
   }
 }

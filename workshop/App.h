@@ -13,6 +13,7 @@ namespace ws
       uint32_t width = 800u;
       uint32_t height = 600u;
       bool shouldDebugOpenGL = true;
+      bool shouldBreakAtOpenGLDebugCallback = false;
     };
 
     App(const Specs &specs);

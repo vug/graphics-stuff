@@ -32,7 +32,7 @@ public:
   std::unique_ptr<ws::Framebuffer> framebuffer2;
   uint32_t numParticles = 2;
 
-  GraverletGPU() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true}) {}
+  GraverletGPU() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true, .shouldBreakAtOpenGLDebugCallback = true}) {}
 
   void onInit() final
   {
