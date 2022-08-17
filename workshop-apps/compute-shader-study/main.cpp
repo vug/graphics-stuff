@@ -69,7 +69,7 @@ public:
     ImGui::End();
 
     shaders["compute"]->bind();
-    glActiveTexture(GL_TEXTURE0);
+    ws::Texture::activateTexture(0);
     textures["computeInOut"]->bind();
     textures["computeInOut"]->bindImageTexture(0, ws::Texture::Access::ReadAndWrite);
     // glUniform1i(DiffuseTextureID, 0); or glUniform1i(glGetUniformLocation(shaderProgram, "texKitten"), 0); would have been needed to use sampler2d in a fragment shader?
@@ -82,7 +82,7 @@ public:
     for (const float x : compute_data)
       printf("%.1f ", x);
     printf("\n");
-    glBindTexture(GL_TEXTURE_2D, 0);
+    textures["computeInOut"]->unbind();
 
     {
       framebuffer->bind();

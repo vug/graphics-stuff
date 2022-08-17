@@ -95,6 +95,12 @@ namespace ws
   {
   }
 
+  void activateTexture(uint32_t no = 0)
+  {
+    assert(no == 0); // add more numbers as needed
+    glActiveTexture(GL_TEXTURE0);
+  }
+
   void Texture::bind() const
   {
     glBindTexture(GL_TEXTURE_2D, id);

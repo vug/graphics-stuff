@@ -58,6 +58,8 @@ namespace ws
     Texture(const std::filesystem::path &file);
     ~Texture();
 
+    static void activateTexture(uint32_t no = 0);
+
     uint32_t getId() const { return id; }
     void bind() const;
     void unbind() const;
