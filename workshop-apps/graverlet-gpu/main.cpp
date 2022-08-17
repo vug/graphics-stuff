@@ -104,7 +104,7 @@ public:
     // below won't work because vector of vector (each resized separately) is not contigous memory
     std::unique_ptr<glm::vec4[]> computeData = std::make_unique<glm::vec4[]>(numParticles * 3);
     glGetTextureSubImage(textures["state"]->getId(), 0, 0, 0, 0, numParticles, 3, 1, GL_RGBA, GL_FLOAT, numParticles * 3 * sizeof(glm::vec4), computeData.get());
-    for (int i = 0; i < numParticles; ++i)
+    for (uint32_t i = 0; i < numParticles; ++i)
       printf("(%.1f, %.1f, %.1f) ", computeData[i].x, computeData[i].y, computeData[i].z);
     printf("\n");
 
