@@ -51,6 +51,10 @@ public:
     auto initialState = std::make_unique<std::array<std::array<glm::vec4, MAX_PARTICLES>, 3>>();
     (*initialState)[0][0] = {-1, 0, 0, 0};
     (*initialState)[0][1] = {+1, 0, 0, 0};
+    (*initialState)[1][0] = {0, -2, 0, 0};
+    (*initialState)[1][1] = {0, +2, 0, 0};
+    (*initialState)[2][0] = {+0.1f, 0, 0, 0};
+    (*initialState)[2][1] = {-0.1f, 0, 0, 0};
     textures["state"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, initialState->data()});
     textures["stateNext"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, nullptr});
 
@@ -86,26 +90,18 @@ public:
     textures["state"]->bind();
     textures["state"]->bindImageTexture(0, ws::Texture::Access::Read);
 
-    // std::array<std::array<glm::vec4, MAX_PARTICLES>, 3> computeData;
-    // glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, computeData.data());
-
-    // std::array<std::array<glm::vec4, MAX_PARTICLES>, 3> computeData;
-    // int size = computeData.size() * computeData[0].size() * sizeof(glm::vec4);
-    // glGetTextureSubImage(textures["state"]->getId(), 0, 0, 0, 0, MAX_PARTICLES, 3, 1, GL_RGBA, GL_FLOAT, size, computeData.data());
-
-    // std::array<std::array<glm::vec4, 2>, 3> computeData;
-    // int size = computeData.size() * computeData[0].size() * sizeof(glm::vec4);
-    // glGetTextureSubImage(textures["state"]->getId(), 0, 0, 0, 0, numParticles, 3, 1, GL_RGBA, GL_FLOAT, size, computeData.data());
-
-    // for (auto &v : computeData[0])
-    //   printf("(%.1f, %.1f, %.1f) ", v.x, v.y, v.z);
-    // printf("\n");
-
-    // below won't work because vector of vector (each resized separately) is not contigous memory
     std::unique_ptr<glm::vec4[]> computeData = std::make_unique<glm::vec4[]>(numParticles * 3);
     glGetTextureSubImage(textures["state"]->getId(), 0, 0, 0, 0, numParticles, 3, 1, GL_RGBA, GL_FLOAT, numParticles * 3 * sizeof(glm::vec4), computeData.get());
-    for (uint32_t i = 0; i < numParticles; ++i)
-      printf("(%.1f, %.1f, %.1f) ", computeData[i].x, computeData[i].y, computeData[i].z);
+    for (uint32_t n = 0; n < numParticles; ++n)
+    {
+      const uint32_t ixPos = n;
+      const uint32_t ixVel = ixPos + numParticles;
+      const uint32_t ixAcc = ixVel + numParticles;
+      printf("[%u] (%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f)\n", n,
+             computeData[ixPos].x, computeData[ixPos].y, computeData[ixPos].z,
+             computeData[ixVel].x, computeData[ixVel].y, computeData[ixVel].z,
+             computeData[ixAcc].x, computeData[ixAcc].y, computeData[ixAcc].z);
+    }
     printf("\n");
 
     textures["state"]->unbind();
