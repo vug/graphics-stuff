@@ -1,3 +1,10 @@
+if(MSVC)
+  # /WX if warnings should be treated as errors
+  add_compile_options(/W4 /external:I${PROJECT_SOURCE_DIR}/dependencies /external:W0)
+else()
+  add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
+
 add_library(Workshop STATIC
   App.cpp
   Shader.cpp
@@ -24,9 +31,3 @@ target_compile_options(
 )
 
 target_include_directories(Workshop PUBLIC .)
-
-if(MSVC)
-  add_compile_options(/W4) # /WX if warnings should be treated as errors
-else()
-  add_compile_options(-Wall -Wextra -pedantic -Werror)
-endif()

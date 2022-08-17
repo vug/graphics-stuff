@@ -69,7 +69,7 @@ namespace ws
 
     for (const auto &f : faceTriangles)
       oMesh->add_face(f);
-    
+
     oMesh->update_normals();
     return oMesh;
   }
@@ -108,7 +108,7 @@ namespace ws
     std::vector<OMesh::VertexHandle> corners;
     for (uint32_t i = 0; i < numCorners; ++i)
     {
-      float angle = 2 * M_PI * i / numCorners;
+      float angle = static_cast<float>(2 * M_PI * i / numCorners);
       corners.push_back(oMesh->add_vertex({std::cos(angle), std::sin(angle), 0}));
     }
 
@@ -156,7 +156,6 @@ namespace ws
     {
       const auto &p = oMesh.point(v);
       mesh.verts.emplace_back(DefaultVertex{{p[0], p[1], p[2]}});
-      const auto &v = mesh.verts[mesh.verts.size() - 1];
     }
 
     for (auto f : oMesh.faces())
@@ -170,8 +169,8 @@ namespace ws
         // flat shading for normals: won't work because vertices are shared among faces
         // glm::vec3 n = {fNorm[0], fNorm[1], fNorm[2]};
 
-        //const auto &vNorm = oMesh.calc_normal(v);
-        const auto& vNorm = oMesh.normal(v);
+        // const auto &vNorm = oMesh.calc_normal(v);
+        const auto &vNorm = oMesh.normal(v);
         const glm::vec3 n = {vNorm[0], vNorm[1], vNorm[2]};
 
         // cheat for sphere
@@ -194,7 +193,7 @@ namespace ws
 
   uint32_t getOMeshNumVertices(const OMesh &oMesh)
   {
-    return oMesh.n_vertices();
+    return static_cast<uint32_t>(oMesh.n_vertices());
   }
 
   uint32_t getOMeshNumNeighbors(const OMesh &oMesh, int32_t ix)

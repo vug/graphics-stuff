@@ -206,7 +206,7 @@ namespace ws
   }
 
   void GLAPIENTRY OpenGLDebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
-                                             GLsizei length, const char *message, const void *userParam)
+                                             [[maybe_unused]] GLsizei length, const char *message, [[maybe_unused]] const void *userParam)
   {
     // filter out non-significant error/warning codes
     if (
