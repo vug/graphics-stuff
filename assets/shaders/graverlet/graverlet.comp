@@ -3,17 +3,40 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(rgba32f, binding = 0) readonly uniform image2D texIn;
 layout(rgba32f, binding = 1) writeonly uniform image2D texOut;
+uniform float dt;
+uniform int numParticles;
+uniform float softening;
 
 void main() {
     const ivec2 ixPos = ivec2(gl_GlobalInvocationID.x, 0);
     const ivec2 ixVel = ivec2(gl_GlobalInvocationID.x, 1);
     const ivec2 ixAcc = ivec2(gl_GlobalInvocationID.x, 2);
 
-    const vec3 pos = imageLoad(texIn, ixPos).rgb;
-    const vec3 vel = imageLoad(texIn, ixVel).rgb;
-    const vec3 acc = imageLoad(texIn, ixAcc).rgb;
+    const vec3 pos0 = imageLoad(texIn, ixPos).rgb;
+    const vec3 vel0 = imageLoad(texIn, ixVel).rgb;
+    const vec3 acc0 = imageLoad(texIn, ixAcc).rgb;
 
-    imageStore(texOut, ixPos, vec4(pos + 1, 0));
-    imageStore(texOut, ixVel, vec4(vel + 1, 0));
-    imageStore(texOut, ixAcc, vec4(acc + 1, 0));
+    // p[t + dt] = p[t] + v[t] dt + 1/2 a dt^2
+    vec3 pos1 = pos0 + vel0 * dt + 0.5 * acc0 * dt * dt;
+
+    // v[t + dt / 2] = v[t] + 1/2 a[t] dt
+    vec3 vel1 = vel0 + 0.5 * acc0 * dt;
+
+    // a[t + dt] = 1/m f(p[t + dt])
+    vec3 acc1 = vec3(0, 0, 0); // ?
+    for (int i = 0; i < numParticles; i++)
+    {
+      const ivec2 ixPosB = ivec2(i, 0);
+      const vec3 posB = imageLoad(texIn, ixPosB).xyz;
+      const vec3 r = pos1 - posB;
+      const float r2 = dot(r, r);
+      acc1 -= r / pow(r2 + softening, 1.5f);
+    }
+
+    // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt
+    vel1 += 0.5 * acc1 * dt;
+
+    imageStore(texOut, ixPos, vec4(pos1, 0));
+    imageStore(texOut, ixVel, vec4(vel1, 0));
+    imageStore(texOut, ixAcc, vec4(acc1, 0));
 }

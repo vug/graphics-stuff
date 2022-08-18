@@ -31,6 +31,7 @@ public:
   std::unique_ptr<ws::Framebuffer> framebuffer;
   std::unique_ptr<ws::Framebuffer> framebuffer2;
   uint32_t numParticles = 2;
+  float softening = 0.01f;
 
   GraverletGPU() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true, .shouldBreakAtOpenGLDebugCallback = true}) {}
 
@@ -54,8 +55,27 @@ public:
     (*initialState)[0][1] = {+1, 0, 0, 0};
     (*initialState)[1][0] = {0, -2, 0, 0};
     (*initialState)[1][1] = {0, +2, 0, 0};
-    (*initialState)[2][0] = {+0.1f, 0, 0, 0};
-    (*initialState)[2][1] = {-0.1f, 0, 0, 0};
+    (*initialState)[2][0] = {0, 0, 0, 0};
+    (*initialState)[2][1] = {0, 0, 0, 0};
+    auto gravitationalForce = [](const glm::vec3 &posA, const glm::vec3 &posB, float softening)
+    {
+      glm::vec3 r = posA - posB;
+      const float r2 = glm::dot(r, r);
+      return -r / glm::pow(r2 + softening, 1.5f);
+    };
+    for (uint32_t i = 0; i < numParticles; ++i)
+    {
+      glm::vec3 accA{};
+      for (uint32_t j = 0; j < numParticles; ++j)
+      {
+        const glm::vec4 &pA = (*initialState)[0][i];
+        const glm::vec4 &pB = (*initialState)[0][j];
+        const glm::vec3 posA = {pA.x, pA.y, pA.z};
+        const glm::vec3 posB = {pB.x, pB.y, pB.z};
+        accA += gravitationalForce(posA, posB, softening);
+      }
+      (*initialState)[2][i] = {accA.x, accA.y, accA.z, 0};
+    }
     textures["state"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, initialState->data()});
     textures["stateNext"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, nullptr});
 
@@ -87,7 +107,11 @@ public:
         shader->reload();
     ImGui::End();
 
-    shaders["compute"]->bind();
+    ws::Shader &compute = *shaders["compute"];
+    compute.bind();
+    glUniform1f(glGetUniformLocation(compute.getId(), "dt"), deltaTime);
+    glUniform1i(glGetUniformLocation(compute.getId(), "numParticles"), numParticles);
+    glUniform1f(glGetUniformLocation(compute.getId(), "softening"), softening);
     textures["state"]->bindImageTexture(0, ws::Texture::Access::Read);
     textures["stateNext"]->bindImageTexture(1, ws::Texture::Access::Write);
     ws::Shader::dispatchCompute(numParticles, 1, 1);
@@ -100,7 +124,7 @@ public:
       const uint32_t ixPos = n;
       const uint32_t ixVel = ixPos + numParticles;
       const uint32_t ixAcc = ixVel + numParticles;
-      printf("[%u] (%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f), (%.1f, %.1f, %.1f)\n", n,
+      printf("[%u] (%.2e, %.2e, %.2e), (%.2e, %.2e, %.2e), (%.2e, %.2e, %.2e)\n", n,
              computeData[ixPos].x, computeData[ixPos].y, computeData[ixPos].z,
              computeData[ixVel].x, computeData[ixVel].y, computeData[ixVel].z,
              computeData[ixAcc].x, computeData[ixAcc].y, computeData[ixAcc].z);
