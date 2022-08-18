@@ -31,7 +31,7 @@ public:
   std::unique_ptr<ws::Mesh> meshQuad;
   std::unique_ptr<ws::Framebuffer> framebuffer;
   std::unique_ptr<ws::Framebuffer> framebuffer2;
-  uint32_t numParticles = 1'000;
+  uint32_t numParticles = 100;
   float softening = 0.01f;
 
   std::mt19937 rndGen;
@@ -61,32 +61,33 @@ public:
       const float py = rndDist(rndGen) - 0.5f;
       const float pz = 0.f;
       const glm::vec4 pos = {px, py, pz, 0};
-      const float vx = 100.0f * (rndDist(rndGen) - 0.5f);
-      const float vy = 100.0f * (rndDist(rndGen) - 0.5f);
+      const float vx = 0.0f * (rndDist(rndGen) - 0.5f);
+      const float vy = 0.0f * (rndDist(rndGen) - 0.5f);
       const float vz = 0.f;
       const glm::vec4 vel = {vx, vy, vz, 0};
       (*initialState)[0][i] = pos;
       (*initialState)[1][i] = vel;
+      (*initialState)[2][i] = {0, 0, 0, 0};
     }
-    auto gravitationalForce = [](const glm::vec3 &posA, const glm::vec3 &posB, float softening)
-    {
-      glm::vec3 r = posA - posB;
-      const float r2 = glm::dot(r, r);
-      return -r / glm::pow(r2 + softening, 1.5f);
-    };
-    for (uint32_t i = 0; i < numParticles; ++i)
-    {
-      glm::vec3 accA{};
-      for (uint32_t j = 0; j < numParticles; ++j)
-      {
-        const glm::vec4 &pA = (*initialState)[0][i];
-        const glm::vec4 &pB = (*initialState)[0][j];
-        const glm::vec3 posA = {pA.x, pA.y, pA.z};
-        const glm::vec3 posB = {pB.x, pB.y, pB.z};
-        accA += gravitationalForce(posA, posB, softening);
-      }
-      (*initialState)[2][i] = {accA.x, accA.y, accA.z, 0};
-    }
+    // auto gravitationalForce = [](const glm::vec3 &posA, const glm::vec3 &posB, float softening)
+    // {
+    //   glm::vec3 r = posA - posB;
+    //   const float r2 = glm::dot(r, r);
+    //   return -r / glm::pow(r2 + softening, 1.5f);
+    // };
+    // for (uint32_t i = 0; i < numParticles; ++i)
+    // {
+    //   glm::vec3 accA{};
+    //   for (uint32_t j = 0; j < numParticles; ++j)
+    //   {
+    //     const glm::vec4 &pA = (*initialState)[0][i];
+    //     const glm::vec4 &pB = (*initialState)[0][j];
+    //     const glm::vec3 posA = {pA.x, pA.y, pA.z};
+    //     const glm::vec3 posB = {pB.x, pB.y, pB.z};
+    //     accA += gravitationalForce(posA, posB, softening);
+    //   }
+    //   (*initialState)[2][i] = {accA.x, accA.y, accA.z, 0};
+    // }
     textures["state"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, initialState->data()});
     textures["stateNext"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, nullptr});
 
@@ -106,6 +107,9 @@ public:
     const float renderTargetSize[2] = {widthF, heightF};
 
     ImGui::Begin("Boilerplate");
+    static float zoom = 10.0f;
+    ImGui::InputFloat("zoom", &zoom, 0, 0, "%3.f", ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::Separator();
     static bool showImGuiDemo = false;
     static bool showImPlotDemo = false;
     ImGui::Checkbox("Show ImGui Demo", &showImGuiDemo);
@@ -137,13 +141,13 @@ public:
     for (uint32_t n = 0; n < numParticles; ++n)
     {
       const uint32_t ixPos = n;
-      const uint32_t ixVel = ixPos + numParticles;
-      const uint32_t ixAcc = ixVel + numParticles;
+      // const uint32_t ixVel = ixPos + numParticles;
+      // const uint32_t ixAcc = ixVel + numParticles;
       // printf("[%u] (%.2e, %.2e, %.2e), (%.2e, %.2e, %.2e), (%.2e, %.2e, %.2e)\n", n,
       //        computeData[ixPos].x, computeData[ixPos].y, computeData[ixPos].z,
       //        computeData[ixVel].x, computeData[ixVel].y, computeData[ixVel].z,
       //        computeData[ixAcc].x, computeData[ixAcc].y, computeData[ixAcc].z);
-      mesh->verts.push_back({{computeData[ixAcc].x, computeData[ixAcc].y, computeData[ixAcc].z}});
+      mesh->verts.push_back({{computeData[ixPos].x, computeData[ixPos].y, computeData[ixPos].z}});
       mesh->verts.back().custom1.x = 0.01f;
       mesh->idxs.push_back(n);
     }
@@ -161,7 +165,6 @@ public:
     ws::Shader &shader = *shaders["point"];
     shader.bind();
     shader.setVector2fv("RenderTargetSize", renderTargetSize);
-    const float zoom = 100.0f;
     auto proj = glm::ortho(-zoom, zoom, -zoom, zoom, -1.f, 1.f);
     shader.setMatrix4fv("ProjectionFromView", glm::value_ptr(proj));
     mesh->bind();

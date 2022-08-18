@@ -8,7 +8,7 @@ uniform int numParticles;
 uniform float softening;
 
 void main() {
-    float dt = u_dt * 0.01;
+    float dt = u_dt * 0.1;
     const ivec2 ixPos = ivec2(gl_GlobalInvocationID.x, 0);
     const ivec2 ixVel = ivec2(gl_GlobalInvocationID.x, 1);
     const ivec2 ixAcc = ivec2(gl_GlobalInvocationID.x, 2);
@@ -28,10 +28,12 @@ void main() {
     for (int i = 0; i < numParticles; i++)
     {
       const ivec2 ixPosB = ivec2(i, 0);
+      if (gl_GlobalInvocationID.x == i)
+        continue;
       const vec3 posB = imageLoad(texIn, ixPosB).xyz;
       const vec3 r = pos1 - posB;
       const float r2 = dot(r, r);
-      acc1 += r / pow(r2 + softening, 1.5f);
+      acc1 -= r / pow(r2 + softening, 1.5f);
     }
 
     // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt
