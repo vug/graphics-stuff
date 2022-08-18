@@ -120,7 +120,7 @@ namespace ws
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
-  void Texture::bindImageTexture(uint32_t textureNo, Access access) const
+  void Texture::bindImageTexture(uint32_t textureUnit, Access access) const
   {
     GLenum glAccess{};
     switch (access)
@@ -137,7 +137,7 @@ namespace ws
     default:
       assert(false); // unknown Access value
     }
-    glBindImageTexture(textureNo, id, 0, GL_FALSE, 0, glAccess, getGlSpecs().internalFormat);
+    glBindImageTexture(textureUnit, id, 0, GL_FALSE, 0, glAccess, getGlSpecs().internalFormat);
   }
 
   void Texture::loadPixels(const void *data)

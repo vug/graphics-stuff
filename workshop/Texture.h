@@ -64,7 +64,7 @@ namespace ws
     void bind() const;
     void unbind() const;
     // should already be bound
-    void bindImageTexture(uint32_t textureNo, Access access) const;
+    void bindImageTexture(uint32_t textureUnit, Access access) const;
     // not type-safe
     void loadPixels(const void *data);
 

@@ -88,15 +88,8 @@ public:
     ImGui::End();
 
     shaders["compute"]->bind();
-    // ws::Texture::activateTexture(0);
     textures["state"]->bindImageTexture(0, ws::Texture::Access::Read);
     textures["stateNext"]->bindImageTexture(1, ws::Texture::Access::Write);
-    // int imgUnitIxInp = 0; // something unique
-    // int imgUnitIxOut = 1; // something unique
-    // glUniform1i(glGetUniformLocation(shaders["compute"]->getId(), "texIn"), imgUnitIxInp); // program must be active
-    // glBindImageTexture(imgUnitIxInp, textures["state"]->getId(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-    // glUniform1i(glGetUniformLocation(shaders["compute"]->getId(), "texOut"), imgUnitIxOut); // program must be active
-    // glBindImageTexture(imgUnitIxOut, textures["state"]->getId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     ws::Shader::dispatchCompute(numParticles, 1, 1);
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
