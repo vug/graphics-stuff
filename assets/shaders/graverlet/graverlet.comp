@@ -33,7 +33,7 @@ void main() {
       const vec3 posB = imageLoad(texIn, ixPosB).xyz;
       const vec3 r = pos1 - posB;
       const float r2 = dot(r, r);
-      acc1 -= r / pow(r2 + softening, 1.5f);
+      acc1 -= 0.00005 * r / pow(r2 + softening, 1.5f);
     }
 
     // v[t + dt] = v[t + dt / 2] + 1/2 a[t + dt] dt

@@ -24,6 +24,9 @@ class GraverletGPU : public ws::App
 public:
   // because we are storing the pos,vel,acc in a texture, max number of particles is determined by max texture size calculated below
   static constexpr uint32_t MAX_PARTICLES = 32'768u;
+  // cannot be allocated on stack
+  std::unique_ptr<std::array<std::array<glm::vec4, MAX_PARTICLES>, 3>> initialState = std::make_unique<std::array<std::array<glm::vec4, MAX_PARTICLES>, 3>>();
+
   std::unordered_map<std::string, std::unique_ptr<ws::Shader>> shaders;
   std::unordered_map<std::string, std::unique_ptr<ws::Texture>> textures;
 
@@ -37,33 +40,27 @@ public:
   std::mt19937 rndGen;
   std::uniform_real_distribution<float> rndDist;
 
-  GraverletGPU() : App({.name = "MyApp", .width = 800u, .height = 600u, .shouldDebugOpenGL = true, .shouldBreakAtOpenGLDebugCallback = true}) {}
+  GraverletGPU() : App({.name = "MyApp", .width = 1200u, .height = 1200u, .shouldDebugOpenGL = true, .shouldBreakAtOpenGLDebugCallback = true}) {}
 
-  void onInit() final
+  void initializeState(uint32_t nParticles, float omega = 1.0f, float coef = 0.25f)
   {
-    {
-      int maxTextureSize;
-      glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
-      printf("Max Texture Size: %d\n", maxTextureSize);
-    }
-
-    shaders["point"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
-                                                    GS_ASSETS_FOLDER / "shaders/graverlet/point.frag");
-    shaders["quad"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
-                                                   GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
-    shaders["compute"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/graverlet.comp");
-
-    // cannot be allocated on stack
-    auto initialState = std::make_unique<std::array<std::array<glm::vec4, MAX_PARTICLES>, 3>>();
+    numParticles = nParticles;
     for (uint32_t i = 0; i < numParticles; ++i)
     {
-      const float px = rndDist(rndGen) - 0.5f;
-      const float py = rndDist(rndGen) - 0.5f;
+      const float rad = std::pow(rndDist(rndGen), 0.5f);
+      const float theta = rndDist(rndGen) * 3.141593f * 2.0f;
+      const float px = rad * std::cos(theta);
+      const float py = rad * std::sin(theta);
+      // const float px = rndDist(rndGen) - 0.5f;
+      // const float py = rndDist(rndGen) - 0.5f;
       const float pz = 0.f;
       const glm::vec4 pos = {px, py, pz, 0};
-      const float vx = 0.0f * (rndDist(rndGen) - 0.5f);
-      const float vy = 0.0f * (rndDist(rndGen) - 0.5f);
-      const float vz = 0.f;
+      const glm::vec2 p2 = glm::normalize(glm::vec2{px, py});
+      // const float vx = 0.5f * (rndDist(rndGen) - 0.5f);
+      // const float vy = 0.5f * (rndDist(rndGen) - 0.5f);
+      const float vx = py * omega * std::pow(2.0f - rad, coef);
+      const float vy = -px * omega * std::pow(2.0f - rad, coef);
+      const float vz = 0;
       const glm::vec4 vel = {vx, vy, vz, 0};
       (*initialState)[0][i] = pos;
       (*initialState)[1][i] = vel;
@@ -88,8 +85,26 @@ public:
     //   }
     //   (*initialState)[2][i] = {accA.x, accA.y, accA.z, 0};
     // }
-    textures["state"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, initialState->data()});
-    textures["stateNext"] = std::make_unique<ws::Texture>(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, nullptr});
+
+    textures["state"].reset(new ws::Texture(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, initialState->data()}));
+    textures["stateNext"].reset(new ws::Texture(ws::Texture::Specs{MAX_PARTICLES, 3, ws::Texture::Format::RGBA32f, ws::Texture::Filter::Nearest, ws::Texture::Wrap::ClampToBorder, nullptr}));
+  }
+
+  void onInit() final
+  {
+    {
+      int maxTextureSize;
+      glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+      printf("Max Texture Size: %d\n", maxTextureSize);
+    }
+
+    shaders["point"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/main.vert",
+                                                    GS_ASSETS_FOLDER / "shaders/graverlet/point.frag");
+    shaders["quad"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/postprocess/main.vert",
+                                                   GS_ASSETS_FOLDER / "shaders/postprocess/main.frag");
+    shaders["compute"] = std::make_unique<ws::Shader>(GS_ASSETS_FOLDER / "shaders/graverlet/graverlet.comp");
+
+    initializeState(numParticles);
 
     mesh.reset(new ws::Mesh(numParticles, ws::Mesh::Type::Points));
 
@@ -98,6 +113,8 @@ public:
     framebuffer = std::make_unique<ws::Framebuffer>(width, height);
 
     glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   }
 
   void onRender([[maybe_unused]] float time, [[maybe_unused]] float deltaTime) final
@@ -109,6 +126,14 @@ public:
     ImGui::Begin("Boilerplate");
     static float zoom = 10.0f;
     ImGui::InputFloat("zoom", &zoom, 0, 0, "%3.f", ImGuiInputTextFlags_EnterReturnsTrue);
+    static int nParticles = static_cast<int>(numParticles);
+    ImGui::InputInt("# Particles", &nParticles, 1, 100);
+    static float omega = 1.0f;
+    ImGui::InputFloat("Omega", &omega);
+    static float coeff = 0.25f;
+    ImGui::InputFloat("Coeff", &coeff);
+    if (ImGui::Button("Restart"))
+      initializeState(nParticles, omega, coeff);
     ImGui::Separator();
     static bool showImGuiDemo = false;
     static bool showImPlotDemo = false;
@@ -122,6 +147,7 @@ public:
     if (ImGui::Button("Reload"))
       for (auto &[name, shader] : shaders)
         shader->reload();
+    ImGui::Text("FPS: %3.1f, delta: %3.1f", 1.0f / deltaTime, deltaTime);
     ImGui::End();
 
     ws::Shader &compute = *shaders["compute"];
